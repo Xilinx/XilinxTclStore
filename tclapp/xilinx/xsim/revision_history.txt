@@ -1,3 +1,4 @@
+2.411 added sbc as short form values for coverage type
 2.410 removed wto switch for webtalk data collection
 2.409 debug msg for reporting missing shared library for a given vlnv
 2.408 support for user specified SystemC/C++/C libraries
