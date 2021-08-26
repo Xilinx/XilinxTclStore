@@ -1,3 +1,4 @@
+11.90 donot initialize variables for step flow
 11.89 sanity check to determine if glbl top is required
 11.88 support for configuration options for sim models
 11.87 debug msg for reporting missing shared library for a given vlnv
