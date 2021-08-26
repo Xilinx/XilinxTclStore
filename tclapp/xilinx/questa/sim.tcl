@@ -24,7 +24,12 @@ proc setup { args } {
   # true (0) if success, false (1) otherwise
 
   # initialize global variables
-  usf_init_vars
+  set args [string trim $args "\}\{"]
+
+  # donot re-initialze, if -int_setup_sim_vars found in args (for -step flow only)
+  if { [lsearch -exact $args {-int_setup_sim_vars}] == -1 } {
+    usf_init_vars
+  }
 
   # control precompile flow
   variable a_sim_vars
