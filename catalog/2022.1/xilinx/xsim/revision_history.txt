@@ -1,3 +1,4 @@
+2.412 donot initialize variables for step flow
 2.411 added sbc as short form values for coverage type
 2.410 removed wto switch for webtalk data collection
 2.409 debug msg for reporting missing shared library for a given vlnv

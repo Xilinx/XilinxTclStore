@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>sanity check to determine if glbl top is required</revision_history>
+      <revision_history>donot initialize variables for step flow</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
