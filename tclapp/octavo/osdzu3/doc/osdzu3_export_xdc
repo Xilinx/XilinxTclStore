@@ -1,0 +1,12 @@
+
+
+  Description: 
+
+     Export xdc files based on the implemented design
+
+     This command must be run on a implemented design.
+
+  Example:
+  
+    export_xdc
+    export_xdc -usage

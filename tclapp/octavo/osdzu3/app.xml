@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial version</revision_history>
+      <name>osdzu3</name>
+      <company>octavo</company>
+      <company_display>Octavo Systems LLC</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by product.</summary>
+      <display>Octavo Systems</display>
+      <procs>
+        <proc>
+          <name>osdzu3_export_xdc</name>
+          <summary>Export implemented constraint files 
+This proc exports two or three constraint files from the loaded implemented design using the write_xdc command. 
+The &quot;set_property PACKAGE_PIN&quot; constraint will be substituted with &quot;set_osdzu3_package_pin&quot;, the Xilinx package 
+pin substituted with the OSDZU3 SiP package pin and saved in the file &quot;osdzu3_package_pins.tcl&quot;. The &quot;set_input_delay&quot; 
+and &quot;set_output_delay&quot; constraint will be substituted with &quot;set_osdzu3_input_delay&quot; and &quot;set_osdzu3_output_delay&quot;, saved 
+in the file &quot;osdzu3_io_delay.tcl&quot;. The input/output delays will be adjusted to add the SiP pin flight times so that 
+they are properly accounted for during Static Timing Analysis. All other constraints will be exported to the 
+file &quot;osdzu3_timing.xdc&quot;.</summary>
+        </proc>
+        <proc>
+          <name>set_osdzu3_input_delay</name>
+          <summary>Command to set min/max input delay. Use this command in your tcl constraint file.</summary>
+        </proc>
+        <proc>
+          <name>set_osdzu3_output_delay</name>
+          <summary>Command to set min/max output delay. Use this command in your tcl constraint file.</summary>
+        </proc>
+        <proc>
+          <name>set_osdzu3_package_pin</name>
+          <summary>Command to set package pin. Use this command in your tcl constraint file.</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
