@@ -1,7 +1,7 @@
-MyCompany Tcl Apps (demonstration)
+Octavo Tcl Apps
 
 This directory is the top-level directory for Tcl Apps provided
-by MyCompany.
+by Octavo.
 
 The only Tcl file within this directory is a manually copied
 pkgIndex.tcl file.  The file pkgIndex.tcl is the same in all
