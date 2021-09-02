@@ -1,8 +1,7 @@
-Xilinx PCB Utilities App
+Octavo SiP Utilities App
 
 This directory is a collection of scripts and utiltiy application
-that are grouped by relevance to help interfacing with PCB
-design.
+that are grouped by relevance to help target Octavo SiP design.
 
 All Tcl procs, variables, etc. must be defined within the
 ::tclapp::octavo::osdzu3 namespace.  No globals of any kind are
