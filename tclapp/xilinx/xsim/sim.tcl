@@ -2644,6 +2644,9 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
     set debug_mode [get_property -quiet "hw_emu.debug_mode" $a_sim_vars(fs_obj)]
     if { {wdb} == $debug_mode } {
+      puts $fh_scr "\nif \{ \[file exists vitis_params.tcl\] \} \{"
+      puts $fh_scr "  source vitis_params.tcl"
+      puts $fh_scr "\}"
       puts $fh_scr "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
       puts $fh_scr "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
       puts $fh_scr "    puts \$msg"
