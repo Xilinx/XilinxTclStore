@@ -1,0 +1,10 @@
+  Description: 
+
+    Command to set min/max input delay
+
+  Example:
+
+    set_osdzu3_input_delay <COMMAND_LINE_FOR_SET_INPUT_DELAY>
+    set_osdzu3_input_delay -clock clk 0.3 [get_ports in*]
+    set_osdzu3_input_delay -min -clock clk 0.1 [get_ports in*]
+

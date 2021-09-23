@@ -1,0 +1,39 @@
+Octavo Tcl Apps
+
+This directory is the top-level directory for Tcl Apps provided
+by Octavo.
+
+The only Tcl file within this directory is a manually copied
+pkgIndex.tcl file.  The file pkgIndex.tcl is the same in all
+provider directories.
+
+================================================================
+CREATING A NEW TCL APP
+================================================================
+To create a new Tcl App simply make a new directory with the 
+name of the App, e.g.
+
+% mkdir myapp
+
+In the app directory you can add any number of Tcl files that 
+together make up the app. The only requirement is that the app
+directory contains one Tcl file with the same name as the app, 
+e.g. myapp.tcl with at least this content
+
+% cat myapp/myapp.tcl
+################################################################
+namespace eval ::tclapp::mycompany::myapp {
+
+    # Allow Tcl to find tclIndex
+    variable home [file join [pwd] [file dirname [info script]]]
+    if {[lsearch -exact $::auto_path $home] == -1} {
+	lappend ::auto_path $home
+    }
+
+}
+package provide ::tclapp::mycompany::myapp 1.0
+################################################################
+
+No other files in myapp/ should use the 'package provide' command.
+
+Now follow the directions in the myapp/README file.
