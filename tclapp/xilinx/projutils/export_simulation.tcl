@@ -287,6 +287,9 @@ proc export_simulation {args} {
   ##############################
   # export simulation processing
   ##############################
+
+  xps_check_noc
+
   
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -579,6 +582,40 @@ proc xps_set_target_obj { obj } {
     }
   }
   return 0
+}
+
+proc xps_check_noc {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  #
+  # snoc - switch network check
+  #
+  if { [rdi::is_versal] } {
+    set b_contains_noc 0
+    foreach ip [get_ips -quiet -all] {
+      set ipdef [get_property -quiet ipdef $ip]
+      if {[regexp -nocase {:noc_} $ipdef]} {
+        set b_contains_noc 1
+        break
+      }
+    }
+
+    if { $b_contains_noc } {
+      #
+      # if design contains NoC (aggregator finds this from srcset 'top' and if not set then works on default simset 'top')
+      #   - if found, then check if it is generated. If not, print critical warning.
+      #
+      if { [rdi::is_design_contain_noc_blocks] } {
+        if { [get_param "project.enableXlnocSimWrapperStatusCheck"] } {
+          if { ![rdi::is_logical_noc_generated] } {
+            send_msg_id exportsim-Tcl-015 "CRITICAL WARNING" "The logical switch network (xlnoc) and simulation wrapper (<top>_sim_wrapper.v/vhd) could not be found. These sources are required for simulating the NoC IP. Please run 'generate_switch_network_for_noc' Tcl command for generating these sources and then rerun export_simulation to create a script for the updated source hierarchy.\n"
+          }
+        }
+      }
+    }
+  }
 }
 
 proc xps_create_rundir { dir run_dir_arg } {
