@@ -5648,7 +5648,8 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set sm_lib_dir [file normalize $lib_dir]
     set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
     switch $simulator {
-      {xcelium} {
+      {xcelium} -
+      {vcs} {
         if { $b_compile_simmodels } {
           set lib_name [string trimleft $library "lib"]
           set lib_name [string trimright $lib_name ".so"]

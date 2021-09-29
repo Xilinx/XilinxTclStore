@@ -35,12 +35,17 @@ proc usf_init_vars {} {
   set a_sim_vars(b_exec_step)                0
   set a_sim_vars(b_int_setup_sim_vars)       0
 
+  set a_sim_vars(b_compile_simmodels)        0
+
+  set a_sim_vars(l_simmodel_compile_order)   [list]
+
   #################
   # initialize vars
   #################
   set a_sim_vars(tmp_obj_dir)                "c.obj"
   set a_sim_vars(clog)                       "compile.log"
   set a_sim_vars(tmp_log_file)               ".tmp_log"
+  set a_sim_vars(compiled_design_lib)        "vcs_lib"
   set a_sim_vars(syscan_libname)             "lib_sc.so"
 
   set a_sim_vars(run_logs_compile)           [list $a_sim_vars(clog) vhdlan.log vlogan.log syscan.log $a_sim_vars(tmp_log_file)]

@@ -758,7 +758,7 @@ proc usf_compile_simmodel_sources { fh } {
     return
   }
 
-  # update mappings in xsim.ini
+  # update mappings in cds.lib
   usf_add_simmodel_mappings
 
   # find simmodel info from dat file and update do file
@@ -767,7 +767,7 @@ proc usf_compile_simmodel_sources { fh } {
     set fh_dat 0
     set dat_file "$lib_path/.cxl.sim_info.dat"
     if {[catch {open $dat_file r} fh_dat]} {
-      send_msg_id USF-Questa-016 WARNING "Failed to open file to read ($dat_file)\n"
+      send_msg_id USF-Xcelium-016 WARNING "Failed to open file to read ($dat_file)\n"
       continue
     }
     set data [split [read $fh_dat] "\n"]
@@ -813,8 +813,8 @@ proc usf_compile_simmodel_sources { fh } {
 
     # copy simmodel sources locally
     if { $a_sim_vars(b_int_export_source_files) } {
-      if { {} == $simmodel_name } { send_msg_id USF-Questa-107 WARNING "Empty tag '$simmodel_name'!\n" }
-      if { {} == $library_name  } { send_msg_id USF-Questa-107 WARNING "Empty tag '$library_name'!\n"  }
+      if { {} == $simmodel_name } { send_msg_id USF-Xcelium-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-Xcelium-107 WARNING "Empty tag '$library_name'!\n"  }
 
       set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
       set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
@@ -854,7 +854,6 @@ proc usf_compile_simmodel_sources { fh } {
     set gplus_ldflags_option    {}
     set gcc_ldflags_option      {}
     set ldflags_lin64           [list]
-    set ldflags_win64           [list]
     set ldlibs                  [list]
     set ldlibs_lin64            [list]
     set ldlibs_win64            [list]
@@ -908,7 +907,7 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
       if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
       if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
-      if { "<SYSTEMC_INCLUDE_DIRS_XCELIUM>" == $tag } { set systemc_incl_dirs_xcl       [split $value {,}] }
+      if { "<SYSTEMC_INCLUDE_DIRS_XCELIUM>" == $tag } { set systemc_incl_dirs_xcl [split $value {,}] }
       if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
       if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
       if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
@@ -922,7 +921,6 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
       if { "<LDFLAGS_XCELIUM>"            == $tag } { set ldflags_xcl             $value }
       if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
-      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
       if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
       if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
       if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
@@ -968,6 +966,7 @@ proc usf_compile_simmodel_sources { fh } {
 
         # <SYSTEMC_INCLUDE_DIRS>
         foreach incl_dir $systemc_incl_dirs {
+puts d1:$incl_dir
           if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
             set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
           }
@@ -976,6 +975,7 @@ proc usf_compile_simmodel_sources { fh } {
 
         # <SYSTEMC_INCLUDE_DIRS_XCELIUM>
         foreach incl_dir $systemc_incl_dirs_xcl {
+puts d2:$incl_dir
           if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
             set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
           }
@@ -1040,11 +1040,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args $ldflags_xcl
       }
      
-      if {$::tcl_platform(platform) == "windows"} {
-      if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
-      } else {
       if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
-      }
       
       # acd ldflags
       if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }

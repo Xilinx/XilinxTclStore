@@ -610,7 +610,7 @@ proc xps_check_noc {} {
       if { [rdi::is_design_contain_noc_blocks] } {
         if { [get_param "project.enableXlnocSimWrapperStatusCheck"] } {
           if { ![rdi::is_logical_noc_generated] } {
-            send_msg_id exportsim-Tcl-015 "CRITICAL WARNING" "The logical switch network (xlnoc) and simulation wrapper (<top>_sim_wrapper.v/vhd) could not be found. These sources are required for simulating the NoC IP. Please run 'generate_switch_network_for_noc' Tcl command for generating these sources and then rerun export_simulation to create a script for the updated source hierarchy.\n"
+            send_msg_id exportsim-Tcl-077 "CRITICAL WARNING" "The logical switch network (xlnoc) and simulation wrapper (<top>_sim_wrapper.v/vhd) could not be found. These sources are required for simulating the NoC IP. Please run 'generate_switch_network_for_noc' Tcl command for generating these sources and then rerun export_simulation to create a script for the updated source hierarchy.\n"
           }
         }
       }
