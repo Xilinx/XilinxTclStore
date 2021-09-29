@@ -2469,7 +2469,7 @@ proc xps_set_systemc_cmd { simulator fh src_file log_arg } {
        # 
       } else {
         if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "srcs/$src_file"
+          puts $fh "$src_file"
         } else {
           puts $fh "$src_file"
         }
