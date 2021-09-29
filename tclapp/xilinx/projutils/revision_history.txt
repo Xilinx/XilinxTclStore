@@ -1,3 +1,4 @@
+3.492 fixed source file path for export_source_files switch
 3.491 updated message for NoC status
 3.490 check for NoC and switch network generation status
 3.488 updated help for export_simulation
