@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>check for NoC and switch network generation status</revision_history>
+      <revision_history>updated message for NoC status</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

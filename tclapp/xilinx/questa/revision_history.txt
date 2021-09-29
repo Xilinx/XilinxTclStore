@@ -1,3 +1,4 @@
+2.248 support for local VCS compiled simmodel library path for non-precompile flow
 2.247 source vitis_params for setting region path variables
 2.246 donot initialize variables for step flow
 2.245 support for configuration options for sim models

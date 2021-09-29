@@ -1,3 +1,4 @@
+3.491 updated message for NoC status
 3.490 check for NoC and switch network generation status
 3.488 updated help for export_simulation
 3.487 updated comment for cache vars

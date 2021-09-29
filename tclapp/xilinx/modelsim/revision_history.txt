@@ -1,3 +1,4 @@
+2.298 support for local VCS compiled simmodel library path for non-precompile flow
 2.297 fixed messsage for compiled library path
 2.296 bind user specified systemc/C/C++ libraries during elaboration
 2.295 refactored library search order proc to utils
