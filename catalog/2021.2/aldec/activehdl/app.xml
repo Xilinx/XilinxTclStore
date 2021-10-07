@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT80209 - Vivado GUI hangs if simulation scripts are generated for Riviera</revision_history>
+      <revision_history>source vitis_params for setting region path variables</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

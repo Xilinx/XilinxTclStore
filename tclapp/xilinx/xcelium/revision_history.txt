@@ -1,6 +1,27 @@
+11.91 source vitis_params for setting region path variables
+11.90 donot initialize variables for step flow
+11.89 sanity check to determine if glbl top is required
+11.88 support for configuration options for sim models
+11.87 debug msg for reporting missing shared library for a given vlnv
+11.86 bind user specified systemc/C/C++ libraries during elaboration
+11.85 refactored library search order proc to utils
+11.84 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
+11.83 set verilog options for pure vhdl design if glbl.v compiled
+11.82 define xv_cxl_ip_path to point to compiled IP libraries
+11.81 refactored generics proc to common helpers
+11.80 added common helpers
+11.79 enable non precompile flow
+11.78 export xv_cxl_lib_path for simulate step only
+11.77 export xv_cxl_lib_path for simulate step
+11.76 fixes for non pre-compile flow
+11.75 fixed install path var
+11.74 support for step execution
+11.73 initialize vars from utils
+11.72 code refactoring
+11.71 check for leaf dir name wrt library name for linked library
 11.70 Extract IP file name from core-container to determine SV package libraries
 11.69 add simprims_ver mapping to resolve duplicate bindings
-11.68 fixed systemc library install path detection
+11.68 merged 2021.1-dev to 2021.2-dev
 11.67 enable optimization and shell setting for pipefail
 11.66 export chess library env
 11.65 bind noc_na for netlist simulation

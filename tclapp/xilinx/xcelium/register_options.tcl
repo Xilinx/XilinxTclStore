@@ -52,6 +52,8 @@ proc register_options { simulator } {
     {{compile.g++.more_options}      {string} {}         {More G++ compilation options}}
     {{compile.gcc.more_options}      {string} {}         {More GCC compilation options}}
     {{elaborate.update}              {bool}   {0}        {Check if unit is up-to-date before writing}}
+    {{elaborate.link.sysc}           {string} {}         {Specify SystemC libraries to bind}}
+    {{elaborate.link.c}              {string} {}         {Specify C/C++ libraries to bind}}
     {{elaborate.xmelab.more_options} {string} {}         {More XMELAB elaboration options}}
     {{simulate.tcl.post}             {string} {}         {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string} {1000ns}   {Specify simulation run time}}

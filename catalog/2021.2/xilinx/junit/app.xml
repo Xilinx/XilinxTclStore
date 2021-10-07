@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various Updates</revision_history>
+      <revision_history>Adds -hold and -setup to the get_timing_paths command in validate_timing</revision_history>
       <name>junit</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>

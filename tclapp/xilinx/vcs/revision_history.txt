@@ -1,5 +1,21 @@
+9.73 source vitis_params for setting region path variables
+9.72 donot initialize variables for step flow
+9.71 sanity check to determine if glbl top is required
+9.70 debug msg for reporting missing shared library for a given vlnv
+9.69 bind user specified systemc/C/C++ libraries during elaboration
+9.68 refactored library search order proc to utils
+9.67 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
+9.66 define xv_cxl_ip_path to point to compiled IP libraries
+9.65 refactored generics proc to common helpers
+9.64 added common helpers
+9.63 export xv_cxl_lib_path for simulate step only
+9.62 export xv_cxl_lib_path for simulate step
+9.61 support for step execution
+9.60 initialize vars from utils
+9.59 code refactoring
+9.58 check for leaf dir name wrt library name for linked library
 9.57 Extract IP file name from core-container to determine SV package libraries
-9.56 redirect gcc compile messages to compile.log
+9.56 merged 2021.1-dev to 2021.2-dev
 9.55 fixed systemc library install path detection
 9.54 fixed redirection string
 9.53 export chess library env

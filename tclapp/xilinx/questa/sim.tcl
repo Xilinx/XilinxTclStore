@@ -24,7 +24,12 @@ proc setup { args } {
   # true (0) if success, false (1) otherwise
 
   # initialize global variables
-  ::tclapp::xilinx::questa::usf_init_vars
+  set args [string trim $args "\}\{"]
+
+  # donot re-initialze, if -int_setup_sim_vars found in args (for -step flow only)
+  if { [lsearch -exact $args {-int_setup_sim_vars}] == -1 } {
+    usf_init_vars
+  }
 
   # control precompile flow
   variable a_sim_vars
@@ -52,7 +57,7 @@ proc compile { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::questa::usf_launch_script "questa" $step
+  usf_launch_script "questa" $step
 }
 
 proc elaborate { args } {
@@ -67,7 +72,7 @@ proc elaborate { args } {
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::questa::usf_launch_script "questa" $step
+  usf_launch_script "questa" $step
 }
 
 proc simulate { args } {
@@ -76,19 +81,19 @@ proc simulate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
+ 
+  variable a_sim_vars
 
   send_msg_id USF-Questa-004 INFO "Questa::Simulate design"
   usf_questa_write_simulate_script
 
   set proc_name [lindex [split [info level 0] " "] 0]
   set step [lindex [split $proc_name {:}] end]
-  ::tclapp::xilinx::questa::usf_launch_script "questa" $step
+  usf_launch_script "questa" $step
 
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only) } {
+  if { $a_sim_vars(b_scripts_only) } {
     set fh 0
-    set file [file normalize [file join $dir "simulate.log"]]
+    set file [file normalize [file join $a_sim_vars(s_launch_dir) "simulate.log"]]
     if {[catch {open $file w} fh]} {
       send_msg_id USF-Questa-016 ERROR "Failed to open file to write ($file)\n"
     } else {
@@ -110,17 +115,51 @@ proc usf_questa_setup_simulation { args } {
 
   variable a_sim_vars
 
-  ::tclapp::xilinx::questa::usf_set_simulator_path   "questa"
-  if { $a_sim_vars(b_int_system_design) } {
-    ::tclapp::xilinx::questa::usf_set_gcc_version_path "questa"
-  }
-
   # set the simulation flow
   xcs_set_simulation_flow $a_sim_vars(s_simset) $a_sim_vars(s_mode) $a_sim_vars(s_type) a_sim_vars(s_flow_dir_key) a_sim_vars(s_simulation_flow)
+
+  # set default object
+  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
+    return 1
+  }
+
+  # *****************************************************************
+  # is step exec mode?
+  # *****************************************************************
+  if { $a_sim_vars(b_int_setup_sim_vars) } {
+    return 0
+  }
 
   if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
     set a_sim_vars(b_netlist_sim) 1
   }
+
+  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 1
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    set a_sim_vars(s_simlib_dir) "$a_sim_vars(s_launch_dir)/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
+  usf_set_simulator_path   "questa"
+
+  if { $a_sim_vars(b_int_system_design) } {
+    usf_set_gcc_version_path "questa"
+  }
+
+  # initialize boost library reference
+  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
+
+  # initialize XPM libraries (if any)
+  xcs_get_xpm_libraries
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -128,20 +167,6 @@ proc usf_questa_setup_simulation { args } {
     # extract ip simulation files
     xcs_extract_ip_files a_sim_vars(b_extract_ip_sim_files)
   }
-
-  # set default object
-  if { [xcs_set_sim_tcl_obj $a_sim_vars(s_comp_file) $a_sim_vars(s_simset) a_sim_vars(sp_tcl_obj) a_sim_vars(s_sim_top)] } {
-    return 1
-  }
-
-  # initialize Questa simulator variables
-  usf_questa_init_simulation_vars
-
-  # initialize boost library reference
-  set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
-
-  # initialize XPM libraries (if any)
-  xcs_get_xpm_libraries
 
   # write functional/timing netlist for post-* simulation
   set a_sim_vars(s_netlist_file) [xcs_write_design_netlist $a_sim_vars(s_simset)          \
@@ -192,7 +217,7 @@ proc usf_questa_setup_simulation { args } {
   # cache all design files
   variable a_sim_cache_all_design_files_obj
   foreach file_obj [get_files -quiet -all] {
-    set name [get_property -quiet name $file_obj]
+    set name [get_property -quiet "name" $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
@@ -221,8 +246,7 @@ proc usf_questa_setup_simulation { args } {
 
   # fetch design files
   set global_files_str {}
-  set ::tclapp::xilinx::questa::a_sim_vars(l_design_files) \
-     [xcs_uniquify_cmd_str [::tclapp::xilinx::questa::usf_get_files_for_compilation global_files_str]]
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [usf_get_files_for_compilation global_files_str]]
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -233,15 +257,6 @@ proc usf_questa_setup_simulation { args } {
   usf_questa_create_lib_dir
 
   return 0
-}
-
-proc usf_questa_init_simulation_vars {} {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_questa_sim_vars
-  set a_questa_sim_vars(s_compiled_lib_dir) {}
 }
 
 proc usf_questa_setup_args { args } {
@@ -258,9 +273,11 @@ proc usf_questa_setup_args { args } {
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
   # [-install_path <arg>]: Custom Questa installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
+  # [-exec]: Execute script (applicable with -step switch only)
   # [-run_dir <arg>]: Simulation run directory
   # [-int_sm_lib_dir <arg>]: Simulation model library directory
   # [-int_os_type]: OS type (32 or 64) (internal use)
+  # [-int_setup_sim_vars]: Initialize sim vars only (internal use)
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
@@ -272,6 +289,7 @@ proc usf_questa_setup_args { args } {
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
+  # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
 
   # Return Value:
@@ -279,37 +297,40 @@ proc usf_questa_setup_args { args } {
 
   # Categories: xilinxtclstore, questa
 
+  variable a_sim_vars
   set args [string trim $args "\}\{"]
 
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
-      "-simset"                   { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_simset) [lindex $args $i]          }
-      "-mode"                     { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_mode) [lindex $args $i]            }
-      "-type"                     { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_type) [lindex $args $i]            }
-      "-scripts_only"             { set ::tclapp::xilinx::questa::a_sim_vars(b_scripts_only) 1                           }
-      "-of_objects"               { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_comp_file) [lindex $args $i]       }
-      "-absolute_path"            { set ::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) 1                          }
-      "-lib_map_path"             { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_lib_map_path) [lindex $args $i]    }
-      "-install_path"             { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_install_path) [lindex $args $i];\
-                                         set ::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) 1          }
-      "-batch"                    { set ::tclapp::xilinx::questa::a_sim_vars(b_batch) 1                                  }
-      "-run_dir"                  { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) [lindex $args $i]      }
-      "-int_os_type"              { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_os_type) [lindex $args $i]     }
-      "-int_debug_mode"           { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_int_debug_mode) [lindex $args $i]  }
-      "-int_ide_gui"              { set ::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) 1                        }
-      "-int_halt_script"          { set ::tclapp::xilinx::questa::a_sim_vars(b_int_halt_script) 1                        }
-      "-int_systemc_mode"         { set ::tclapp::xilinx::questa::a_sim_vars(b_int_systemc_mode) 1                       }
-      "-int_system_design"        { set ::tclapp::xilinx::questa::a_sim_vars(b_int_system_design) 1                      }
-      "-int_gcc_bin_path"         { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_gcc_bin_path) [lindex $args $i]    }
-      "-int_gcc_version"          { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_gcc_version) [lindex $args $i]     }
-      "-int_sim_version"          { incr i;set ::tclapp::xilinx::questa::a_sim_vars(s_sim_version) [lindex $args $i]     }
-      "-int_sm_lib_dir"           { incr i;set ::tclapp::xilinx::questa::a_sim_vars(custom_sm_lib_dir) [lindex $args $i] }
-      "-int_compile_glbl"         { set ::tclapp::xilinx::questa::a_sim_vars(b_int_compile_glbl) 1                       }
-      "-int_sm_lib_ref_debug"     { set ::tclapp::xilinx::questa::a_sim_vars(b_int_sm_lib_ref_debug) 1                   }
-      "-int_csim_compile_order"   { set ::tclapp::xilinx::questa::a_sim_vars(b_int_csim_compile_order) 1                 }
-      "-int_en_vitis_hw_emu_mode" { set ::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) 1               }
+      "-simset"                   { incr i;set a_sim_vars(s_simset)            [lindex $args $i] }
+      "-mode"                     { incr i;set a_sim_vars(s_mode)              [lindex $args $i] }
+      "-type"                     { incr i;set a_sim_vars(s_type)              [lindex $args $i] }
+      "-of_objects"               { incr i;set a_sim_vars(s_comp_file)         [lindex $args $i] }
+      "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)      [lindex $args $i] }
+      "-install_path"             { incr i;set a_sim_vars(s_install_path)      [lindex $args $i] }
+      "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)        [lindex $args $i] }
+      "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
+      "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
+      "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
+      "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
+      "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
+      "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
+      "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
+      "-batch"                    { set a_sim_vars(b_batch)                    1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
+      "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
+      "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
+      "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
+      "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
+      "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
+      "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
+      "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
+      "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -326,7 +347,6 @@ proc usf_questa_verify_compiled_lib {} {
   # Return Value:
 
   variable a_sim_vars
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
 
   set ini_file "modelsim.ini"
   set compiled_lib_dir {}
@@ -349,7 +369,7 @@ proc usf_questa_verify_compiled_lib {} {
     }
   }
   # 2. not found? find in project default dir (<project>/<project>.cache/compile_simlib
-  set dir [get_property "COMPXLIB.QUESTA_COMPILED_LIBRARY_DIR" [current_project]]
+  set dir [get_property "compxlib.questa_compiled_library_dir" [current_project]]
   set file [file normalize [file join $dir $ini_file]]
   if { [file exists $file] } {
     set compiled_lib_dir $dir
@@ -383,9 +403,9 @@ proc usf_questa_verify_compiled_lib {} {
   }
   # 5. not found? finally check in run dir
   if { {} == $compiled_lib_dir } {
-    set file [file normalize [file join $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir) $ini_file]]
+    set file [file normalize [file join $a_sim_vars(s_launch_dir) $ini_file]]
     if { ! [file exists $file] } {
-      if { $b_scripts_only } {
+      if { $a_sim_vars(b_scripts_only) } {
         send_msg_id USF-Questa-024 WARNING "The pre-compiled simulation library could not be located. Please make sure to reference this library before executing the scripts.\n"
       } else {
         send_msg_id USF-Questa-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
@@ -399,10 +419,10 @@ proc usf_questa_verify_compiled_lib {} {
     # 6. copy to run dir
     set ini_file_path [file normalize [file join $compiled_lib_dir $ini_file]]
     if { [file exists $ini_file_path] } {
-      if {[catch {file copy -force $ini_file_path $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)} error_msg] } {
+      if {[catch {file copy -force $ini_file_path $a_sim_vars(s_launch_dir)} error_msg] } {
         send_msg_id USF_Questa-010 ERROR "Failed to copy file ($ini_file): $error_msg\n"
       } else {
-        send_msg_id USF_Questa-011 INFO "File '$ini_file_path' copied to run dir:'$::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)'\n"
+        send_msg_id USF_Questa-011 INFO "File '$ini_file_path' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
       }
     }
   }
@@ -414,8 +434,9 @@ proc usf_questa_create_lib_dir {} {
   # Argument Usage:
   # Return Value:
 
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set design_lib_dir "$dir/questa_lib"
+  variable a_sim_vars
+
+  set design_lib_dir "$a_sim_vars(s_launch_dir)/questa_lib"
 
   if { ![file exists $design_lib_dir] } {
     if { [catch {file mkdir $design_lib_dir} error_msg] } {
@@ -430,14 +451,17 @@ proc usf_questa_write_compile_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+  variable a_sim_vars
+
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
 
   set do_filename {}
-  set do_filename $top;append do_filename "_compile.do"
-  set do_file [file normalize [file join $dir $do_filename]]
-    send_msg_id USF-Questa-015 INFO "Creating automatic 'do' files...\n"
+  set do_filename $a_sim_vars(s_sim_top);append do_filename "_compile.do"
+  set do_file [file normalize [file join $a_sim_vars(s_launch_dir) $do_filename]]
+  send_msg_id USF-Questa-015 INFO "Creating automatic 'do' files...\n"
   usf_questa_create_do_file_for_compilation $do_file
 
   # write compile.sh/.bat
@@ -449,13 +473,16 @@ proc usf_questa_write_elaborate_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+  variable a_sim_vars
+
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
 
   set do_filename {}
-  set do_filename $top;append do_filename "_elaborate.do"
-  set do_file [file normalize [file join $dir $do_filename]]
+  set do_filename $a_sim_vars(s_sim_top);append do_filename "_elaborate.do"
+  set do_file [file normalize [file join $a_sim_vars(s_launch_dir) $do_filename]]
   usf_questa_create_do_file_for_elaboration $do_file
 
   # write elaborate.sh/.bat
@@ -467,19 +494,22 @@ proc usf_questa_write_simulate_script {} {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+  variable a_sim_vars
+
+  # step exec mode?
+  if { $a_sim_vars(b_exec_step) } {
+    return 0
+  }
 
   set do_filename {}
   # is custom do file specified?
-  set custom_do_file [get_property "QUESTA.SIMULATE.CUSTOM_DO" $fs_obj]
+  set custom_do_file [get_property "questa.simulate.custom_do" $a_sim_vars(fs_obj)]
   if { {} != $custom_do_file } {
     send_msg_id USF-Questa-014 INFO "Using custom 'do' file '$custom_do_file'...\n"
     set do_filename $custom_do_file
   } else {
-    set do_filename $top;append do_filename "_simulate.do"
-    set do_file [file normalize [file join $dir $do_filename]]
+    set do_filename $a_sim_vars(s_sim_top);append do_filename "_simulate.do"
+    set do_file [file normalize [file join $a_sim_vars(s_launch_dir) $do_filename]]
 
     usf_questa_create_do_file_for_simulation $do_file
   }
@@ -512,6 +542,7 @@ proc usf_questa_create_wave_do_file { file } {
   # Return Value:
 
   variable a_sim_vars
+
   if { [file exists $file] } {
     return 0
   }
@@ -539,22 +570,17 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   # Return Value:
 
   variable a_sim_vars
+
   variable l_ip_static_libs
   variable l_local_design_libraries
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
-  set b_absolute_path $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path)
-  set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
-  set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
+
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
   }
   set tool_path_str ""
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) } {
-    set tool_path_str "$tool_path${DS}"
+  if { {} != $a_sim_vars(s_install_path) } {
+    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
   }
 
   set fh 0
@@ -571,9 +597,9 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     usf_add_quit_on_error $fh "compile"
   }
  
-  set design_lib_dir "$dir/questa_lib"
+  set design_lib_dir "$a_sim_vars(s_launch_dir)/questa_lib"
   set lib_dir_path [file normalize [string map {\\ /} $design_lib_dir]]
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+  if { $a_sim_vars(b_absolute_path) } {
     puts $fh "${tool_path_str}vlib $lib_dir_path/work"
     puts $fh "${tool_path_str}vlib $lib_dir_path/msim\n"
   } else {
@@ -581,7 +607,16 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $::tclapp::xilinx::questa::a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    # get the design simmodel compile order
+    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
+
+    foreach lib $a_sim_vars(l_simmodel_compile_order) {
+      puts $fh "${tool_path_str}vlib questa_lib/msim/$lib"
+    }
+  }
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -601,14 +636,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
         continue
       }
     }
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+    if { $a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/$lib_path"
     } else {
       puts $fh "${tool_path_str}vlib questa_lib/$lib_path"
     }
   }
   if { !$b_default_lib } {
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+    if { $a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vlib $lib_dir_path/msim/$default_lib"
     } else {
       puts $fh "${tool_path_str}vlib questa_lib/msim/$default_lib"
@@ -616,6 +651,16 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
    
   puts $fh ""
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    foreach lib $a_sim_vars(l_simmodel_compile_order) {
+      if { $a_sim_vars(b_absolute_path) } {
+        puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
+      } else {
+        puts $fh "${tool_path_str}vmap $lib questa_lib/msim/$lib"
+      }
+    }
+  }
 
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
@@ -625,14 +670,14 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
         continue
       }
     }
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+    if { $a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $lib $lib_dir_path/msim/$lib"
     } else {
       puts $fh "${tool_path_str}vmap $lib questa_lib/msim/$lib"
     }
   }
   if { !$b_default_lib } {
-    if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
+    if { $a_sim_vars(b_absolute_path) } {
       puts $fh "${tool_path_str}vmap $default_lib $lib_dir_path/msim/$default_lib"
     } else {
       puts $fh "${tool_path_str}vmap $default_lib questa_lib/msim/$default_lib"
@@ -648,18 +693,18 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     # no op
   } else {
     puts $fh ""
-    if { $b_absolute_path } {
-      puts $fh "set origin_dir \"$dir\""
+    if { $a_sim_vars(b_absolute_path) } {
+      puts $fh "set origin_dir \"$a_sim_vars(s_launch_dir)\""
     } else {
       puts $fh "set origin_dir \".\""
     }
   }
 
   set vlog_arg_list [list]
-  if { [get_property "INCREMENTAL" $fs_obj] } {
+  if { [get_property "incremental" $a_sim_vars(fs_obj)] } {
     lappend vlog_arg_list "-incr"
   }
-  set more_vlog_options [string trim [get_property "QUESTA.COMPILE.VLOG.MORE_OPTIONS" $fs_obj]]
+  set more_vlog_options [string trim [get_property "questa.compile.vlog.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_vlog_options } {
     set vlog_arg_list [linsert $vlog_arg_list end "$more_vlog_options"]
   }
@@ -671,7 +716,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   set vcom_arg_list [list]
-  set more_vcom_options [string trim [get_property "QUESTA.COMPILE.VCOM.MORE_OPTIONS" $fs_obj]]
+  set more_vcom_options [string trim [get_property "questa.compile.vcom.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_vcom_options } {
     set vcom_arg_list [linsert $vcom_arg_list end "$more_vcom_options"]
   }
@@ -684,13 +729,17 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
+  if { $a_sim_vars(b_compile_simmodels) } {
+    usf_compile_simmodel_sources $fh
+  }
+  
   set b_first true
   set prev_lib  {}
   set prev_file_type {}
   set b_redirect false
   set b_appended false
 
-  foreach file $::tclapp::xilinx::questa::a_sim_vars(l_design_files) {
+  foreach file $a_sim_vars(l_design_files) {
     set fargs       [split $file {|}]
     set type        [lindex $fargs 0]
     set file_type   [lindex $fargs 1]
@@ -721,35 +770,35 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
 
   set glbl_file "glbl.v"
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) } {
-    set glbl_file [file normalize [file join $dir $glbl_file]]
+  if { $a_sim_vars(b_absolute_path) } {
+    set glbl_file [file normalize [file join $a_sim_vars(s_launch_dir) $glbl_file]]
   }
 
   # compile glbl file
-  if { {behav_sim} == $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow) } {
-    set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]]
+  if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
+    set b_load_glbl [get_property "questa.compile.load_glbl" [get_filesets $a_sim_vars(s_simset)]]
     if { [xcs_compile_glbl_file "questa" $b_load_glbl $a_sim_vars(b_int_compile_glbl) $a_sim_vars(l_design_files) $a_sim_vars(s_simset) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $a_sim_vars(b_force_compile_glbl) } {
       if { $a_sim_vars(b_force_no_compile_glbl) } {
         # skip glbl compile if force no compile set
       } else {
         xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+        set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
         set file_str "-work $top_lib \"${glbl_file}\""
         puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
       }
     }
   } else {
     # for post* compile glbl if design contain verilog and netlist is vhdl
-    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $target_lang)) ||
+    if { (([xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] && ({VHDL} == $a_sim_vars(s_target_lang))) ||
           ($a_sim_vars(b_int_compile_glbl)) || ($a_sim_vars(b_force_compile_glbl))) } {
       if { $a_sim_vars(b_force_no_compile_glbl) } {
         # skip glbl compile if force no compile set
       } else {
-        if { ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
+        if { ({timing} == $a_sim_vars(s_type)) } {
           # This is not supported, netlist will be verilog always
         } else {
           xcs_copy_glbl_file $a_sim_vars(s_launch_dir)
-          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+          set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
           set file_str "-work $top_lib \"${glbl_file}\""
           puts $fh "\n# compile glbl module\n${tool_path_str}vlog $file_str"
         }
@@ -767,7 +816,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   } else {
     # *** windows only ***
     # for scripts only mode, do not quit if param is set to false (default param is true)
-    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $a_sim_vars(b_scripts_only) } {
       # for debugging purposes, do not quit from vsim shell
     } else {
       puts $fh "\nquit -force"
@@ -785,6 +834,500 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   close $fh
 }
 
+proc usf_compile_simmodel_sources { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set platform "lin"
+  if {$::tcl_platform(platform) == "windows"} {
+    set platform "win"
+  }
+
+  set b_dbg 0
+  if { $a_sim_vars(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
+  set simulator "questa"
+  set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
+  set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [llength $a_sim_vars(l_simmodel_compile_order)] == 0 } {
+    if { [file exists $a_sim_vars(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $a_sim_vars(s_simlib_dir)} error_msg]
+    }
+    return
+  }
+
+  # find simmodel info from dat file and update do file
+  foreach lib_name $a_sim_vars(l_simmodel_compile_order) {
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
+    #
+    set fh_dat 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh_dat]} {
+      send_msg_id USF-Questa-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh_dat] "\n"]
+    close $fh_dat
+
+    # is current platform supported?
+    set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
+    set b_process          0
+
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value }
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+
+    # not supported, work on next simmodel
+    if { !$b_process } { continue }
+
+    #send_msg_id USF-Questa-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
+    # create local lib dir
+    set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    # copy simmodel sources locally
+    if { $a_sim_vars(b_int_export_source_files) } {
+      if { {} == $simmodel_name } { send_msg_id USF-Questa-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-Questa-107 WARNING "Empty tag '$library_name'!\n"  }
+
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+      if { [file exists $src_sim_model_dir] } {
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-Questa-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+        }
+      } else {
+        [catch {send_msg_id USF-Questa-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+      }
+    }
+
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include"
+    set target_dir      "$a_sim_vars(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-Questa-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
+
+    # simmodel file_info.dat data
+    set library_type            {}
+    set output_format           {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set gcc_compile_flags       [list]
+    set gcc_compile_opt_flags   [list]
+    set gcc_compile_dbg_flags   [list]
+    set ldflags                 [list]
+    set gplus_ldflags_option    {}
+    set gcc_ldflags_option      {}
+    set ldflags_lin64           [list]
+    set ldflags_win64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lin64            [list]
+    set ldlibs_win64            [list]
+    set gplus_ldlibs_option     {}
+    set gcc_ldlibs_option       {}
+    set sysc_dep_libs           {}
+    set cpp_dep_libs            {}
+    set c_dep_libs              {}
+    set sccom_compile_flags     {}
+    set more_xsc_options        [list]
+    set simulator_platform      {}
+    set systemc_compile_option  {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
+    set shared_lib              {}
+    set systemc_incl_dirs       [list]
+    set cpp_incl_dirs           [list]
+    set osci_incl_dirs          [list]
+    set c_incl_dirs             [list]
+
+    set sysc_files [list]
+    set cpp_files  [list]
+    set c_files    [list]
+
+    # process simmodel data from .dat file
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set value     [lindex $line_info 1]
+
+      # collect sources
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        set file_path "$data_dir/$value"
+
+        # local file path where sources will be copied for export option
+        if { $a_sim_vars(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
+
+        if { ("<SYSTEMC_SOURCES>" == $tag) } { lappend sysc_files $file_path }
+        if { ("<CPP_SOURCES>"     == $tag) } { lappend cpp_files  $file_path }
+        if { ("<C_SOURCES>"       == $tag) } { lappend c_files    $file_path }
+      }
+
+      # get simmodel info
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<GCC_COMPILE_FLAGS>"          == $tag } { set gcc_compile_flags       [split $value {,}] }
+      if { "<GCC_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gcc_compile_opt_flags   [split $value {,}] }
+      if { "<GCC_COMPILE_DEBUG_FLAGS>"    == $tag } { set gcc_compile_dbg_flags   [split $value {,}] }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
+      if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
+      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lin64            [split $value {,}] }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64            [split $value {,}] }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option     $value             }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option       $value             }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs           $value             }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs            $value             }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs              $value             }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags     $value             }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options        [split $value {,}] }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform      $value             }
+      if { "<SYSTEMC_COMPILE_OPTION>"     == $tag } { set systemc_compile_option  $value             }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option      $value             }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option        $value             }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
+    }
+
+    set obj_dir "$a_sim_vars(s_launch_dir)/questa_lib/$lib_name"
+    if { ![file exists $obj_dir] } {
+      if { [catch {file mkdir $obj_dir} error_msg] } {
+        send_msg_id USF-Questa-013 ERROR "Failed to create the directory ($obj_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    #
+    # write systemC/CPP/C command line
+    #
+    if { [llength $sysc_files] > 0 } {
+      # write cmf file
+      set compiler "sccom"
+      set cmf_filename "${lib_name}.cmf"
+      set cmf "$a_sim_vars(s_launch_dir)/$cmf_filename"
+      set fh_cmf 0
+      if {[catch {open $cmf w} fh_cmf]} {
+        send_msg_id USF-Questa-016 WARNING "Failed to open file to write ($cmf)\n"
+      } else {
+        foreach sysc_file $sysc_files {
+          puts $fh_cmf $sysc_file
+        }
+        close $fh_cmf
+      }
+    
+      #
+      # COMPILE (sccom)
+      #
+      set args [list]
+      lappend args "-64"
+      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } { lappend args $systemc_compile_option }
+
+      # <SCCOM_COMPILE_FLAGS>
+      lappend args "$sccom_compile_flags"
+  
+      # <SYSTEMC_INCLUDE_DIRS> 
+      if { [llength $systemc_incl_dirs] > 0 } {
+        foreach incl_dir $systemc_incl_dirs {
+          if { [regexp {^\$xv_cpt_lib_path} $incl_dir] } {
+            set str_to_replace "xv_cpt_lib_path"
+            set str_replace_with "$cpt_dir"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+            set incl_dir "$data_dir/$incl_dir"
+          }
+          if { [regexp {^\$xv_ext_lib_path} $incl_dir] } {
+            set str_to_replace "xv_ext_lib_path"
+            set str_replace_with "$a_sim_vars(sp_ext_dir)"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+          }
+          lappend args "-I $incl_dir"
+        }
+      }
+   
+      # <CPP_COMPILE_OPTION> 
+      lappend args $cpp_compile_option
+
+      # <G++_COMPILE_FLAGS>
+      foreach opt $gplus_compile_flags { lappend args $opt }
+
+      # <G++_COMPILE_OPTIMIZE_FLAGS>
+      foreach opt $gplus_compile_opt_flags { lappend args $opt }
+    
+      # config simmodel options
+      set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend args "$cfg_val"
+      }
+    
+      # global simmodel option (if any)
+      set cfg_opt "${simulator}.compile.${compiler}.global"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend args "$cfg_val"
+      }
+
+      # work dir    
+      lappend args "-work $lib_name"
+      lappend args "-f ${lib_name}.cmf"
+    
+      set cmd_str [join $args " "]
+      puts $fh "# compile '$lib_name' model sources"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+   
+      # 
+      # LINK (sccom)
+      #
+      set args [list]
+      lappend args "-64"
+      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } {
+        lappend args $systemc_compile_option
+      }
+      lappend args "-linkshared"
+      lappend args "-lib $lib_name"
+    
+      # <LDFLAGS>
+      if { [llength $ldflags] > 0 } { foreach opt $ldflags { lappend args $opt } }
+
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldflags 
+      if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
+   
+      # <LDLIBS>
+      if { [llength $ldlibs] > 0 } {
+        foreach opt $ldlibs {
+          if { [regexp {\$xv_cpt_lib_path} $opt] } {
+            set cpt_dir_path "$data_dir/$cpt_dir"
+            set str_to_replace {\$xv_cpt_lib_path}
+            set str_replace_with "$cpt_dir_path"
+            regsub -all $str_to_replace $opt $str_replace_with opt 
+          }
+          lappend args $opt
+        }
+      }
+    
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldlibs_win64] > 0 } { foreach opt $ldlibs_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldlibs_lin64] > 0 } { foreach opt $ldlibs_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldlibs
+      if { {} != $gplus_ldlibs_option } { lappend args "$gplus_ldlibs_option" }
+    
+      lappend args "-work $lib_name"
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+
+    } elseif { [llength $cpp_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "g++"
+      #
+      # COMPILE (g++)
+      #
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct g++ compile command line
+        set args [list]
+        lappend args "-c"
+  
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } { foreach incl_dir $cpp_incl_dirs { lappend args "-I $incl_dir" } }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
+
+        # <G++_COMPILE_OPTIMIZE_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "questa_lib/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      }
+    
+      # 
+      # LINK (g++)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "questa_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "questa_lib/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+
+    } elseif { [llength $c_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "gcc"
+      #
+      # COMPILE (gcc)
+      #
+      foreach src_file $c_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct gcc compile command line
+        set args [list]
+        lappend args "-c"
+  
+        # <C_INCLUDE_DIRS>
+        if { [llength $c_incl_dirs] > 0 } { foreach incl_dir $c_incl_dirs { lappend args "-I $incl_dir" } }
+
+        # <C_COMPILE_OPTION>
+        lappend args $c_compile_option
+
+        # <GCC_COMPILE_FLAGS>
+        if { [llength $gcc_compile_flags] > 0 } { foreach opt $gcc_compile_flags { lappend args $opt } }
+
+        # <GCC_COMPILE_OPTIMIZE_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gcc_compile_dbg_flags] > 0 } { foreach opt $gcc_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gcc_compile_opt_flags] > 0 } { foreach opt $gcc_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "questa_lib/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+      }
+    
+      # 
+      # LINK (gcc)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "questa_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "questa_lib/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+
+    }
+  }
+}
+
 proc usf_questa_create_do_file_for_elaboration { do_file } {
   # Summary:
   # Argument Usage:
@@ -792,19 +1335,13 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
 
   variable a_sim_vars
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
-  set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
   }
   set tool_path_str ""
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) } {
-    set tool_path_str "$tool_path${DS}"
+  if { {} != $a_sim_vars(s_install_path) } {
+    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
   }
 
   set fh 0
@@ -833,7 +1370,7 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   } else {
     # *** windows only ***
     # for scripts only mode, do not quit if param is set to false (default param is true)
-    if { ![get_param "simulator.quitOnSimulationComplete"] && $b_scripts_only } {
+    if { ![get_param "simulator.quitOnSimulationComplete"] && $a_sim_vars(b_scripts_only) } {
       # for debugging purposes, do not quit from vsim shell
     } else {
       puts $fh "\nquit -force"
@@ -850,20 +1387,14 @@ proc usf_questa_get_elaboration_cmdline {} {
   # Return Value:
 
   variable a_sim_vars
-  variable l_compiled_libraries
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-  set netlist_mode [get_property "NL.MODE" $fs_obj]
+  set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
 
   set tool "vopt"
   set arg_list [list]
 
   if { [get_param project.writeNativeScriptForUnifiedSimulation] } {
-    if { [get_property 32bit $fs_obj] } {
+    if { [get_property "32bit" $a_sim_vars(fs_obj)] } {
       lappend arg_list {-32}
     } else {
       if {$::tcl_platform(platform) == "windows"} {
@@ -874,15 +1405,13 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
-      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
-      lappend arg_list "-cpppath $gcc_path"
-    }
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    lappend arg_list "-cpppath $gcc_path"
   }
 
   set acc_val {}
-  set acc [get_property "QUESTA.ELABORATE.ACC" $fs_obj]
+  set acc [get_property "questa.elaborate.acc" $a_sim_vars(fs_obj)]
   if { {None} == $acc } {
     # no val
   } else {
@@ -890,19 +1419,19 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   set vhdl_generics [list]
-  set vhdl_generics [get_property "GENERIC" [get_filesets $fs_obj]]
+  set vhdl_generics [get_property "generic" [get_filesets $a_sim_vars(fs_obj)]]
   if { [llength $vhdl_generics] > 0 } {
-    ::tclapp::xilinx::questa::usf_append_generics $vhdl_generics arg_list  
+    xcs_append_generics "questa" $vhdl_generics arg_list  
   }
 
-  set more_vopt_options [string trim [get_property "QUESTA.ELABORATE.VOPT.MORE_OPTIONS" $fs_obj]]
+  set more_vopt_options [string trim [get_property "questa.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_vopt_options } {
     set arg_list [linsert $arg_list end "$more_vopt_options"]
   }
 
   set t_opts [join $arg_list " "]
 
-  set design_files $::tclapp::xilinx::questa::a_sim_vars(l_design_files)
+  set design_files $a_sim_vars(l_design_files)
   set design_libs [xcs_get_design_libs $design_files 1]
 
   # add simulation libraries
@@ -926,7 +1455,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
   
   if { $a_sim_vars(b_enable_netlist_sim) && $a_sim_vars(b_netlist_sim) && ({functional} == $a_sim_vars(s_type)) && ({} != $a_sim_vars(sp_xlnoc_bd_obj)) } {
-    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $sim_flow $a_sim_vars(s_type)] {
+    foreach noc_lib [xcs_get_noc_libs_for_netlist_sim $a_sim_vars(s_simulation_flow) $a_sim_vars(s_type)] {
       if { [regexp {^noc_nmu_v} $noc_lib] } { continue; } 
       lappend arg_list "-L $noc_lib"
     }
@@ -941,8 +1470,8 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   # post* simulation
-  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $target_lang) } {
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    if { [xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || ({Verilog} == $a_sim_vars(s_target_lang)) } {
       if { {timesim} == $netlist_mode } {
         set arg_list [linsert $arg_list end "-L" "simprims_ver"]
       } else {
@@ -953,19 +1482,19 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   # behavioral simulation
   set b_compile_unifast 0
-  set simulator_language [string tolower [get_property simulator_language [current_project]]]
+  set simulator_language [string tolower [get_property "simulator_language" [current_project]]]
   if { ([get_param "simulation.addUnifastLibraryForVhdl"]) && ({vhdl} == $simulator_language) } {
-    set b_compile_unifast [get_property "unifast" $fs_obj]
+    set b_compile_unifast [get_property "unifast" $a_sim_vars(fs_obj)]
   }
 
-  if { ([xcs_contains_vhdl $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
+  if { ([xcs_contains_vhdl $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $a_sim_vars(s_simulation_flow)) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast"]
     }
   }
 
-  set b_compile_unifast [get_property "unifast" $fs_obj]
-  if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $sim_flow) } {
+  set b_compile_unifast [get_property "unifast" $a_sim_vars(fs_obj)]
+  if { ([xcs_contains_verilog $design_files $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)]) && ({behav_sim} == $a_sim_vars(s_simulation_flow)) } {
     if { $b_compile_unifast } {
       set arg_list [linsert $arg_list end "-L" "unifast_ver"]
     }
@@ -994,6 +1523,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   # for non-precompile flow, compile xpm locally and do not reference precompiled xpm library
   if { $b_reference_xpm_library } {
     if { $a_sim_vars(b_use_static_lib) } {
+      variable l_compiled_libraries
       if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
         set b_reference_xpm_library 0
       }
@@ -1004,7 +1534,7 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   if { $b_reference_xpm_library } {
     # pass xpm library reference for behavioral simulation only
-    if { {behav_sim} == $sim_flow } {
+    if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
       set arg_list [linsert $arg_list end "-L" "xpm"]
     }
   }
@@ -1013,17 +1543,17 @@ proc usf_questa_get_elaboration_cmdline {} {
   lappend arg_list $a_sim_vars(default_top_library)
   
   set d_libs [join $arg_list " "]
-  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
 
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
-  lappend arg_list "${top_lib}.$top"
+  lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
   lappend arg_list "-o"
-  lappend arg_list "${top}_opt"
+  lappend arg_list "$a_sim_vars(s_sim_top)_opt"
 
   set cmd_str [join $arg_list " "]
   return $cmd_str
@@ -1035,13 +1565,8 @@ proc usf_questa_get_simulation_cmdline {} {
   # Return Value:
 
   variable a_sim_vars
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
 
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-  set netlist_mode [get_property "NL.MODE" $fs_obj]
+  set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
 
   set tool "vsim"
   set arg_list [list "$tool"]
@@ -1050,14 +1575,14 @@ proc usf_questa_get_simulation_cmdline {} {
   set int_delay 0
   set tpd_prop "TRANSPORT_PATH_DELAY"
   set tid_prop "TRANSPORT_INT_DELAY"
-  if { [lsearch -exact [list_property -quiet $fs_obj] $tpd_prop] != -1 } {
-    set path_delay [get_property $tpd_prop $fs_obj]
+  if { [lsearch -exact [list_property -quiet $a_sim_vars(fs_obj)] $tpd_prop] != -1 } {
+    set path_delay [get_property $tpd_prop $a_sim_vars(fs_obj)]
   }
-  if { [lsearch -exact [list_property -quiet $fs_obj] $tid_prop] != -1 } {
-    set int_delay [get_property $tid_prop $fs_obj]
+  if { [lsearch -exact [list_property -quiet $a_sim_vars(fs_obj)] $tid_prop] != -1 } {
+    set int_delay [get_property $tid_prop $a_sim_vars(fs_obj)]
   }
 
-  if { ({post_synth_sim} == $sim_flow || {post_impl_sim} == $sim_flow) && ({timesim} == $netlist_mode) } {
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow) || {post_impl_sim} == $a_sim_vars(s_simulation_flow)) && ({timesim} == $netlist_mode) } {
     lappend arg_list "+transport_int_delays"
     lappend arg_list "+pulse_e/$path_delay"
     lappend arg_list "+pulse_int_e/$int_delay"
@@ -1065,7 +1590,7 @@ proc usf_questa_get_simulation_cmdline {} {
     lappend arg_list "+pulse_int_r/$int_delay"
   }
 
-  set more_sim_options [string trim [get_property "QUESTA.SIMULATE.VSIM.MORE_OPTIONS" $fs_obj]]
+  set more_sim_options [string trim [get_property "questa.simulate.vsim.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
   }
@@ -1076,7 +1601,7 @@ proc usf_questa_get_simulation_cmdline {} {
   if { {} != $ip_obj } {
     set gt_lib "gtye5_quad"
     # 1054737
-    # set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $dir]"
+    # set clibs_dir "[xcs_get_relative_file_path $a_sim_vars(s_clibs_dir) $a_sim_vars(s_launch_dir)]"
     set clibs_dir [string map {\\ /} $a_sim_vars(s_clibs_dir)]
     # default install location
     set shared_lib_dir "${clibs_dir}/secureip"
@@ -1086,17 +1611,17 @@ proc usf_questa_get_simulation_cmdline {} {
   }
 
   if { [get_param "project.allowSharedLibraryType"] } {
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-      if { {Shared Library} == [get_property FILE_TYPE $file] } {
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+      if { {Shared Library} == [get_property "file_type" $file] } {
         set file_dir [file dirname $file]
-        set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+        set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
 
         if { [get_param "project.copyShLibsToCurrRunDir"] } {
           if { [file exists $file] } {
-            if { [catch {file copy -force $file $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)} error_msg] } {
+            if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
               send_msg_id USF_Questa-010 ERROR "Failed to copy file ($file): $error_msg\n"
             } else {
-              send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)'\n"
+              send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
             }
           }
           set file_dir "."
@@ -1114,7 +1639,7 @@ proc usf_questa_get_simulation_cmdline {} {
 
   lappend arg_list "-lib"
   lappend arg_list $a_sim_vars(default_top_library)
-  lappend arg_list "${top}_opt"
+  lappend arg_list "$a_sim_vars(s_sim_top)_opt"
 
   set cmd_str [join $arg_list " "]
   return $cmd_str
@@ -1125,17 +1650,13 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   # Argument Usage:
   # Return Value:
 
+  upvar $opts_arg opts
+
   variable a_sim_vars
 
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
-  upvar $opts_arg opts
-  set sim_flow $::tclapp::xilinx::questa::a_sim_vars(s_simulation_flow)
-  set target_lang  [get_property "TARGET_LANGUAGE" [current_project]]
-
   set b_verilog_sim_netlist 0
-  if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
-    set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
-    if { {Verilog} == $target_lang } {
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    if { {Verilog} == $a_sim_vars(s_target_lang) } {
       set b_verilog_sim_netlist 1
     }
   }
@@ -1148,9 +1669,9 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set b_top_level_glbl_inst_set 1
   }
 
-  set b_load_glbl [get_property "QUESTA.COMPILE.LOAD_GLBL" $fs_obj]
+  set b_load_glbl [get_property "questa.compile.load_glbl" $a_sim_vars(fs_obj)]
   if { [xcs_contains_verilog $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] || $b_verilog_sim_netlist } {
-    if { {behav_sim} == $sim_flow } {
+    if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
       if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
         set b_add_glbl 1
       }
@@ -1188,7 +1709,7 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   }
   
   if { $b_add_glbl } {
-    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $fs_obj $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
 }
@@ -1198,11 +1719,8 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   # Argument Usage:
   # Return Value:
 
-  set top $::tclapp::xilinx::questa::a_sim_vars(s_sim_top)
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
+  variable a_sim_vars
+
   set fh 0
   if {[catch {open $do_file w} fh]} {
     send_msg_id USF-Questa-021 ERROR "Failed to open file to write ($do_file)\n"
@@ -1210,9 +1728,9 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   }
 
   usf_questa_write_header $fh $do_file
-  set wave_do_filename $top;append wave_do_filename "_wave.do"
-  set wave_do_file [file normalize [file join $dir $wave_do_filename]]
-  set custom_wave_do_file [get_property "QUESTA.SIMULATE.CUSTOM_WAVE_DO" $fs_obj]
+  set wave_do_filename $a_sim_vars(s_sim_top);append wave_do_filename "_wave.do"
+  set wave_do_file [file normalize [file join $a_sim_vars(s_launch_dir) $wave_do_filename]]
+  set custom_wave_do_file [get_property "questa.simulate.custom_wave_do" $a_sim_vars(fs_obj)]
   if { {} != $custom_wave_do_file } {
     set wave_do_filename $custom_wave_do_file
     # custom wave do specified, delete existing auto generated wave do file from run dir
@@ -1222,7 +1740,7 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   } else {
     usf_questa_create_wave_do_file $wave_do_file
   }
-  #if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  #if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
   #  # TODO: this is not required but mentioned in hw_emu_common_util.tcl (need to confirm)
   #  #puts $fh "set xv_lib_path \"\$::env(XILINX_VIVADO)/lib/lnx64.o/Default:\$::env(XILINX_VIVADO)/lib/lnx64.o\""
   #}
@@ -1234,12 +1752,15 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   }
 
   puts $fh "$cmd_str"
-  if { [get_property "QUESTA.SIMULATE.IEEE_WARNINGS" $fs_obj] } {
+  if { [get_property "questa.simulate.ieee_warnings" $a_sim_vars(fs_obj)] } {
     puts $fh "\nset NumericStdNoWarnings 1"
     puts $fh "set StdArithNoWarnings 1"
   }
 
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+    puts $fh "\nif \{ \[file exists vitis_params.tcl\] \} \{"
+    puts $fh "  source vitis_params.tcl"
+    puts $fh "\}"
     puts $fh "\nif \{ \[info exists ::env(USER_PRE_SIM_SCRIPT)\] \} \{"
     puts $fh "  if \{ \[catch \{source \$::env(USER_PRE_SIM_SCRIPT)\} msg\] \} \{"
     puts $fh "    puts \$msg"
@@ -1252,44 +1773,44 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   puts $fh "view structure"
   puts $fh "view signals\n"
 
-  set b_log_all_signals [get_property "QUESTA.SIMULATE.LOG_ALL_SIGNALS" $fs_obj]
+  set b_log_all_signals [get_property "questa.simulate.log_all_signals" $a_sim_vars(fs_obj)]
   if { $b_log_all_signals } {
     puts $fh "log -r /*\n"
   }
  
   # generate saif file for power estimation
-  set saif [get_property "QUESTA.SIMULATE.SAIF" $fs_obj] 
+  set saif [get_property "questa.simulate.saif" $a_sim_vars(fs_obj)] 
   if { {} != $saif } {
     set uut {}
-    [catch {set uut [get_property -quiet "QUESTA.SIMULATE.UUT" $fs_obj]} msg]
-    set saif_scope [get_property "QUESTA.SIMULATE.SAIF_SCOPE" $fs_obj]
+    [catch {set uut [get_property -quiet "questa.simulate.uut" $a_sim_vars(fs_obj)]} msg]
+    set saif_scope [get_property "questa.simulate.saif_scope" $a_sim_vars(fs_obj)]
     if { {} != $saif_scope } {
       set uut $saif_scope
     }
     if { {} == $uut } {
-      set uut "/$top/uut/*"
+      set uut "/$a_sim_vars(s_sim_top)/uut/*"
     }
     set simulator "questa"
-    if { ({functional} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) || \
-         ({timing} == $::tclapp::xilinx::questa::a_sim_vars(s_type)) } {
+    if { ({functional} == $a_sim_vars(s_type)) || \
+         ({timing} == $a_sim_vars(s_type)) } {
       puts $fh "power add -r -in -inout -out -nocellnet -internal [xcs_resolve_uut_name $simulator uut]\n"
     } else {
       puts $fh "power add -in -inout -out -nocellnet -internal [xcs_resolve_uut_name $simulator uut]\n"
     }
   }
   # create custom UDO file
-  set udo_file [get_property "QUESTA.SIMULATE.CUSTOM_UDO" $fs_obj]
+  set udo_file [get_property "questa.simulate.custom_udo" $a_sim_vars(fs_obj)]
   if { {} == $udo_file } {
-    set udo_filename $top;append udo_filename ".udo"
-    set udo_file [file normalize [file join $dir $udo_filename]]
+    set udo_filename $a_sim_vars(s_sim_top);append udo_filename ".udo"
+    set udo_file [file normalize [file join $a_sim_vars(s_launch_dir) $udo_filename]]
     usf_questa_create_udo_file $udo_file
-    puts $fh "do \{$top.udo\}"
+    puts $fh "do \{$a_sim_vars(s_sim_top).udo\}"
   } else {
     puts $fh "do \{$udo_file\}"
   }
 
   # write tcl post hook for windows
-  set tcl_post_hook [get_property QUESTA.SIMULATE.TCL.POST $fs_obj]
+  set tcl_post_hook [get_property "questa.simulate.tcl.post" $a_sim_vars(fs_obj)]
   if { {} != $tcl_post_hook } {
     puts $fh "\n# execute post tcl file"
     puts $fh "set rc \[catch \{"
@@ -1303,8 +1824,8 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh "\}"
   }
 
-  set rt [string trim [get_property "QUESTA.SIMULATE.RUNTIME" $fs_obj]]
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  set rt [string trim [get_property "questa.simulate.runtime" $a_sim_vars(fs_obj)]]
+  if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
     puts $fh "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
     puts $fh "puts \"\""
     puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
@@ -1349,8 +1870,8 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   # add TCL sources
   set tcl_src_files [list]
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\" && IS_USER_DISABLED == 0"
-  set sim_obj $::tclapp::xilinx::questa::a_sim_vars(s_simset)
-  xcs_find_files tcl_src_files $::tclapp::xilinx::questa::a_sim_vars(sp_tcl_obj) $filter $dir $::tclapp::xilinx::questa::a_sim_vars(b_absolute_path) $sim_obj
+  set sim_obj $a_sim_vars(s_simset)
+  xcs_find_files tcl_src_files $a_sim_vars(sp_tcl_obj) $filter $a_sim_vars(s_launch_dir) $a_sim_vars(b_absolute_path) $sim_obj
   if {[llength $tcl_src_files] > 0} {
     puts $fh ""
     foreach file $tcl_src_files {
@@ -1359,7 +1880,7 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh ""
   }
 
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+  if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
     puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
     puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
     puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
@@ -1369,15 +1890,15 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     puts $fh "  quit -force"
     puts $fh "\}"
   } else {
-    if { $b_batch } {
+    if { $a_sim_vars(b_batch) } {
       puts $fh "\nquit -force"
-    } elseif { $b_scripts_only } {
+    } elseif { $a_sim_vars(b_scripts_only) } {
       if { [get_param "simulator.quitOnSimulationComplete"] } {
         puts $fh "\nquit -force"
       }
     } else {
       # launch_simulation - if called from vivado in batch or Tcl mode, quit
-      if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+      if { !$a_sim_vars(b_int_is_gui_mode) } {
         puts $fh "\nquit -force"
       }
     }
@@ -1389,6 +1910,8 @@ proc usf_questa_write_header { fh filename } {
   # Summary:
   # Argument Usage:
   # Return Value:
+  
+  variable a_sim_vars
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
@@ -1396,8 +1919,9 @@ proc usf_questa_write_header { fh filename } {
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   set timestamp   [clock format [clock seconds]]
-  set mode_type   $::tclapp::xilinx::questa::a_sim_vars(s_mode)
+  set mode_type   $a_sim_vars(s_mode)
   set name        [file tail $filename]
+
   puts $fh "######################################################################"
   puts $fh "#"
   puts $fh "# File name : $name"
@@ -1415,14 +1939,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
   variable a_sim_vars
 
-  set dir $::tclapp::xilinx::questa::a_sim_vars(s_launch_dir)
-  set b_batch $::tclapp::xilinx::questa::a_sim_vars(b_batch)
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
-  set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
-
   set scr_filename $step;append scr_filename [xcs_get_script_extn "questa"]
-  set scr_file [file normalize [file join $dir $scr_filename]]
+  set scr_file [file normalize [file join $a_sim_vars(s_launch_dir) $scr_filename]]
   set fh_scr 0
   if {[catch {open $scr_file w} fh_scr]} {
     send_msg_id USF-Questa-022 ERROR "Failed to open file to write ($scr_file)\n"
@@ -1432,9 +1950,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   set batch_sw {-c}
   if { ({simulate} == $step) } {
     # launch_simulation
-    if { (!$b_batch) && (!$b_scripts_only) } {
+    if { (!$a_sim_vars(b_batch)) && (!$a_sim_vars(b_scripts_only)) } {
       # launch_simulation - if called from vivado in batch or Tcl mode, run in command mode
-      if { !$::tclapp::xilinx::questa::a_sim_vars(b_int_is_gui_mode) } {
+      if { !$a_sim_vars(b_int_is_gui_mode) } {
         set batch_sw {-c}
       } else {
         set batch_sw {}
@@ -1444,7 +1962,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
-    if { [get_property 32bit $fs_obj] } {
+    if { [get_property "32bit" $a_sim_vars(fs_obj)] } {
       # donot pass os type
     } else {
       set s_64bit {-64}
@@ -1456,21 +1974,21 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   }
 
   # write tcl pre hook
-  set tcl_pre_hook [get_property QUESTA.COMPILE.TCL.PRE $fs_obj]
+  set tcl_pre_hook [get_property "questa.compile.tcl.pre" $a_sim_vars(fs_obj)]
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "#!/bin/bash -f"
     xcs_write_script_header $fh_scr $step "questa"
-    if { {} != $tool_path } {
-      puts $fh_scr "bin_path=\"$tool_path\""
+    if { {} != $a_sim_vars(s_tool_bin_path) } {
+      puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
     }
 
     set aie_ip_obj {}
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_contain_systemc_sources) } {
         if { {simulate} == $step } {
-          if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+          if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
             xcs_write_launch_mode_for_vitis $fh_scr "questa"
           }
         }
@@ -1498,6 +2016,15 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             set sc_lib   $key
             set lib_path $value
             set lib_dir "$lib_path"
+            if { $a_sim_vars(b_compile_simmodels) } {
+              set lib_name [file tail $lib_path]
+              set lib_type [file tail [file dirname $lib_path]]
+              if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+                # skip
+              } else {
+                set lib_dir "questa_lib/$lib_name"
+              }
+            }
             lappend shared_ip_libs $lib_dir
           }
 
@@ -1506,9 +2033,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           set uniq_shared_libs    [list]
           set shared_libs_to_link [list]
           foreach ip_obj [get_ips -all -quiet] {
-            set ipdef [get_property -quiet IPDEF $ip_obj]
+            set ipdef [get_property -quiet "ipdef" $ip_obj]
             set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
-            set ssm_type [get_property -quiet selected_sim_model $ip_obj]
+            set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]
             if { [lsearch $sh_ip_libs $vlnv_name] != -1 } {
               if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
                 if { ("tlm" == $ssm_type) } {
@@ -1524,6 +2051,28 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           foreach vlnv_name $shared_libs_to_link {
             set lib_dir "$a_sim_vars(s_clibs_dir)/$vlnv_name"
             lappend shared_ip_libs $lib_dir 
+          }
+
+          # bind user specified systemC/C/C++ libraries
+          set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+          set l_link_c_libs    [get_property "questa.elaborate.link.c"    $a_sim_vars(fs_obj)]
+          if { ([llength $l_link_sysc_libs] > 0) || ([llength $l_link_c_libs] > 0) } {
+            variable a_link_libs
+            array unset a_link_libs
+            foreach lib $l_link_sysc_libs {
+              set lib_dir [file dirname $lib]
+              if { ![info exists a_link_libs($lib_dir)] } {
+                set a_link_libs($lib_dir) ""
+                lappend shared_ip_libs "$lib_dir"
+              }
+            }
+            foreach lib $l_link_c_libs {
+              set lib_dir [file dirname $lib]
+              if { ![info exists a_link_libs($lib_dir)] } {
+                set a_link_libs($lib_dir) ""
+                lappend shared_ip_libs "$lib_dir"
+              }
+            }
           }
  
           if { [llength $shared_ip_libs] > 0 } {
@@ -1541,13 +2090,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
 
         set args_list [list]
-        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $fs_obj]] {
-          set file_type [get_property FILE_TYPE $file]
+        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+          set file_type [get_property "file_type" $file]
           set file_dir [file dirname $file] 
           set file_name [file tail $file] 
 
           if { {Shared Library} == $file_type } {
-            set file_dir "[xcs_get_relative_file_path $file_dir $dir]"
+            set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
             if { ![info exists a_shared_lib_dirs($file_dir)] } {
               set a_shared_lib_dirs($file_dir) $file_dir
               lappend args_list "$file_dir"
@@ -1573,7 +2122,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nexport xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+      if { ("elaborate" == $step) || ("simulate" == $step) } {
+        puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
+      } else {
+        puts $fh_scr ""
+      }
+      puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
       # for aie
       if { {} != $aie_ip_obj } {
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
@@ -1587,8 +2142,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         [catch {send_msg_id USF-Questa-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
       }
       set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-      xcs_delete_backup_log $tcl_wrapper_file $dir
-      xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+      xcs_delete_backup_log $tcl_wrapper_file $a_sim_vars(s_launch_dir)
+      xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $a_sim_vars(s_launch_dir)
       set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
       set cmd "vivado $vivado_cmd_str"
       puts $fh_scr "echo \"$cmd\""
@@ -1624,12 +2179,12 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
         set gcc_cmd "-cpppath $gcc_path"
       }
-      if { {} != $tool_path } {
+      if { {} != $a_sim_vars(s_tool_bin_path) } {
         set s_cmd "\$bin_path/vsim $s_64bit"
         if { {} != $gcc_cmd } {
           append s_cmd " $gcc_cmd "
         }
-        if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+        if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           append s_cmd " \$mode -do \"do \{$do_filename\}\" -l $log_filename"
         } else {
           append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
@@ -1641,7 +2196,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         if { {} != $gcc_cmd } {
           append s_cmd " $gcc_cmd "
         }
-        if { $::tclapp::xilinx::questa::a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+        if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           append s_cmd " \$mode -do \"do \{$do_filename\}\" -l $log_filename"
         } else {
           append s_cmd " $batch_sw -do \"do \{$do_filename\}\" -l $log_filename"
@@ -1654,8 +2209,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     # windows
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr $step "questa"
-    if { {} != $tool_path } {
-      puts $fh_scr "set bin_path=$tool_path"
+    if { {} != $a_sim_vars(s_tool_bin_path) } {
+      puts $fh_scr "set bin_path=$a_sim_vars(s_tool_bin_path)"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
         set xv $::env(XILINX_VIVADO)
         set xv [string map {\\\\ /} $xv]
@@ -1678,8 +2233,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           [catch {send_msg_id USF-ModelSim-103 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
         }
         set tcl_wrapper_file $a_sim_vars(s_compile_pre_tcl_wrapper)
-        xcs_delete_backup_log $tcl_wrapper_file $dir
-        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $dir
+        xcs_delete_backup_log $tcl_wrapper_file $a_sim_vars(s_launch_dir)
+        xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $a_sim_vars(s_launch_dir)
         set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
         set cmd "vivado $vivado_cmd_str"
         puts $fh_scr "echo \"$cmd\""
@@ -1728,95 +2283,108 @@ proc usf_questa_get_sccom_cmd_args {} {
  
   variable a_sim_vars
 
-  set fs_obj [get_filesets $::tclapp::xilinx::questa::a_sim_vars(s_simset)]
   set args [list]
   
-  if { $a_sim_vars(b_int_systemc_mode) } {
-    if { $a_sim_vars(b_contain_systemc_sources) } {
-      # systemc
-      if {$::tcl_platform(platform) == "unix"} {
-        if { [get_property 32bit $fs_obj] } {
-          lappend args {-32}
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
+    # systemc
+    if {$::tcl_platform(platform) == "unix"} {
+      if { [get_property "32bit" $a_sim_vars(fs_obj)] } {
+        lappend args {-32}
+      } else {
+        if {$::tcl_platform(platform) == "windows"} {
+          # -64 not supported
         } else {
-          if {$::tcl_platform(platform) == "windows"} {
-            # -64 not supported
-          } else {
-            lappend args {-64}
-          }
+          lappend args {-64}
         }
       }
-      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
-      lappend args "-cpppath $gcc_path"
-      lappend args "-link"
-
-      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-        set ip_obj [xcs_find_ip "ai_engine"]
-        if { {} != $ip_obj } {
-          lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
-        }
-      }
-  
-      set more_opts [get_property questa.elaborate.sccom.more_options $fs_obj]
-      if { {} != $more_opts } {
-        lappend args "$more_opts"
-      }
-
-      variable a_shared_library_path_coln
-      foreach {key value} [array get a_shared_library_path_coln] {
-        set sc_lib   $key
-        set lib_path $value
-        set lib_name [file root $sc_lib]
-        set lib_name [string trimleft $lib_name {lib}]
-        set lib_dir "$lib_path"
-        # is C/CPP library?
-        if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
-          lappend args "-L$lib_dir"
-          lappend args "-l$lib_name"
-        } else {
-          lappend args "-lib $lib_name"
-        }
-      }
-
-      # cr:1079408 - bind aie_cluster 
-      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-        set ip_obj [xcs_find_ip "ai_engine"]
-        if { {} != $ip_obj } {
-          # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
-          set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
-          set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
-          set lib_name "aie_cluster_v1_0_0"
-          lappend args "-L$data_dir/$cpt_dir/$lib_name"
-          lappend args "-l$lib_name"
-        }
-      }
-  
-      lappend args "-lib $a_sim_vars(default_top_library)"
-      # bind IP static librarries
-      set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-      set uniq_shared_libs    [list]
-      set shared_libs_to_link [list]
-      foreach ip_obj [get_ips -all -quiet] {
-        set ipdef [get_property -quiet IPDEF $ip_obj]
-        set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
-        set ssm_type [get_property -quiet selected_sim_model $ip_obj]
-        if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
-          if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
-            if { ("tlm" == $ssm_type) } {
-              # bind systemC library
-              lappend shared_libs_to_link $vlnv_name
-              lappend uniq_shared_libs $vlnv_name
-            } else {
-              # rtl, tlm_dpi (no binding)
-            }
-          }
-        }
-      }
-      foreach vlnv_name $shared_libs_to_link {
-        lappend args "-lib $vlnv_name"
-      }
-
-      lappend args "-work $a_sim_vars(default_top_library)"
     }
+    set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    lappend args "-cpppath $gcc_path"
+    lappend args "-link"
+
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      set ip_obj [xcs_find_ip "ai_engine"]
+      if { {} != $ip_obj } {
+        lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+      }
+    }
+
+    set more_opts [get_property "questa.elaborate.sccom.more_options" $a_sim_vars(fs_obj)]
+    if { {} != $more_opts } {
+      lappend args "$more_opts"
+    }
+
+    variable a_shared_library_path_coln
+    foreach {key value} [array get a_shared_library_path_coln] {
+      set sc_lib   $key
+      set lib_path $value
+      set lib_name [file root $sc_lib]
+      set lib_name [string trimleft $lib_name {lib}]
+      set lib_dir "$lib_path"
+      # is C/CPP library?
+      if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
+        lappend args "-L$lib_dir"
+        lappend args "-l$lib_name"
+      } else {
+        lappend args "-lib $lib_name"
+      }
+    }
+
+    # bind user specified systemC/C/C++ libraries
+    set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+    foreach lib $l_link_sysc_libs {
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      lappend args "-lib $lib_name"
+    }
+    set l_link_c_libs    [get_property "questa.elaborate.link.c"    $a_sim_vars(fs_obj)]
+    foreach lib $l_link_c_libs {
+      set lib_dir  [file dirname $lib]
+      set lib_name [file root [file tail $lib]]
+      set lib_name [string trimleft $lib_name {lib}]
+      lappend args "-L$lib_dir"
+      lappend args "-l$lib_name"
+    }
+
+    # cr:1079408 - bind aie_cluster 
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      set ip_obj [xcs_find_ip "ai_engine"]
+      if { {} != $ip_obj } {
+        # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+        set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
+        set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
+        set lib_name "aie_cluster_v1_0_0"
+        lappend args "-L$data_dir/$cpt_dir/$lib_name"
+        lappend args "-l$lib_name"
+      }
+    }
+
+    lappend args "-lib $a_sim_vars(default_top_library)"
+    # bind IP static librarries
+    set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+    set uniq_shared_libs    [list]
+    set shared_libs_to_link [list]
+    foreach ip_obj [get_ips -all -quiet] {
+      set ipdef [get_property -quiet "ipdef" $ip_obj]
+      set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
+      set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]
+      if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
+        if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+          if { ("tlm" == $ssm_type) } {
+            # bind systemC library
+            lappend shared_libs_to_link $vlnv_name
+            lappend uniq_shared_libs $vlnv_name
+          } else {
+            # rtl, tlm_dpi (no binding)
+          }
+        }
+      }
+    }
+    foreach vlnv_name $shared_libs_to_link {
+      lappend args "-lib $vlnv_name"
+    }
+
+    lappend args "-work $a_sim_vars(default_top_library)"
   }
   return $args
 }
@@ -1827,11 +2395,12 @@ proc usf_questa_map_pre_compiled_libs { fh cmd } {
   # Return Value:
 
   variable a_sim_vars
+
   if { !$a_sim_vars(b_use_static_lib) } {
     return
   }
 
-  set lib_path [get_property sim.ipstatic.compiled_library_dir [current_project]]
+  set lib_path [get_property "sim.ipstatic.compiled_library_dir" [current_project]]
   set ini_file [file join $lib_path "modelsim.ini"]
   if { ![file exists $ini_file] } {
     return
@@ -1884,14 +2453,16 @@ proc usf_questa_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_fil
 
   upvar $prev_file_type_arg prev_file_type
   upvar $prev_lib_arg  prev_lib
-  set tool_path $::tclapp::xilinx::questa::a_sim_vars(s_tool_bin_path)
+
+  variable a_sim_vars
+
   set DS "\\\\"
   if {$::tcl_platform(platform) == "unix"} {
     set DS "/"
   }
   set tool_path_str ""
-  if { $::tclapp::xilinx::questa::a_sim_vars(b_install_path_specified) } {
-    set tool_path_str "$tool_path${DS}"
+  if { {} != $a_sim_vars(s_install_path) } {
+    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
   }
 
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
@@ -1910,9 +2481,9 @@ proc usf_add_quit_on_error { fh step } {
   # Argument Usage:
   # Return Value:
 
-  set b_scripts_only $::tclapp::xilinx::questa::a_sim_vars(b_scripts_only)
+  variable a_sim_vars
 
-  if { $b_scripts_only } {
+  if { $a_sim_vars(b_scripts_only) } {
     # for both native and classic modes
     if { {simulate} == $step } {
       if { [get_param "simulator.modelsimNoQuitOnError"] } {

@@ -1,8 +1,26 @@
-2.394 coverage help message fix for name
-2.393 coverage help message fix for type
-2.392 coverage options for XSim
+2.413 source vitis_params for setting region path variables
+2.412 donot initialize variables for step flow
+2.411 added sbc as short form values for coverage type
+2.410 removed wto switch for webtalk data collection
+2.409 debug msg for reporting missing shared library for a given vlnv
+2.408 support for user specified SystemC/C++/C libraries
+2.407 pass -ignore_localparam_override to xelab for testbench
+2.406 bind user specified systemc/C/C++ libraries during elaboration
+2.405 refactored library search order proc to utils
+2.404 define xv_cxl_ip_path to point to compiled IP libraries
+2.403 refactored generics proc to common helpers
+2.402 added common helpers
+2.401 export xv_cxl_lib_path for simulate step
+2.400 support for step execution
+2.399 initialize vars from utils
+2.398 code refactoring
+2.397 namspace fix for vars
+2.396 support for step execution and code cleanup
+2.395 check for leaf dir name wrt library name for linked library
+2.393 updated help msg for coverage name and type
+2.392 Merged 2021.1-dev fixes to 2021.2-dev
 2.391 Extract IP file name from core-container to determine SV package libraries
-2.390 compile sources for netlist functional simulation
+2.390 merged 2021.1-dev to 2021.2-dev
 2.388 coverage option for database file storage
 2.387 replaced post sim code hook call for Vitis
 2.386 set chess dir env for xsim

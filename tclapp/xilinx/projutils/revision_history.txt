@@ -1,7 +1,18 @@
+3.489 updated help for export_simulation
+3.488 fixed system design detection check
+3.487 updated comment for cache vars
+3.485 bind user specified systemc/C/C++ libraries during elaboration
+3.484 refactored library search order proc to utils
+3.483 refactored generics proc to common helpers
+3.482 added common helpers
+3.481 initialize vars from utils
+3.480 code refactoring
+3.479 remove IES support
+3.478 check for leaf dir name wrt library name for linked library
 3.477 IDR run support
 3.476 Removed create_rqs_run command
 3.475 Extract IP file name from core-container to determine SV package libraries
-3.474 Write project tcl exclude properties is now based on class name rather than object name
+3.474 merged 2021.1-dev to 2021.2-dev
 3.473 Fix for write_project_tcl not adding generate_target for rm files.
 3.472 pass vlog -mfsu to treat all sources as single compilation unit
 3.471 Use relative path in checkRequiredFiles proc
