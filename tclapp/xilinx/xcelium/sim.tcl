@@ -966,7 +966,6 @@ proc usf_compile_simmodel_sources { fh } {
 
         # <SYSTEMC_INCLUDE_DIRS>
         foreach incl_dir $systemc_incl_dirs {
-puts d1:$incl_dir
           if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
             set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
           }
@@ -975,7 +974,6 @@ puts d1:$incl_dir
 
         # <SYSTEMC_INCLUDE_DIRS_XCELIUM>
         foreach incl_dir $systemc_incl_dirs_xcl {
-puts d2:$incl_dir
           if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
             set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
           }
