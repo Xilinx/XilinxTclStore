@@ -132,9 +132,9 @@ proc usf_vcs_setup_simulation { args } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
-  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  # nopc - enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
   if { !$a_sim_vars(b_use_static_lib) } {
-    set a_sim_vars(b_compile_simmodels) 0
+    set a_sim_vars(b_compile_simmodels) 1
   }
 
   if { $a_sim_vars(b_compile_simmodels) } {
@@ -261,6 +261,7 @@ proc usf_vcs_setup_simulation { args } {
     }
   }
 
+  # nopc
   if { $a_sim_vars(b_compile_simmodels) } {
     # get the design simmodel compile order
     set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
@@ -638,6 +639,7 @@ proc usf_vcs_write_compile_script {} {
 
   # write compile order files
   if { $a_sim_vars(b_optimizeForRuntime) } {
+    # nopc
     if { $a_sim_vars(b_compile_simmodels) } {
       usf_compile_simmodel_sources $fh_scr
     }
@@ -1024,7 +1026,15 @@ proc usf_compile_simmodel_sources { fh } {
       if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
 
       # <LDLIBS>
-      if { [llength $ldlibs] > 0 } { foreach opt $ldlibs { lappend args $opt } }
+      if { [llength $ldlibs] > 0 } {
+        foreach opt $ldlibs {
+          set vcs_lib_dir "$a_sim_vars(s_launch_dir)/vcs_lib"
+          if { [regexp "Lvcs_lib" $opt] } {
+            set opt [regsub -all {vcs_lib} $opt $vcs_lib_dir]
+          }
+          lappend args $opt
+        }
+      }
 
       lappend args "-shared"
       lappend args "-o"
@@ -1311,7 +1321,7 @@ proc usf_vcs_write_elaborate_script {} {
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "vcs" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "vcs" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
       puts $fh_scr ""
     }
@@ -1437,7 +1447,7 @@ proc usf_vcs_write_elaborate_script {} {
             if { [regexp "^protobuf" $shared_lib_name] } {
              # skip
             } else {
-              set sm_lib_dir "vcs_lib/$shared_lib_name"
+              set sm_lib_dir "$a_sim_vars(s_launch_dir)/vcs_lib/$shared_lib_name"
             }
           }
 
@@ -1844,7 +1854,7 @@ proc usf_vcs_write_simulate_script {} {
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "vcs" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "vcs" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""

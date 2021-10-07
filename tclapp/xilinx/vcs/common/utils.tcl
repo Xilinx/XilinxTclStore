@@ -5615,7 +5615,7 @@ proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_
   puts $fh_scr "ExecStep $full_cmd\n"
 }
 
-proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels s_gcc_version s_clibs_dir sp_cpt_dir l_link_sysc_libs_arg l_link_c_libs_arg } {
+proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels launch_dir s_gcc_version s_clibs_dir sp_cpt_dir l_link_sysc_libs_arg l_link_c_libs_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5657,7 +5657,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
           if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
             # skip
           } else {
-            set sm_lib_dir "${simulator}_lib/$lib_name"
+            set sm_lib_dir "$launch_dir/${simulator}_lib/$lib_name"
           }
         }
       }
