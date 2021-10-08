@@ -1,3 +1,4 @@
+9.76 fixed options for non-precompile mode
 9.75 fixed library search order to pass launch dir
 9.74 support for local VCS compiled simmodel library path for non-precompile flow
 9.73 source vitis_params for setting region path variables
