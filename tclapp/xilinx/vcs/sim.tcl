@@ -997,12 +997,13 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "-Mdir=vcs_lib/${lib_name}"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_tool_bin_path)/syscan $cmd_str\n"
+        puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
       }
 
       #
       # LINK (g++)
       #
+      set compiler "g++"
       set args [list]
       lappend args "-m64"
       foreach src_file $sysc_files {
@@ -1041,7 +1042,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "./vcs_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1114,7 +1115,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "vcs_lib/$lib_name/${file_name}.o"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
@@ -1132,7 +1133,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "vcs_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1200,11 +1201,11 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "vcs_lib/$lib_name/${file_name}.o"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
-      # LINK (g++)
+      # LINK (gcc)
       #
       set args [list]
       foreach src_file $cpp_files {
@@ -1218,7 +1219,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "vcs_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
     }
   }
 }

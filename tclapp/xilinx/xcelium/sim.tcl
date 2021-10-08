@@ -1017,6 +1017,7 @@ proc usf_compile_simmodel_sources { fh } {
       #
       # LINK (g++)
       #
+      set compiler "g++"
       set args [list]
       lappend args "-m64"
       foreach src_file $sysc_files {
@@ -1051,7 +1052,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "./xcelium_lib/$lib_name/lib${lib_name}.so"
      
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1069,6 +1070,10 @@ proc usf_compile_simmodel_sources { fh } {
         # <CPP_INCLUDE_DIRS>
         if { [llength $cpp_incl_dirs] > 0 } {
           foreach incl_dir $cpp_incl_dirs {
+            # $xv_ext_lib_path/protobuf/include -> $xv_ext_lib_path/utils/protobuf/include
+            if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+              set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+            }
             lappend args "-I $incl_dir"
           }
         }
@@ -1077,26 +1082,12 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args $cpp_compile_option 
 
         # <G++_COMPILE_FLAGS>
-        if { [llength $gplus_compile_flags] > 0 } {
-          foreach opt $gplus_compile_flags {
-            lappend args $opt
-          }
-        }
-
-        # <G++_COMPILE_DEBUG_FLAGS>
+        foreach opt $gplus_compile_flags     { lappend args $opt }
+        foreach opt $gplus_compile_flags_xcl { lappend args $opt }
         if { $b_dbg } {
-          if { [llength $gplus_compile_dbg_flags] > 0 } {
-            foreach opt $gplus_compile_dbg_flags {
-              lappend args $opt
-            }
-          }
-        # <G++_COMPILE_OPT_FLAGS>
+          foreach opt $gplus_compile_dbg_flags { lappend args $opt }
         } else {
-          if { [llength $gplus_compile_opt_flags] > 0 } {
-            foreach opt $gplus_compile_opt_flags {
-              lappend args $opt
-            }
-          }
+          foreach opt $gplus_compile_opt_flags { lappend args $opt }
         }
 
         # config simmodel options
@@ -1120,7 +1111,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "xcelium_lib/$lib_name/${file_name}.o"
         
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
@@ -1138,7 +1129,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1156,6 +1147,10 @@ proc usf_compile_simmodel_sources { fh } {
         # <C_INCLUDE_DIRS>
         if { [llength $c_incl_dirs] > 0 } {
           foreach incl_dir $c_incl_dirs {
+            # $xv_ext_lib_path/protobuf/include -> $xv_ext_lib_path/utils/protobuf/include
+            if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+              set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+            }
             lappend args "-I $incl_dir"
           }
         }
@@ -1207,11 +1202,11 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "xcelium_lib/$lib_name/${file_name}.o"
         
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
-      # LINK (g++)
+      # LINK (gcc)
       #
       set args [list]
       foreach src_file $cpp_files {
@@ -1225,7 +1220,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
     }
   }
 }

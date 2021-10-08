@@ -1130,7 +1130,7 @@ proc usf_compile_simmodel_sources { fh } {
     
       set cmd_str [join $args " "]
       puts $fh "# compile '$lib_name' model sources"
-      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
    
       # 
       # LINK (sccom)
@@ -1182,7 +1182,7 @@ proc usf_compile_simmodel_sources { fh } {
     
       lappend args "-work $lib_name"
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1235,7 +1235,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "questa_lib/$lib_name/${obj_file}"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
     
       # 
@@ -1252,7 +1252,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "questa_lib/$lib_name/lib${lib_name}.so"
       
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1305,7 +1305,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "questa_lib/$lib_name/${obj_file}"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
     
       # 
@@ -1322,7 +1322,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "questa_lib/$lib_name/lib${lib_name}.so"
       
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     }
   }
