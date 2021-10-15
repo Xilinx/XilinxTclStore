@@ -900,9 +900,9 @@ proc xps_write_sim_script { run_dir data_files filename } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
       #send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
-        send_msg_id exportsim-Tcl-070 ERROR \
+        [catch {send_msg_id exportsim-Tcl-070 ERROR \
         "A simulation top was not set. Before running export_simulation a top must be set on the simulation\
-        fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"
+        fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"} err_msg]
         #set a_sim_vars(s_top) "unknown"
       }
 
@@ -6499,7 +6499,7 @@ proc xps_write_xcelium_opt_args { fh_unix } {
     set arg_list [linsert $arg_list 1 "-sysc"]
   }
 
-  #xps_append_more_options "xcelium" "compile" "xrun" arg_list
+  xps_append_more_options "xcelium" "compile" "xrun" arg_list
 
   puts $fh_unix "# Set ${tool} options"
   puts $fh_unix "${tool}_opts=\"[join $arg_list " "]\"\n"
