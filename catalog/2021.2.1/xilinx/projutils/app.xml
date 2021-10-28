@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>updated help for export_simulation</revision_history>
+      <name>projutils</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
+      <display>Project Utilities</display>
+      <procs>
+        <proc>
+          <name>convert_ngc</name>
+          <summary>Convert all provided NGC files to a supported format</summary>
+        </proc>
+        <proc>
+          <name>copy_run</name>
+          <summary>Copy a run from an already existing run, source-run, to a new copy of that run, destination-run.</summary>
+        </proc>
+        <proc>
+          <name>export_bd_synth</name>
+          <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.</summary>
+        </proc>
+        <proc>
+          <name>export_ip_user_files</name>
+          <summary>Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.</summary>
+        </proc>
+        <proc>
+          <name>export_simulation</name>
+          <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
+        </proc>
+        <proc>
+          <name>generate_hier_access</name>
+          <summary>Generate sources for hierarchical access simulation</summary>
+        </proc>
+        <proc>
+          <name>setup_ip_static_library</name>
+          <summary>Extract IP static files from the project or repository and prepare it for compile_simlib</summary>
+        </proc>
+        <proc>
+          <name>write_project_tcl</name>
+          <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
