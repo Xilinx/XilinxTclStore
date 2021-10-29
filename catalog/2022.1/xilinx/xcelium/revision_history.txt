@@ -1,3 +1,4 @@
+11.96 debug proc to print static file info
 11.95 fixed options for non-precompile mode
 11.94 remvoved debug print message
 11.93 fixed library search order to pass launch dir

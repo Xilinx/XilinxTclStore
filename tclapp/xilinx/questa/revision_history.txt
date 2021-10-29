@@ -1,3 +1,4 @@
+2.251 debug proc to print static file info
 2.250 fixed options for non-precompile mode
 2.249 fixed library search order to pass launch dir
 2.248 support for local VCS compiled simmodel library path for non-precompile flow
