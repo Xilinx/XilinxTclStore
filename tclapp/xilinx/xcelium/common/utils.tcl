@@ -5742,3 +5742,31 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     }
   }
 }
+
+proc xcs_print_pre_compiled_info { clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_pre_compiled_source_info
+
+  if { [array size a_pre_compiled_source_info] > 0 } {
+    package require struct::matrix
+    struct::matrix mt;
+    mt add columns 3;
+    set lines [list]
+    puts "----------------------------------------------------------------------------------------------------------------------"
+    puts "Pre-compiled static files referenced from '$clibs_dir'"
+    puts "----------------------------------------------------------------------------------------------------------------------"
+    lappend lines "IP_STATIC_FILE TYPE PRE_COMPILED_LIBRARY"
+    lappend lines "-------------------------------------------- ------ -----------------------------------------"
+    set type "static"
+    foreach {key value} [array get a_pre_compiled_source_info] {
+      lappend lines "$key $type $value"
+    }
+    lappend lines "-------------------------------------------- ------ -----------------------------------------"
+    foreach line $lines {mt add row $line}
+    puts [mt format 2string]
+    mt destroy
+  }
+}

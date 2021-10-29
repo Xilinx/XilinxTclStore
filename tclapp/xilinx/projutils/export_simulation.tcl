@@ -138,6 +138,7 @@ proc xps_init_vars {} {
   variable a_sim_cache_sysc_stub_files
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
+  variable a_pre_compiled_source_info
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -151,6 +152,7 @@ proc xps_init_vars {} {
   array unset a_sim_cache_sysc_stub_files
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
+  array unset a_pre_compiled_source_info
 }
 
 proc export_simulation {args} {
@@ -1036,7 +1038,7 @@ proc xps_write_script { simulator dir filename } {
 
   }
 
-  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $clibs_dir $dir]]
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -1225,7 +1227,7 @@ proc xps_export_fs_non_hdl_data_files { data_files_arg } {
   }
 }
 
-proc xps_get_files { simulator launch_dir } {
+proc xps_get_files { simulator clibs_dir launch_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1635,6 +1637,12 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   }
+
+  # print pre-compiled source info
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    xcs_print_pre_compiled_info $clibs_dir
+  }
+
   return $files
 }
 
@@ -1816,6 +1824,18 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+
+        #################################################################
+        # Pre-compiled version of this IP static source file will be used
+        #################################################################
+        variable a_pre_compiled_source_info
+        set static_ip_filename [file tail $dst_cip_file]
+        set static_library     $library
+        if { ![info exists a_pre_compiled_source_info($static_ip_filename)] } {
+          # store this info for printing/debugging purposes
+          set a_pre_compiled_source_info($static_ip_filename) $static_library
+        }
+
         set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
       } else {
         # add this library to have the new mapping

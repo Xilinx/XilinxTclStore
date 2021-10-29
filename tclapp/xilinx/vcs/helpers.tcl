@@ -76,6 +76,7 @@ proc usf_init_vars {} {
   variable a_shared_library_mapping_path_coln
   variable a_ip_lib_ref_coln
   variable a_sim_cache_sysc_stub_files
+  variable a_pre_compiled_source_info
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -88,6 +89,7 @@ proc usf_init_vars {} {
   array unset a_shared_library_mapping_path_coln
   array unset a_ip_lib_ref_coln
   array unset a_sim_cache_sysc_stub_files
+  array unset a_pre_compiled_source_info
 
   #######################
   # initialize param vars
@@ -894,6 +896,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
+  # print pre-compiled source info
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    xcs_print_pre_compiled_info $a_sim_vars(s_clibs_dir)
+  }
+
   return $files
 }
 
@@ -1662,6 +1669,18 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+
+        #################################################################
+        # Pre-compiled version of this IP static source file will be used
+        #################################################################
+        variable a_pre_compiled_source_info
+        set static_ip_filename [file tail $dst_cip_file]
+        set static_library     $library
+        if { ![info exists a_pre_compiled_source_info($static_ip_filename)] } {
+          # store this info for printing/debugging purposes
+          set a_pre_compiled_source_info($static_ip_filename) $static_library
+        }
+
       } else {
         # add this library to have the new library linkage in mapping file
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
