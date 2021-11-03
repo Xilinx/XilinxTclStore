@@ -1,3 +1,4 @@
+9.78 pass internal switch for gcc and simulator version
 9.77 debug proc to print static file info
 9.76 fixed options for non-precompile mode
 9.75 fixed library search order to pass launch dir
