@@ -296,6 +296,8 @@ proc usf_vcs_setup_args { args } {
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
+  # [-int_gcc_version <arg>]: GCC version (internal use)
+  # [-int_sim_version <arg>]: Simulator version (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
@@ -324,6 +326,8 @@ proc usf_vcs_setup_args { args } {
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
+      "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
