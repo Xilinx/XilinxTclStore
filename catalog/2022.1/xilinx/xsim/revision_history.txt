@@ -1,3 +1,4 @@
+2.417 helper proc to fetch simulation model version
 2.416 debug proc to print static file info
 2.415 fixed library search order to pass launch dir
 2.414 support for local VCS compiled simmodel library path for non-precompile flow

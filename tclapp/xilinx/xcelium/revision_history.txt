@@ -1,3 +1,4 @@
+11.98 helper proc to fetch simulation model version
 11.97 pass internal switch for gcc and simulator version
 11.96 debug proc to print static file info
 11.95 fixed options for non-precompile mode
