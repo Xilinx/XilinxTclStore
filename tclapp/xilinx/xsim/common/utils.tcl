@@ -100,6 +100,11 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   #
   set data_dir                               [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
   set a_sim_vars(s_ip_repo_dir)              [file normalize [file join $data_dir "ip/xilinx"]]
+
+  #
+  # Simulation model versions
+  #
+  set a_sim_vars(l_sim_model_versions)       [rdi::get_sim_model_versions]
 }
 
 proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
@@ -5678,8 +5683,8 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set tp "$cpt_dir/$sm_cpt_dir"
 
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-    # TODO: find way to make this data-driven
-    append ld_path ":$tp/aie_cluster_v1_0_0"
+    set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+    append ld_path ":$tp/$model_ver"
 
     set xilinx_vitis     {}
     set cardano_api_path {}
@@ -5769,4 +5774,32 @@ proc xcs_print_pre_compiled_info { clibs_dir } {
     puts [mt format 2string]
     mt destroy
   }
+}
+
+proc xcs_get_sim_model_ver { model {b_exact false}} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set version {}
+  foreach name [rdi::get_sim_model_versions] {
+    # match first part
+    if { !$b_exact } {
+      if { [regexp "^$model" $name] } {
+        set version $name
+        break
+      }
+    # match exact name
+    } else {
+      if { $model == $name } {
+        set version $name
+        break
+      }
+    }
+  }
+
+  if { {} == $version } {
+    send_msg_id SIM-utils-077 WARNING "Failed to find the simulation model version for '$model'!\n"
+  }
+  return $version
 }

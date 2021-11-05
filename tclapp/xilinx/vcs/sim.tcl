@@ -1432,11 +1432,12 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+            set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
+            set arg_list [linsert $arg_list end "-l$model_ver"]
           }
         }
 
@@ -1459,7 +1460,8 @@ proc usf_vcs_write_elaborate_script {} {
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
