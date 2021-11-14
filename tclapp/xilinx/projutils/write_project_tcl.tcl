@@ -1463,6 +1463,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       continue
     }
 
+    if { ([ string equal $type "project" ]) && ([regexp -nocase "simulator\..*_version" $prop]) } {
+      continue
+    }
+
     # To handle the work-around solution of CR-988588 set board_part to base_board_part value then set board_connections
     if { ([ string equal $type "project" ]) && ([ string equal [ string tolower $prop ] "board_connections" ]) } {
       continue
@@ -1649,6 +1653,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
          [string equal -nocase $prop "compxlib.modelsim_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.questa_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.ies_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.xcelium_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.vcs_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.riviera_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.activehdl_compiled_library_dir"] } {
