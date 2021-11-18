@@ -6618,6 +6618,10 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    # param to bind shared protobuf
+    set b_bind_protobuf false
+    [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
     variable a_shared_library_path_coln
     foreach {library lib_dir} [array get a_shared_library_path_coln] {
       if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
@@ -6854,7 +6858,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
@@ -6870,7 +6877,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
@@ -7004,7 +7014,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
       set arg_list [list]
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-sysc=opt_if"
       lappend arg_list "-cpp \${gcc_path}/g++"
       lappend arg_list "-V"
