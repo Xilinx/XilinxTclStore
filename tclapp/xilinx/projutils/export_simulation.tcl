@@ -51,7 +51,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_directory_specified)           0
   set a_sim_vars(b_scripts_only)                  0
   set a_sim_vars(b_use_static_lib)                0
-  set a_sim_vars(b_int_systemc_mode)              [get_param "project.enableSystemCSupport"]
+  set a_sim_vars(b_int_systemc_mode)              1
   set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
 
