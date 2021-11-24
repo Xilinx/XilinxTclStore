@@ -1326,7 +1326,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     set args [usf_xsim_get_xelab_cmdline_args]
 
     puts $fh_scr "$a_sim_vars(script_cmt_tag) elaborate design"
-    puts $fh_scr "echo \"xelab $args\""
+    puts $fh_scr "echo \"xelab [usf_xsim_escape_quotes $args]\""
     puts $fh_scr "xelab $args"
 
     xcs_write_exit_code $fh_scr
@@ -1379,7 +1379,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     set b_call_script_exit [get_property -quiet "xsim.call_script_exit" $a_sim_vars(fs_obj)]
 
     puts $fh_scr "$a_sim_vars(script_cmt_tag) elaborate design"
-    puts $fh_scr "echo \"xelab $args\""
+    puts $fh_scr "echo \"xelab [usf_xsim_escape_quotes $args]\""
     puts $fh_scr "call xelab $a_sim_vars(s_dbg_sw) $args"
     puts $fh_scr "if \"%errorlevel%\"==\"0\" goto SUCCESS"
     puts $fh_scr "if \"%errorlevel%\"==\"1\" goto END"
@@ -4140,6 +4140,43 @@ proc usf_delete_generated_files { } {
   foreach prj_file [glob -nocomplain -directory $a_sim_vars(s_launch_dir) *_vlog.prj] { [catch {file delete -force $prj_file} error_msg] }
   foreach prj_file [glob -nocomplain -directory $a_sim_vars(s_launch_dir) *_vhdl.prj] { [catch {file delete -force $prj_file} error_msg] }
   foreach prj_file [glob -nocomplain -directory $a_sim_vars(s_launch_dir) *_xsc.prj]  { [catch {file delete -force $prj_file} error_msg] }
+}
+
+proc usf_xsim_escape_quotes { args } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set cmd $args
+  set b_found 0
+  set updated_args [list]
+  set args_list [split $args " "]
+
+  # args contain -d? (verilog_define)
+  # --incr --debug typical --relax --mt 8 -d "a=20" -d \"hex=64'h1234\"
+  if { [regexp { \-d } $args_list] } {
+    foreach arg $args_list {
+      if { {-d} == $arg } {
+        # set flag for next arg value ("a=20")
+        set b_found 1
+        lappend updated_args $arg
+        continue
+      }
+      if { $b_found } {
+        # if value specified is of type hex (val=128'h123)? wrap in quotes with back-slash
+        if { [regexp {'} $arg] } {
+          set val [string trim $arg \"]
+          set arg "\\\"$val\\\""
+        }
+        set b_found 0
+      }
+      lappend updated_args $arg
+    }
+    set cmd [join $updated_args " "]
+  }
+
+  # trim curly-braces
+  return [string trim $cmd "\{\}"]
 }
 
 }
