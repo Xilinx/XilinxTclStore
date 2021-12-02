@@ -1,3 +1,4 @@
+2.254 helper to detect gcc version mismatch
 2.253 refactored gcc path and version detection
 2.252 helper proc to fetch simulation model version
 2.251 debug proc to print static file info
