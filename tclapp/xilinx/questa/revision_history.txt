@@ -1,3 +1,4 @@
+2.253 refactored gcc path and version detection
 2.252 helper proc to fetch simulation model version
 2.251 debug proc to print static file info
 2.250 fixed options for non-precompile mode
