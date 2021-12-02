@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored gcc path and version detection</revision_history>
+      <revision_history>helper to detect gcc version mismatch</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

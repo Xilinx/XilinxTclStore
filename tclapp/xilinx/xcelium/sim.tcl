@@ -184,6 +184,9 @@ proc usf_xcelium_setup_simulation { args } {
   # find/copy cds.lib file into run dir
   set a_sim_vars(s_clibs_dir) [usf_xcelium_verify_compiled_lib]
 
+  # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
+  xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "xcelium"
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0

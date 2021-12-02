@@ -180,6 +180,9 @@ proc usf_vcs_setup_simulation { args } {
   # find/copy synopsys_sim.setup file into run dir
   set a_sim_vars(s_clibs_dir) [usf_vcs_verify_compiled_lib]
 
+  # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
+  xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "vcs"
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0
