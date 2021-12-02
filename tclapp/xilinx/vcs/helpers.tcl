@@ -445,34 +445,12 @@ proc usf_set_simulator_path { simulator } {
   set a_sim_vars(s_tool_bin_path) $bin_path
 }
 
-proc usf_set_gcc_version_path { simulator } {
+proc usf_set_systemc_library_path { simulator } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable a_sim_vars
-
-  send_msg_id USF-VCS-005 INFO "Finding GCC installation...\n"
-
-  set gcc_type {}
-  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
-  switch $gcc_type {
-    1 { send_msg_id USF-VCS-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
-    2 { send_msg_id USF-VCS-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
-  }
-
-  # set GCC install path
-  set gcc_path {}
-  set path_type {}
-  if { [xcs_get_gcc_path $simulator "VCS" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_version) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
-    set a_sim_vars(s_gcc_bin_path) $gcc_path
-    switch $path_type {
-      1 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
-      2 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
-      3 { send_msg_id USF-VCS-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
-      4 { send_msg_id USF-VCS-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
-    }
-  }
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     # set vcs system library

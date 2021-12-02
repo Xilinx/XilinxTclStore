@@ -154,7 +154,7 @@ proc usf_xcelium_setup_simulation { args } {
   usf_set_simulator_path "xcelium"
 
   if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "xcelium"
+    usf_set_systemc_library_path "xcelium"
   }
 
   # initialize boost library reference

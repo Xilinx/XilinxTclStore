@@ -150,7 +150,7 @@ proc usf_vcs_setup_simulation { args } {
   usf_set_simulator_path "vcs"
 
   if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "vcs"
+    usf_set_systemc_library_path "vcs"
   }
 
   # initialize boost library reference

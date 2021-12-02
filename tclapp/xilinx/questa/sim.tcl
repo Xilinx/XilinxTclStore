@@ -151,10 +151,6 @@ proc usf_questa_setup_simulation { args } {
 
   usf_set_simulator_path   "questa"
 
-  if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "questa"
-  }
-
   # initialize boost library reference
   set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
 

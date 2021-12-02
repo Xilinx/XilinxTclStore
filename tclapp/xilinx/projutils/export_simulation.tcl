@@ -7406,21 +7406,21 @@ proc xps_set_gcc_version_path { simulator } {
   switch -regexp -- $simulator {
     "xsim" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
     }
     "questa" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
     }
     "xcelium" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
@@ -7443,7 +7443,7 @@ proc xps_set_gcc_version_path { simulator } {
     }
     "vcs" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
@@ -7468,6 +7468,26 @@ proc xps_set_gcc_version_path { simulator } {
       send_msg_id exportsim-Tcl-076 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
     }
   }
+}
+
+proc xps_get_gcc_version { simulator specified_gcc_version gcc_type_arg b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $gcc_type_arg gcc_type
+  
+  # default GCC
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+  
+  # custom GCC version
+  if { {} == $specified_gcc_version } {
+    set gcc_type 1
+  } else {
+    set gcc_version $specified_gcc_version
+    set gcc_type 2
+  }
+  return $gcc_version
 }
 
 proc xps_resolve_sysc_lib_path { type lib_path } { 

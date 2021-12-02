@@ -258,25 +258,6 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
   }
 }
 
-proc usf_set_gcc_version_path { simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  variable a_sim_vars
-
-  #send_msg_id USF-XSim-005 INFO "Finding GCC installation...\n"
-  
-  # set GCC version
-  set gcc_type {}
-  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
-  switch $gcc_type {
-    1 { send_msg_id USF-XSim-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
-    2 { send_msg_id USF-XSim-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
-  }
-  
-}
-
 proc usf_get_files_for_compilation { global_files_str_arg } {
   # Summary:
   # Argument Usage:

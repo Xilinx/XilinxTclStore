@@ -327,10 +327,6 @@ proc usf_xsim_setup_simulation { args } {
     }
   }
 
-  if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "xsim"
-  }
-
   # initialize boost library reference
   set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
 
@@ -665,6 +661,9 @@ proc usf_xsim_setup_args { args } {
   # [-int_debug_mode]: Debug mode (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
+  # [-int_gcc_bin_path <arg>]: GCC path (internal use)
+  # [-int_gcc_version <arg>]: GCC version (internal use)
+  # [-int_sim_version <arg>]: Simulator version (internal use)
   # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -693,6 +692,9 @@ proc usf_xsim_setup_args { args } {
       "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)        [lindex $args $i] }
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
+      "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
+      "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
