@@ -953,9 +953,8 @@ proc usf_compile_simmodel_sources { fh } {
         set file_name [file root [file tail $src_file]]
 
         set args [list]
-        set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
-        if { {} != $sysc_ver } {
-          lappend args "-sysc=$sysc_ver"
+        if { {} != $a_sim_vars(sysc_ver) } {
+          lappend args "-sysc=$a_sim_vars(sysc_ver)"
         }
         lappend args "-full64"
         lappend args "-cpp $a_sim_vars(s_gcc_bin_path)/g++"
@@ -1342,9 +1341,8 @@ proc usf_vcs_write_elaborate_script {} {
   set arg_list [list]
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
-      if { {} != $sysc_ver } {
-        lappend arg_list "-sysc=$sysc_ver"
+      if { {} != $a_sim_vars(sysc_ver) } {
+        lappend arg_list "-sysc=$a_sim_vars(sysc_ver)"
       }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
@@ -2236,9 +2234,8 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
 
   set tool "syscan"
   set arg_list [list]
-  set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
-  if { {} != $sysc_ver } {
-    lappend arg_list "-sysc=$sysc_ver"
+  if { {} != $a_sim_vars(sysc_ver) } {
+    lappend arg_list "-sysc=$a_sim_vars(sysc_ver)"
   }
   lappend arg_list "-sysc=opt_if"
   lappend arg_list "-cpp \$\{gcc_path\}/g++"
@@ -2264,9 +2261,8 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
   set system_includes    "-I. "
 
   #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
-  set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
-  if { {} != $sysc_ver } {
-    append system_includes "-I\$\{VCS_HOME\}/include/systemc${sysc_ver} "
+  if { {} != $a_sim_vars(sysc_ver) } {
+    append system_includes "-I\$\{VCS_HOME\}/include/systemc$a_sim_vars(sysc_ver) "
   }
   #append system_includes "-I\$\{VCS_HOME\}/lib "
   append system_includes "-I\$\{VCS_HOME\}/include "
