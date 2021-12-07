@@ -1,3 +1,4 @@
+9.84 set syscan systemc version for previous gcc
 9.83 set syscan systemc version
 9.82 helper to detect gcc version mismatch
 9.81 refactored gcc path and version detection
