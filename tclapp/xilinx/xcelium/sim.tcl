@@ -2169,7 +2169,11 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend arg_list "-nodep"
     lappend arg_list "-gnu"
     set gcc_ver [get_param "simulator.xcelium.gcc.version"] 
-    lappend arg_list "-gcc_vers $gcc_ver"
+    set vers [split $gcc_ver "."]
+    set major [lindex $vers 0]
+    set minor [lindex $vers 1]
+    set xcl_gcc_ver "${major}.${minor}"
+    lappend arg_list "-gcc_vers $xcl_gcc_ver"
     lappend arg_list "-cxxext cxx"
     lappend arg_list "-xmscrc $a_sim_vars(tmp_obj_dir)"
   }
