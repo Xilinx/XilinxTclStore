@@ -180,6 +180,11 @@ proc usf_vcs_setup_simulation { args } {
   # find/copy synopsys_sim.setup file into run dir
   set a_sim_vars(s_clibs_dir) [usf_vcs_verify_compiled_lib]
 
+  # set systemC version
+  if { {6.2.0} == $a_sim_vars(s_gcc_version) } {
+    set a_sim_vars(sysc_ver) "232"
+  }
+
   # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
   xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "vcs"
 
