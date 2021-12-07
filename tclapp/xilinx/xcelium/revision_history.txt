@@ -1,3 +1,4 @@
+11.101 gcc version name fix for gccvers option
 11.100 helper to detect gcc version mismatch
 11.99 refactored gcc path and version detection
 11.98 helper proc to fetch simulation model version
