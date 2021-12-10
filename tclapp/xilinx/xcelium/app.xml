@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>gcc version name fix for gccvers option</revision_history>
+      <revision_history>hide debug message under var</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

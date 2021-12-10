@@ -3910,20 +3910,25 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   }
   set fmt {%-50s%-2s%-30s%-2s%-20s%-2s%-10s%-2s%-20s}
   set sep ":"
-  if { $b_int_sm_lib_ref_debug } {
-    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
-    puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
-    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
-    foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
-      puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+
+  # print allowed values debug msg
+  set b_print_msg 0
+  if { $b_print_msg } {
+    if { $b_int_sm_lib_ref_debug } {
       puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+        puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      }
+      puts "\nLibraries referenced from IP's"
+      puts "------------------------------"
+      foreach sc_lib $ref_libs {
+        puts " + $sc_lib" 
+      }
+      puts "------------------------------"
     }
-    puts "\nLibraries referenced from IP's"
-    puts "------------------------------"
-    foreach sc_lib $ref_libs {
-      puts " + $sc_lib" 
-    }
-    puts "------------------------------"
   }
   return $ref_libs
 }
