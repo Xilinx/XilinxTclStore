@@ -2359,28 +2359,66 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
 
     lappend args "-lib $a_sim_vars(default_top_library)"
+
     # bind IP static librarries
     set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+    set ip_objs [get_ips -all -quiet]
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+      puts "Referenced pre-compiled shared libraries"
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+    }
     set uniq_shared_libs    [list]
     set shared_libs_to_link [list]
-    foreach ip_obj [get_ips -all -quiet] {
+    foreach ip_obj $ip_objs {
       set ipdef [get_property -quiet "ipdef" $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]
       if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
         if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+          if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+            puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
+          }
           if { ("tlm" == $ssm_type) } {
             # bind systemC library
             lappend shared_libs_to_link $vlnv_name
             lappend uniq_shared_libs $vlnv_name
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (BIND)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
           } else {
             # rtl, tlm_dpi (no binding)
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (SKIP)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
+          }
+        }
+      } else {
+        # check if incompatible version found from compiled area
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          set ip_name [get_property -quiet "name" $ip_obj]
+          # ipdef -> xilinx.com:ip:versal_cips:3.0 -> versal_cips_v
+          set ip_prefix [lindex [split $ipdef {:}] 2]
+          set ip_prefix "${ip_prefix}_v"
+
+          # match first part from clibs area to see if it matches
+          set matches [lsearch -regexp -all $shared_ip_libs $ip_prefix]
+          if { [llength $matches] > 0 } {
+            puts " WARNING: Expected pre-compiled shared library for '$vlnv_name' referenced in IP '$ip_name' not found!"
+            puts "          (Library '$vlnv_name' will not be linked during elaboration)"
+            puts "          Available version(s) present in CLIBS '$a_sim_vars(s_clibs_dir)':"
+            foreach index $matches {
+              puts "           + [lindex $shared_ip_libs $index]"
+            }
           }
         }
       }
     }
     foreach vlnv_name $shared_libs_to_link {
       lappend args "-lib $vlnv_name"
+    }
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
 
     lappend args "-work $a_sim_vars(default_top_library)"
