@@ -1,4 +1,4 @@
-2.255 print debug message for shared library incompatibility
+2.255 hide debug message under var
 2.254 helper to detect gcc version mismatch
 2.253 refactored gcc path and version detection
 2.252 helper proc to fetch simulation model version
