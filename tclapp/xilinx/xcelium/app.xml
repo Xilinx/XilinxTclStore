@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>pass ABI=0 for previous gcc version</revision_history>
+      <revision_history>pass ABI=0 for gcc 6.3 which is not supported</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
