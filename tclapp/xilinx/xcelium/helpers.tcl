@@ -47,6 +47,7 @@ proc usf_init_vars {} {
   set a_sim_vars(clog)                       "compile.log"
   set a_sim_vars(tmp_log_file)               ".tmp_log"
   set a_sim_vars(compiled_design_lib)        "xcelium_lib"
+  set a_sim_vars(b_ABI)                      0
 
   set a_sim_vars(run_logs_compile)           [list $a_sim_vars(clog) xmvhdl.log xmvlog.log xmsc.log $a_sim_vars(tmp_log_file)]
   set a_sim_vars(run_logs_elaborate)         [list elaborate.log]

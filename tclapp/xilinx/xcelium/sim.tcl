@@ -187,6 +187,11 @@ proc usf_xcelium_setup_simulation { args } {
   # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
   xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "xcelium"
 
+  # set ABI
+  if { [regexp -nocase {^6.3} $a_sim_vars(s_gcc_version)] } {
+    set a_sim_vars(b_ABI) 1
+  }
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0
@@ -1072,7 +1077,9 @@ proc usf_compile_simmodel_sources { fh } {
         set args [list]
         lappend args "-m64"
         lappend args "-c"
-        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        if { $a_sim_vars(b_ABI) } {
+          lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        }
 
         # <CPP_INCLUDE_DIRS>
         if { [llength $cpp_incl_dirs] > 0 } {
@@ -1149,7 +1156,9 @@ proc usf_compile_simmodel_sources { fh } {
         set args [list]
         lappend args "-m64"
         lappend args "-c"
-        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        if { $a_sim_vars(b_ABI) } {
+          lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        }
 
         # <C_INCLUDE_DIRS>
         if { [llength $c_incl_dirs] > 0 } {
@@ -2197,7 +2206,9 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend xmsc_gcc_opts "-Wall"
     lappend xmsc_gcc_opts "-Wno-deprecated"
   }
-  lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+  if { $a_sim_vars(b_ABI) } {
+    lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+  }
   lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 
   variable l_system_sim_incl_dirs
