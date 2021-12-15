@@ -187,7 +187,7 @@ proc usf_xcelium_setup_simulation { args } {
   # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
   xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "xcelium"
 
-  # set ABI=0 for 6.3 (not supported for this release)
+  # set ABI=0 for 6.3 version (not supported for this release)
   if { [regexp -nocase {^6.3} $a_sim_vars(s_gcc_version)] } {
     set a_sim_vars(b_ABI) 1
   }
