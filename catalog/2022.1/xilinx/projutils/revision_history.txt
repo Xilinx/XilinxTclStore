@@ -1,4 +1,4 @@
-3.502 hide debug message under var
+3.502 support for asm file compilation
 3.501 helper to detect gcc version mismatch
 3.500 refactored gcc path and version detection
 3.499 enable systemC support var to true

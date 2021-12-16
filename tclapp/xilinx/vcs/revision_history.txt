@@ -1,3 +1,4 @@
+9.86 support for asm file compilation
 9.85 hide debug message under var
 9.84 set syscan systemc version for previous gcc
 9.83 set syscan systemc version

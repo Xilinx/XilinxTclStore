@@ -1,3 +1,4 @@
+2.256 support for asm file compilation
 2.255 hide debug message under var
 2.254 helper to detect gcc version mismatch
 2.253 refactored gcc path and version detection
