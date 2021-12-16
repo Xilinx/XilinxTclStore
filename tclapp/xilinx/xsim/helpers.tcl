@@ -481,9 +481,10 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # design contain systemc sources?
     set simulator "xsim"
     set prefix_ref_dir false
-    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
     set c_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
+    set asm_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"ASM\")"
 
     # fetch systemc files
     set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
@@ -569,6 +570,38 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         # is dynamic? process
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "C"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+
+    # fetch asm files
+    set asm_files [xcs_get_c_files $asm_filter $a_sim_vars(b_int_csim_compile_order)]
+    if { [llength $asm_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $asm_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        set used_in_values [get_property "used_in" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        # is HLS source?
+        if { [lsearch -exact $used_in_values "c_source"] != -1 } {
+          continue
+        }
+        # set flag
+        if { !$a_sim_vars(b_contain_asm_sources) } {
+          set a_sim_vars(b_contain_asm_sources) true
+        }
+        # is dynamic? process
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "ASM"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
           if { {} != $cmd_str } {
             lappend files $cmd_str

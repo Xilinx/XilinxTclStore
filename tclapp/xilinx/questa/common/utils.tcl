@@ -124,6 +124,7 @@ proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
   set a_sim_vars(b_contain_systemc_sources)  0
   set a_sim_vars(b_contain_cpp_sources)      0
   set a_sim_vars(b_contain_c_sources)        0
+  set a_sim_vars(b_contain_asm_sources)      0
   set a_sim_vars(b_contain_systemc_headers)  0
 
   set a_sim_vars(b_int_systemc_mode)         0
@@ -339,61 +340,73 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
-proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure verilog?
-  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
+  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure VHDL?
-  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c) } {
+  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure systemC?
-  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c) } {
+  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure cpp?
-  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c) } {
+  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure c?
-  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp) } {
+  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp && !$b_asm) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_asm { b_ver b_vhd b_sc b_cpp b_c b_asm } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure asm?
+  if { $b_asm && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
     return true
   }
   return false
@@ -1281,6 +1294,9 @@ proc xcs_get_file_type_category { file_type } {
     }
     {C} {
       set type {C}
+    }
+    {ASM} {
+      set type {ASM}
     }
   }
   return $type
@@ -2900,6 +2916,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "SystemC"                      {set compiler "xsc"}
         "CPP"                          {set compiler "xsc"}
         "C"                            {set compiler "xsc"}
+        "ASM"                          {set compiler "xsc"}
       }
     }
     "modelsim" -
@@ -4035,6 +4052,55 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
   return $c_files
 }
 
+proc xcs_get_asm_files { asm_filter {b_csim_compile_order 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set asm_files [list]
+  if { $b_csim_compile_order } {
+    foreach file_obj [get_files -quiet -compile_order sources -used_in simulation -filter $asm_filter -of_objects [current_fileset -simset]] {
+      lappend asm_files $file_obj
+    }
+  } else {
+    foreach file_obj [get_files -quiet -all -filter $asm_filter] {
+      if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+        set comp_file [get_property parent_composite_file -quiet $file_obj]
+        if { "" == $comp_file } {
+          continue
+        }
+        set file_extn [file extension $comp_file]
+        if { (".xci" == $file_extn) } {
+          xcs_add_asm_files_from_xci $comp_file $asm_filter asm_files
+        } elseif { (".bd" == $file_extn) } {
+          set bd_file_name [file tail $comp_file]
+          set bd_obj [get_files -quiet -all $bd_file_name]
+          if { "" != $bd_obj } {
+            if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+              set comp_file [get_property parent_composite_file -quiet $bd_obj]
+              if { "" != $comp_file } {
+                set file_extn [file extension $comp_file]
+                if { (".xci" == $file_extn) } {
+                  xcs_add_asm_files_from_xci $comp_file $asm_filter asm_files
+                }
+              }
+            } else {
+              # this is top level BD for this SystemC/CPP/C/ASM file, so add it
+              lappend asm_files $file_obj
+            }
+          } else {
+            # this is top level BD for this SystemC/CPP/C/ASM file, so add it
+            lappend asm_files $file_obj
+          }
+        }
+      } else {
+        lappend asm_files $file_obj
+      }
+    }
+  }
+  return $asm_files
+}
+
 proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
   # Summary:
   # Argument Usage:
@@ -4057,6 +4123,30 @@ proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
     }
   }
 }
+
+proc xcs_add_asm_files_from_xci { comp_file asm_filter asm_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $asm_files_arg asm_files
+
+  set ip_name [file root [file tail $comp_file]]
+  set ip [get_ips -quiet -all $ip_name]
+  if { "" != $ip } {
+    set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+    if { "tlm" == $selected_sim_model } {
+      foreach ip_file_obj [get_files -quiet -all -filter $c_filter -of_objects $ip] {
+        set used_in_values [get_property "USED_IN" $ip_file_obj]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          continue;
+        }
+        set asm_files [concat $asm_files $ip_file_obj]
+      }
+    }
+  }
+}
+
 
 proc xcs_contains_C_files {} {
   # Summary:
