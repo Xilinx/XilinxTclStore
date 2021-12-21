@@ -1,3 +1,4 @@
+3.504 throw error message in catch
 3.502 support for asm file compilation
 3.501 helper to detect gcc version mismatch
 3.500 refactored gcc path and version detection

@@ -1,3 +1,4 @@
+2.306 throw error message in catch
 2.305 support for asm file compilation
 2.304 hide debug message under var
 2.303 helper to detect gcc version mismatch
