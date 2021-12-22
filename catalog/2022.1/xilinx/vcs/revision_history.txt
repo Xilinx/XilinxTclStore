@@ -1,3 +1,4 @@
+9.88 disable binding of versal_cips when param is set
 9.87 throw error message in catch
 9.86 support for asm file compilation
 9.85 hide debug message under var
