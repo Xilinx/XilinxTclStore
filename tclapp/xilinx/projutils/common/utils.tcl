@@ -3983,6 +3983,9 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
   }
   set lib_data [split [read $fh] "\n"]
   close $fh
+ 
+  set b_donot_bind_versal_cips 0
+  [catch {set b_donot_bind_versal_cips [get_param "project.donotBindPreCompiledVersalCips"]} err]
 
   foreach line $lib_data {
     set line [string trim $line]
@@ -3996,6 +3999,9 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
       set lib_tokens [split $shared_lib_token {=}]
       set is_shared_lib [string trim [lindex $lib_tokens 1]]
       if { {1} == $is_shared_lib } {
+        if { ([regexp "^versal_cips_v" $library]) && $b_donot_bind_versal_cips } {
+          continue
+        }
         lappend shared_ip_libs $library
       }
     }
