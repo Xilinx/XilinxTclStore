@@ -74,6 +74,8 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(dynamic_repo_dir)           [get_property "ip.user_files_dir"                 $a_sim_vars(curr_proj)]
   set a_sim_vars(ipstatic_dir)               [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
   set a_sim_vars(b_use_static_lib)           [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
+  #set a_sim_vars(s_local_ip_repo_leaf_dir)   [get_property "local_ip_repo_leaf_dir_name"       $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_local_ip_repo_leaf_dir)   "ip_repo"
 
   #
   # simset settings 
@@ -1857,7 +1859,7 @@ proc xcs_get_path_from_data {path_from_data} {
   return [file normalize [file join $data_dir $path_from_data]]
 }
 
-proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
+proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1904,7 +1906,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
       # IP is not locked. Is this referenced from local repository?
       #   1. get the IPDEF value of this IP and then the IP def object
       #   2. get the first repository path value from this IP def obj, if any, else continue
-      #   3. is tail-end (leaf) dir name is "ip_repo"? if not, continue
+      #   3. is tail-end (leaf) dir name is "ip_repo" or "iprepo"? if not, continue
       #   4. split the repository path value and search for "IP_HEAD"
       #      - if not found, use this repo path as is
       #      - else get the sub-path starting from "IP_HEAD" till end
@@ -1922,7 +1924,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
 
       # 3. **********************************************************************
       set ip_repo_sub_dir [file tail $local_repo]
-      if { {ip_repo} != $ip_repo_sub_dir } {
+      if { $local_ip_repo_leaf_dir != $ip_repo_sub_dir } {
         continue
       }
 
@@ -1937,17 +1939,30 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
  
       # 5. **********************************************************************
       if { [string equal -nocase $install_dir $local_dir] != 1 } {
+        set b_print_local_ip_msg 0
+        set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ip_def_obj]
         foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
           set lib [get_property library $file_obj]
+
+          # default lib? continue (files marked ipstatic *MUST* compile to IP library for compiling it locally)
           if { {xil_defaultlib} == $lib } { continue }
+
           # add local library to collection
           dict append lib_dict $lib
+
+          # add to library database info and mark it as custom ip
           if { ![info exists a_sim_lib_info($lib)] } {
             set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+            if { !$b_print_local_ip_msg } {
+              set b_print_local_ip_msg 1
+            }
           }
           if { !$b_libs_referenced_from_local_repo } {
             set b_libs_referenced_from_local_repo 1
           }
+        }
+        if { $b_print_local_ip_msg } {
+          send_msg_id SIM-utils-081 INFO "Using sources from local definition of IP '$ip_obj' ($vlnv_name) from '$local_repo'\n"
         }
       }
     }
@@ -1956,7 +1971,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
   if { ($b_libs_referenced_from_locked_ips || $b_libs_referenced_from_local_repo) && $b_pre_compile } {
     send_msg_id SIM-utils-020 INFO "The project contains locked or custom IPs. The pre-compiled version of these IPs will not be referenced and the sources from these IP libraries will be compiled locally.\n"
 
-    set b_en_code 0
+    set b_en_code 1
     if { $b_en_code } {
       if { $b_int_sm_lib_ref_debug } {
         if { [array size a_sim_lib_info] > 0 } {
@@ -1975,7 +1990,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
             set ip_lib  [lindex $ip_info 1]
             set type    $value
             lappend lines "$ip_name $ip_lib $type"
-            lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+            #lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
           }
           foreach line $lines {mt add row $line}
           puts [mt format 2string]

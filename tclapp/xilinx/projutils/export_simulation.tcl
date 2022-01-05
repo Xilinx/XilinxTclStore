@@ -54,6 +54,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_int_systemc_mode)              1
   set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
+  set a_sim_vars(s_local_ip_repo_leaf_dir)        "ip_repo"
 
   set a_sim_vars(b_compile_simmodels)             0
   #
@@ -871,7 +872,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_target_simulator
   variable l_compiled_libraries
 
-  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib)]
+  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir)]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
   foreach simulator $l_target_simulator {
