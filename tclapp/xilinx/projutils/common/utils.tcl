@@ -342,6 +342,28 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
+proc xcs_exec_script { scr_file error_log_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $error_log_arg error_log
+
+  set faulty_run 0
+  set b_useScriptExec [get_param "project.useScriptExecutionCmd"]
+
+  if { ($::tcl_platform(platform) == "unix") && $b_useScriptExec } {
+    if {[catch {rdi::execute_script $scr_file} error_log]} {
+      set faulty_run 1
+    }
+  } else {
+    if {[catch {rdi::run_program $scr_file} error_log]} {
+      set faulty_run 1
+    }
+  }
+  return $faulty_run
+}
+
 proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
