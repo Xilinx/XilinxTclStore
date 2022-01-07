@@ -74,8 +74,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(dynamic_repo_dir)           [get_property "ip.user_files_dir"                 $a_sim_vars(curr_proj)]
   set a_sim_vars(ipstatic_dir)               [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
   set a_sim_vars(b_use_static_lib)           [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
-  #set a_sim_vars(s_local_ip_repo_leaf_dir)   [get_property "local_ip_repo_leaf_dir_name"       $a_sim_vars(curr_proj)]
-  set a_sim_vars(s_local_ip_repo_leaf_dir)   "ip_repo"
+  set a_sim_vars(s_local_ip_repo_leaf_dir)   [get_property "local_ip_repo_leaf_dir_name"       $a_sim_vars(curr_proj)]
 
   #
   # simset settings 
