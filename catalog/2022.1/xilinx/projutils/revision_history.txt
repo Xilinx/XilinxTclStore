@@ -1,3 +1,4 @@
+3.508 set ip repository directory name based on property
 3.507 helper proc to call execute_script task for linux
 3.506 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
 3.505 disable binding of versal_cips when param is set
