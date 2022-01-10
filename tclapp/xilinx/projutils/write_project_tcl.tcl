@@ -37,6 +37,7 @@ proc write_project_tcl {args} {
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
   # [-no_copy_sources]: Do not import sources even if they were local in the original project
+  # [-absolute_remote_path]: Write remote sources with absolute paths
   # [-no_ip_version]: Flag to not include the IP version as part of the IP VLNV in create_bd_cell commands.
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
@@ -82,6 +83,7 @@ proc write_project_tcl {args} {
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
+      "-absolute_remote_path" { set a_global_vars(b_arg_absolute_remote_path) 1 }
       "-no_ip_version"        { set a_global_vars(b_arg_no_ip_version) 1 }
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
@@ -193,11 +195,11 @@ variable b_project_board_set 0
 
 # set file types to filter
 variable l_filetype_filter [list]
-    
+
 # Setup filter for non-user-settable filetypes
-set l_filetype_filter [list "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files" \
-                            "block diagrams" "block designs" "dsp design sources" "text" \
-                            "design checkpoint" "waveform configuration file" "csv"]
+set l_filetype_filter { "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files"
+                        "block diagrams" "block designs" "dsp design sources" "text"
+                        "design checkpoint" "waveform configuration file" "csv" }
 # ip file extension types
 variable l_valid_ip_extns [list]
 set l_valid_ip_extns      [list ".xci" ".bd" ".slx"]
@@ -222,25 +224,26 @@ proc reset_global_vars {} {
 
   variable a_global_vars
 
-  set a_global_vars(s_relative_to)        {.}
-  set a_global_vars(s_path_to_script_dir) ""
-  set a_global_vars(s_origin_dir_override) "" 
-  set a_global_vars(s_target_proj_dir)    ""
-  set a_global_vars(b_arg_force)          0
-  set a_global_vars(b_arg_no_copy_srcs)   0
-  set a_global_vars(b_arg_no_ip_version)  0
-  set a_global_vars(b_absolute_path)      0
-  set a_global_vars(b_internal)           0
-  set a_global_vars(b_validate)           0
-  set a_global_vars(b_arg_all_props)      0
-  set a_global_vars(b_arg_dump_proj_info) 0
-  set a_global_vars(b_local_sources)      0
-  set a_global_vars(curr_time)            [clock format [clock seconds]]
-  set a_global_vars(fh)                   0
-  set a_global_vars(dp_fh)                0
-  set a_global_vars(def_val_fh)           0
-  set a_global_vars(script_file)          ""
-  set a_global_vars(b_arg_quiet)          0
+  set a_global_vars(s_relative_to)              {.}
+  set a_global_vars(s_path_to_script_dir)       ""
+  set a_global_vars(s_origin_dir_override)      "" 
+  set a_global_vars(s_target_proj_dir)          ""
+  set a_global_vars(b_arg_force)                0
+  set a_global_vars(b_arg_no_copy_srcs)         0
+  set a_global_vars(b_arg_absolute_remote_path) 0
+  set a_global_vars(b_arg_no_ip_version)        0
+  set a_global_vars(b_absolute_path)            0
+  set a_global_vars(b_internal)                 0
+  set a_global_vars(b_validate)                 0
+  set a_global_vars(b_arg_all_props)            0
+  set a_global_vars(b_arg_dump_proj_info)       0
+  set a_global_vars(b_local_sources)            0
+  set a_global_vars(curr_time)                  [clock format [clock seconds]]
+  set a_global_vars(fh)                         0
+  set a_global_vars(dp_fh)                      0
+  set a_global_vars(def_val_fh)                 0
+  set a_global_vars(script_file)                ""
+  set a_global_vars(b_arg_quiet)                0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -411,6 +414,9 @@ proc write_project_tcl_script {} {
   if { $a_global_vars(b_absolute_path) } {
     send_msg_id Vivado-projutils-016 INFO "Please note that the -absolute_path switch was specified, hence the project source files will be referenced using\n\
     absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
+  } elseif { $a_global_vars(b_arg_absolute_remote_path) } {
+    send_msg_id Vivado-projutils-016 INFO "Please note that the -absolute_remote_path switch was specified, hence certain remote project source files will be referenced using\n\
+    absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
   } else {
     if { "." != $a_global_vars(s_relative_to) } {
       if { {} == $a_global_vars(s_origin_dir_override) } {
@@ -484,7 +490,7 @@ proc wr_validate_files {} {
   if {[llength $l_remote_files]>0} {
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_remote_files {
-      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+      if {[use_absolute_path  $file]} {
         lappend l_script_validate "   $file \\"
       } else {
         set file_no_quotes [string trim $file "\""]
@@ -1315,6 +1321,17 @@ proc is_local_to_project { file } {
   return $is_local
 }
 
+proc use_absolute_path  { file } {
+  variable a_global_vars
+  set result 0
+  if {$a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+    set result 1
+  } elseif {$a_global_vars(b_arg_absolute_remote_path) && ![is_local_to_project $file]} {
+    set result 1
+  }
+  return $result
+}
+
 proc is_ip_readonly_prop { name } {
   # Summary: Return true if dealing with following IP properties that are not settable for an IP in read-only state
   # Argument Usage:
@@ -2035,7 +2052,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
         lappend l_local_file_list $file
       } else {
-        if {$a_global_vars(b_absolute_path) || [need_abs_path $file] } {
+        if {[use_absolute_path $file]} {
           lappend add_file_coln [string trim $file "\""]
         } else {
           set file_no_quotes [string trim $file "\""]
@@ -2228,7 +2245,7 @@ proc add_constrs_file { file_str } {
   variable a_global_vars
   variable l_script_data
 
-  if { $a_global_vars(b_absolute_path) || [need_abs_path $file_str]} {
+  if {[use_absolute_path  $file_str]} {
     lappend l_script_data "set file $file_str"
   } else {
     if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -2346,7 +2363,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
   # write properties now
   if { $prop_count>0 } {
     if { {remote} == $file_category } {
-      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+      if {[use_absolute_path  $file]} {
         lappend l_script_data "set file \"$file\""
       } else {
         lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
