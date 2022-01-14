@@ -454,6 +454,17 @@ proc write_project_tcl_script {} {
   return 0
 }
 
+proc use_absolute_path  { file } {
+  variable a_global_vars
+  set result 0
+  if {$a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+    set result 1
+  } elseif {$a_global_vars(b_arg_absolute_remote_path) && ![is_local_to_project $file]} {
+    set result 1
+  }
+  return $result
+}
+
 proc wr_validate_files {} {
   variable a_global_vars
   set l_script_validate [list]
@@ -490,7 +501,7 @@ proc wr_validate_files {} {
   if {[llength $l_remote_files]>0} {
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_remote_files {
-      if {[use_absolute_path  $file]} {
+      if {[use_absolute_path $file]} {
         lappend l_script_validate "   $file \\"
       } else {
         set file_no_quotes [string trim $file "\""]
@@ -1321,17 +1332,6 @@ proc is_local_to_project { file } {
   return $is_local
 }
 
-proc use_absolute_path  { file } {
-  variable a_global_vars
-  set result 0
-  if {$a_global_vars(b_absolute_path) || [need_abs_path $file]} {
-    set result 1
-  } elseif {$a_global_vars(b_arg_absolute_remote_path) && ![is_local_to_project $file]} {
-    set result 1
-  }
-  return $result
-}
-
 proc is_ip_readonly_prop { name } {
   # Summary: Return true if dealing with following IP properties that are not settable for an IP in read-only state
   # Argument Usage:
@@ -1651,7 +1651,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
           set file $local_constrs_file
           set proj_file_path "\[get_files *$local_constrs_file\]"
         } else {
-          if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
+          if {[use_absolute_path $file]} {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
@@ -2363,7 +2363,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
   # write properties now
   if { $prop_count>0 } {
     if { {remote} == $file_category } {
-      if {[use_absolute_path  $file]} {
+      if {[use_absolute_path $file]} {
         lappend l_script_data "set file \"$file\""
       } else {
         lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2559,7 +2559,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     set file_props [list_property $file_object]
     set prop_info_list [list]
     set prop_count 0
-
+    set file
     foreach file_prop $file_props {
       set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
       if { [string equal $is_readonly "1"] } {
@@ -2609,7 +2609,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+        if {[use_absolute_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -3485,7 +3485,7 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+        if {[use_absolute_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
