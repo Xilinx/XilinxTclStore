@@ -2424,8 +2424,12 @@ proc write_specified_run { proj_dir proj_name runs } {
     if { $isPRProject == 1 && $isImplRun == 1 && $parent_run != "" } {
       set isChildImplRun [get_property is_implementation [$get_what $parent_run]]
       if { $isChildImplRun == 1 } {
+        set rm_instance ""
+        if { [lsearch [list_property [get_runs $tcl_obj]] RM_INSTANCE] != -1 } {
+          set rm_instance [get_property rm_instance [get_runs $tcl_obj]]
+        }
         set prConfig [get_property pr_configuration [get_runs $tcl_obj]]
-        if { [get_pr_configurations $prConfig] == "" } {
+        if { [get_pr_configurations $prConfig] == "" && $rm_instance == "" } {
 #         review this change. Either skip this run creation or flag error while sourcing script...???
           continue
         }
@@ -2442,7 +2446,13 @@ proc write_specified_run { proj_dir proj_name runs } {
     }
 
     if { $isChildImplRun == 1 } {
-      set cmd_str "  $cmd_str -pr_config $prConfig"
+      if { $prConfig != "" } {
+        set cmd_str "  $cmd_str -pr_config $prConfig"
+      }
+      
+      if { $rm_instance != "" } {
+        set cmd_str "  $cmd_str -rm_instance {$rm_instance}"
+      }
     }
 
     lappend l_script_data "# Create '$tcl_obj' run (if not found)"
