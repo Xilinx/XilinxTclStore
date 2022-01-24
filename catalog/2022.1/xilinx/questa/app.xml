@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set ip repository directory name based on property</revision_history>
+      <revision_history>get and fix library path for VCS</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
