@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>write_project_tcl quiet issue</revision_history>
+      <revision_history>get and fix library path for VCS</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

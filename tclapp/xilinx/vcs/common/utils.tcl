@@ -5663,6 +5663,14 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
 
   append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+
+  if { ("vcs" == $simulator) && (("elaborate" == $step) || ("simulate" == $step)) } {
+    set lb [string trimright [rdi::get_rdi_library_path] {:}]
+    if { {} != $lb } {
+      puts $fh_scr "LIBRARY_PATH=$lb\n"
+    }
+  }
+      
   puts $fh_scr $ld_path
 
   if { ("elaborate" == $step) || ("simulate" == $step) } {
