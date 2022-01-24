@@ -3602,7 +3602,23 @@ proc suppress_messages {} {
   variable levels_to_suppress
   set levels_to_suppress { {STATUS} {INFO} {WARNING} {CRITICAL WARNING} }
   set msg_rules [split [ debug::get_msg_control_rules -as_tcl ] \n]
+
+  set msgRuleList []
+  set messageperivous ""
   foreach line  $msg_rules {
+    set index [string first set_msg_config $line]
+    if { $index == -1 } {
+	    set messageperivous "$messageperivous$line" 
+    } else {
+	  if { $messageperivous != "" } {
+          lappend msgRuleList $messageperivous
+    	}
+       set messageperivous $line
+    }
+  }
+  lappend msgRuleList $messageperivous
+  
+  foreach line  $msgRuleList {
     set idx_suppress [lsearch $line "-suppress"]
     if { $idx_suppress >= 0  } {
       set idx_severity [lsearch $line "-severity"]
