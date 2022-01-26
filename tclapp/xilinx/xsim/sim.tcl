@@ -1862,6 +1862,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
      if { {sdfmax} == $delay } { lappend args_list "--maxdelay" }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    lappend args_list "-gcc_version gcc-$a_sim_vars(s_gcc_version)"
+  }
+
   set b_bind_dpi_c false
   [catch {set b_bind_dpi_c [get_param project.bindGTDPICModel]} err]
   set ip_obj [xcs_find_ip "gt_quad_base"]
@@ -2283,6 +2287,7 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   lappend args_list "-lib $a_sim_vars(default_top_library)"
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    lappend args_list "-gcc_version gcc-$a_sim_vars(s_gcc_version)"
     set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
     set ip_objs [get_ips -all -quiet]
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
@@ -3587,6 +3592,8 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
   
     if { [llength $more_xsc_options]  > 0 } { foreach opt $more_xsc_options       { lappend xsc_arg_list $opt } }
 
+    lappend xsc_arg_list "-gcc_version gcc-$a_sim_vars(s_gcc_version)"
+
     if { [llength $systemc_incl_dirs] > 0 } { foreach incl_dir $systemc_incl_dirs { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
     if { [llength $cpp_incl_dirs]     > 0 } { foreach incl_dir $cpp_incl_dirs     { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
     if { [llength $c_incl_dirs]       > 0 } { foreach incl_dir $c_incl_dirs       { lappend xsc_arg_list "--gcc_compile_options \"-I$incl_dir\"" } }
@@ -3661,7 +3668,7 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if {$::tcl_platform(platform) == "windows"} { set switch_name "--shared_systemc" }
     if { {static} == $output_format } { switch_name "--static" }
     lappend xsc_arg_list $switch_name 
-
+    lappend xsc_arg_list "-gcc_version gcc-$a_sim_vars(s_gcc_version)"
     # <LDFLAGS>
     if { [llength $ldflags] > 0 } { foreach ld_flag $ldflags { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     if {$::tcl_platform(platform) == "windows"} {
@@ -3839,6 +3846,7 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
 
       set xsc_arg_list [list]
       lappend xsc_arg_list "-c"
+      lappend xsc_arg_list "-gcc_version gcc-$a_sim_vars(s_gcc_version)"
       # revisit this once we switch to higher version (1.66 will support this by default)
       lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
       set more_xsc_options [string trim [get_property "xsim.compile.xsc.more_options" $a_sim_vars(fs_obj)]]
