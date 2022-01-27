@@ -1,3 +1,4 @@
+9.93 find simulation model directory paths from rdi datadir env values
 9.92 get and fix library path for VCS
 9.91 set ip repository directory name based on property
 9.90 helper proc to call execute_script task for linux
