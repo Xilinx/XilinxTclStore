@@ -4907,6 +4907,54 @@ proc xcs_is_c_library { library } {
   return 0
 }
 
+proc xcs_find_sm_dir { sm_dir type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set pt_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+  set data_paths_v [split $::env(RDI_DATADIR) $sep]
+  foreach d_path $data_paths_v {
+    set pt_dir "$d_path/$sm_dir"
+    if { ([file exists $pt_dir]) && ([file isdirectory $pt_dir]) } {
+      # found requested protected or ext dir from data dir env paths
+      break
+    }
+  }
+
+  #
+  # check if custom sim-model root specified for protected directory (not required for ext)
+  #
+  if { "cpt" == $type } {
+    # return default install path to simulation model directory (protected or ext)
+    set root_dir [get_param "simulator.customSimModelRootDir"]
+    if { {} == $root_dir } {
+      return $pt_dir
+    }
+
+    set b_invalid_path 1
+    # custom sim-model root path specified
+    if { [file exists $root_dir] } {
+      set dir "$root_dir/data"
+      if { [file exists $dir] } {
+        set pt_dir "$dir/$sm_dir"
+        if { [file exists $pt_dir] } {
+          # custom simulation model dir found
+          set b_invalid_path 0
+        }
+      }
+    }
+    if { $b_invalid_path } {
+      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' ($root_dir) either does not exist or is invalid! Using libraries from default install location.\n"
+    }
+  }
+  return $pt_dir
+}
+
 proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
@@ -4917,69 +4965,62 @@ proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir
 
   set target_paths [list]
 
-  set sm_cpt_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
+  #
+  # 1. find protected dir and append to target paths to search for
+  #
+  set sp_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - simmodel protected sub-dir: $sm_cpt_dir"
+    puts "(DEBUG) - protected sub-dir  (default): $sp_sub_dir"
   }
-  set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-  # is custom protected sim-model path specified?
-  set param "simulator.customSimModelRootDir"
-  set custom_cpt_dir ""
-  [catch {set custom_cpt_dir [get_param $param]} err]
-  if { {} != $custom_cpt_dir } {
-    if { [file exists $custom_cpt_dir] } {
-      set custom_dir "$custom_cpt_dir/data"
-      if { [file exists $custom_dir] } {
-        set cpt_dir $custom_dir
-      }
-    } else {
-      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' does not exist! Using libraries from default install location.\n"
-    }
-  }
-
-  # default protected dir
-  set tp "$cpt_dir/$sm_cpt_dir"
+  set sp_dir [xcs_find_sm_dir $sp_sub_dir "cpt"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected (default) : $tp"
+    puts "(DEBUG) - protected lib path (default): $sp_dir"
   }
-  if { ([file exists $tp]) && ([file isdirectory $tp]) } {
-    lappend target_paths $tp
+  if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
+    lappend target_paths $sp_dir
   } else {
     # fallback
     if { "xsim" == $simulator } {
-      set tp [file dirname $clibs_dir]
-      set tp "$tp/$sm_cpt_dir"
-      if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+      set sp_dir [file dirname $clibs_dir]
+      set sp_dir "$sp_dir/$sp_sub_dir"
+      if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
         if { $b_int_sm_lib_ref_debug } {
-          puts "(DEBUG) - protected (fallback): $tp"
+          puts "(DEBUG) - protected lib path (clibdir): $sp_dir"
         }
-        lappend target_paths $tp
+        lappend target_paths $sp_dir
       }
     }
   }
-
-  set sp_cpt_dir $tp
-
-  # default ext dir
-  set sm_ext_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
-  lappend target_paths "$cpt_dir/$sm_ext_dir"
-
-  set sp_ext_dir "$cpt_dir/$sm_ext_dir"
+  set sp_cpt_dir $sp_dir
+  
+  #
+  # 2. find ext dir and append to target paths to search for
+  #
+  set ext_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
+  set ext_dir     [xcs_find_sm_dir $ext_sub_dir "ext"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected ext path (default): $sp_ext_dir"
+    puts "(DEBUG) - protected ext path (default): $ext_dir"
   }
+  lappend target_paths "$ext_dir"
+  set sp_ext_dir "$ext_dir"
 
-  # add ext utils dir for xcelium static library
+  #
+  # 3. add ext utils dir for xcelium static library
+  #
   if { "xcelium" == $simulator } {
-    lappend target_paths "$cpt_dir/$sm_ext_dir/utils"
+    lappend target_paths "$sp_ext_dir/utils"
   }
 
-  # add ip dir for xsim
+  #
+  # 4. add ip dir for xsim
+  #
   if { "xsim" == $simulator } {
     lappend target_paths "$clibs_dir/ip"
   }
 
-  # prepend custom simmodel library paths, if specified? 
+  #
+  # 5. prepend custom simmodel library paths, if specified? 
+  #
   set sm_lib_path $custom_sm_lib_dir
   if { $sm_lib_path != "" } {
     set custom_paths [list]
@@ -4993,7 +5034,7 @@ proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir
     }
   }
 
-  # add compiled library directory
+  # 6. add compiled library directory
   lappend target_paths "$clibs_dir"
 
   if { $b_int_sm_lib_ref_debug } {
