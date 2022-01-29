@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find simulation model directory paths from rdi datadir env values</revision_history>
+      <revision_history>pass gcc version for conditional decoupling</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
