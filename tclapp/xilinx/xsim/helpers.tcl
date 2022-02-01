@@ -46,7 +46,6 @@ proc usf_init_vars {} {
   set a_sim_vars(script_cmt_tag)             "REM"
   set a_sim_vars(compiled_design_lib)        "xsim.dir"
   set a_sim_vars(ubuntu_lib_dir)             "/usr/lib/x86_64-linux-gnu"
-  set a_sim_vars(b_add_gcc_version)          0
 
   set a_sim_vars(run_logs_compile)           [list "compile.log" "xvlog.log" "xvhdl.log" "xsc.log"]
   set a_sim_vars(run_logs_elaborate)         [list elaborate.log]
