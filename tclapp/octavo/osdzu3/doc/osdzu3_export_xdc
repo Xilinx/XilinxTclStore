@@ -1,0 +1,40 @@
+
+
+  Description: 
+
+     Export implemented constraint files
+       This proc exports two or three constraint files from the loaded implemented design using the write_xdc command. 
+       The "set_property PACKAGE_PIN" constraint will be substituted with "set_osdzu3_package_pin", the Xilinx package 
+       pin substituted with the OSDZU3 SiP package pin and saved in the file "osdzu3_package_pins.tcl". The "set_input_delay" 
+       and "set_output_delay" constraint will be substituted with "set_osdzu3_input_delay" and "set_osdzu3_output_delay", saved 
+       in the file "osdzu3_io_delay.tcl". The input/output delays will be adjusted to add the SiP pin flight times so that 
+       they are properly accounted for during Static Timing Analysis. All other constraints will be exported to the 
+       file "osdzu3_timing.xdc".
+
+       No Arguments needed for the script, the only requirement is that an implemented design should be opened before running it.
+
+  Example:
+  
+    osdzu3_export_xdc
+    osdzu3_export_xdc -help
+
+  Instructions:
+    Using an existing Vivado implemented design targeting a Xilinx XCZU3EG-SFVC784 device:
+      1. From an existing Vivado implemented design open Vivado and select File -> Checkpoint and open the implemented design. Select the optimized checkpoint from the impl_X directory. The files name format will be <project_name>_opt.dcp. 
+      2. From the tcl console type in "pwd" to find the Vivado working directory. The command "osdzu3_export_xdc" will save the new constraint files to the session working directory. If this is not the location that you want to used type in "cd <path>" to change directory paths.
+      3. Verify that the osdzu3_helper.tcl script is loaded in memory
+         a. From the tcl console type "tclapp::octavo::osdzu3::osdzu3_expot_xdc -help" and you should see a response echoed in the Tcl console window.
+      4. Run the command "tclapp::octavo::osdzu3::osdzu3_export_xdc"
+         a. The export command will create two or three new constraint files.
+            i. osdzu3_package_pins.tcl - The Xilinx package pins will be substituted with the new Octavo SiP pin locations
+            ii. osdzu3_io_delay.tcl - If any set_input_delay or set_output_delay commands are uncovered they will be substituted with a new command set_osdzu3_input_delay or set_osdzu3_output _delay with timing offset adjustments for the SiP package flight times.
+              1. Note: If this file is not created there are no SiP package pins with special flight time requirements. It will not be necessary to rerun the implementation. If this file does exist, you should rerun implementation.
+            iii. osdzu3_timing.xdc - All other constrains will be saved in this file
+      5. These new constraint files will replace any existing timing constraints. To replace the existing timing constraints, use the command "reset_timing" in the tcl console window.
+      6. Add the new constraint files to the project by using the command:
+         a. add_files -fileset constrs_1 -quiet osdzu3_package_pins.tcl
+         b. add_files -fileset constrs_1 -quiet osdzu3_timing.xdc
+         c. add_files -fileset constrs_1 -quiet osdzu3_io_delay.tcl
+      7. Rerun the implemented design
+
+
