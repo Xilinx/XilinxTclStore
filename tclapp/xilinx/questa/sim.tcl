@@ -922,6 +922,7 @@ proc usf_compile_simmodel_sources { fh } {
       set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
       set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
       if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
         if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
           [catch {send_msg_id USF-Questa-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
         } else {

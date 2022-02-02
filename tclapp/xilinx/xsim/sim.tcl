@@ -3468,9 +3468,11 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if { $a_sim_vars(b_int_export_source_files) } {
       if { {} == $simmodel_name } { send_msg_id USF-XSim-107 WARNING "Empty tag '$simmodel_name'!\n" }
       if { {} == $library_name  } { send_msg_id USF-XSim-107 WARNING "Empty tag '$library_name'!\n"  }
+
       set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
       set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
       if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
         if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
           [catch {send_msg_id USF-XSim-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
         } else {

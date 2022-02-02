@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>find simulation model directory paths from rdi datadir env values</revision_history>
+      <revision_history>delete src dir for non-precompile export flow</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
