@@ -145,7 +145,7 @@ proc usf_modelsim_setup_simulation { args } {
   # xcs_prepare_ip_for_simulation $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
   # find/copy modelsim.ini file into run dir
-  set clibs_dir [usf_modelsim_verify_compiled_lib]
+  set a_sim_vars(s_clibs_dir) [usf_modelsim_verify_compiled_lib]
 
   variable l_compiled_libraries
   variable l_xpm_libraries
@@ -156,9 +156,9 @@ proc usf_modelsim_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
-    if { {} != $clibs_dir } {
-      set libraries [xcs_get_compiled_libraries $clibs_dir $a_sim_vars(b_int_sm_lib_ref_debug)]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
+    if { {} != $a_sim_vars(s_clibs_dir) } {
+      set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
       foreach lib $libraries {
         if { [lsearch -exact $l_local_ip_libs $lib] != -1 } {
@@ -335,7 +335,7 @@ proc usf_modelsim_verify_compiled_lib {} {
         send_msg_id USF-modelsim-008 "CRITICAL WARNING" "Failed to find the pre-compiled simulation library!\n"
       }
       send_msg_id USF-modelsim-009 INFO " Recommendation:- Please follow these instructions to resolve this issue:-\n\
-                                             - set the 'COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim/QuestaSim, or\n\
+                                             - set the 'COMPXLIB.MODELSIM_COMPILED_LIBRARY_DIR' project property to the directory where Xilinx simulation libraries are compiled for ModelSim, or\n\
                                              - set the 'MODELSIM' environment variable to point to the $ini_file file, or\n\
                                              - set the 'WD_MGC' environment variable to point to the directory containing the $ini_file file\n"
     }

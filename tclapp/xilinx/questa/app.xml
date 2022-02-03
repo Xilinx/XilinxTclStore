@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>source vitis_params for setting region path variables</revision_history>
+      <revision_history>delete src dir for non-precompile export flow</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

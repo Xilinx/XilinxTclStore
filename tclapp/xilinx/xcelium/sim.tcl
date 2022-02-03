@@ -154,7 +154,7 @@ proc usf_xcelium_setup_simulation { args } {
   usf_set_simulator_path "xcelium"
 
   if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "xcelium"
+    usf_set_systemc_library_path "xcelium"
   }
 
   # initialize boost library reference
@@ -184,6 +184,14 @@ proc usf_xcelium_setup_simulation { args } {
   # find/copy cds.lib file into run dir
   set a_sim_vars(s_clibs_dir) [usf_xcelium_verify_compiled_lib]
 
+  # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
+  xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "xcelium"
+
+  # set ABI=0 for 6.3 version (not supported for this release)
+  if { [regexp -nocase {^6.3} $a_sim_vars(s_gcc_version)] } {
+    set a_sim_vars(b_ABI) 1
+  }
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0
@@ -193,7 +201,7 @@ proc usf_xcelium_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $a_sim_vars(s_clibs_dir) } {
       set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -289,9 +297,12 @@ proc usf_xcelium_setup_args { args } {
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
+  # [-int_gcc_version <arg>]: GCC version (internal use)
+  # [-int_sim_version <arg>]: Simulator version (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
+  # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
 
   # Return Value:
@@ -316,6 +327,8 @@ proc usf_xcelium_setup_args { args } {
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
+      "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
@@ -328,6 +341,7 @@ proc usf_xcelium_setup_args { args } {
       "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
       "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
+      "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
@@ -758,7 +772,7 @@ proc usf_compile_simmodel_sources { fh } {
     return
   }
 
-  # update mappings in xsim.ini
+  # update mappings in cds.lib
   usf_add_simmodel_mappings
 
   # find simmodel info from dat file and update do file
@@ -767,7 +781,7 @@ proc usf_compile_simmodel_sources { fh } {
     set fh_dat 0
     set dat_file "$lib_path/.cxl.sim_info.dat"
     if {[catch {open $dat_file r} fh_dat]} {
-      send_msg_id USF-Questa-016 WARNING "Failed to open file to read ($dat_file)\n"
+      send_msg_id USF-Xcelium-016 WARNING "Failed to open file to read ($dat_file)\n"
       continue
     }
     set data [split [read $fh_dat] "\n"]
@@ -813,12 +827,13 @@ proc usf_compile_simmodel_sources { fh } {
 
     # copy simmodel sources locally
     if { $a_sim_vars(b_int_export_source_files) } {
-      if { {} == $simmodel_name } { send_msg_id USF-Questa-107 WARNING "Empty tag '$simmodel_name'!\n" }
-      if { {} == $library_name  } { send_msg_id USF-Questa-107 WARNING "Empty tag '$library_name'!\n"  }
+      if { {} == $simmodel_name } { send_msg_id USF-Xcelium-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-Xcelium-107 WARNING "Empty tag '$library_name'!\n"  }
 
       set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
       set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
       if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
         if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
           [catch {send_msg_id USF-Xcelium-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
         } else {
@@ -854,7 +869,6 @@ proc usf_compile_simmodel_sources { fh } {
     set gplus_ldflags_option    {}
     set gcc_ldflags_option      {}
     set ldflags_lin64           [list]
-    set ldflags_win64           [list]
     set ldlibs                  [list]
     set ldlibs_lin64            [list]
     set ldlibs_win64            [list]
@@ -908,7 +922,7 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
       if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
       if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
-      if { "<SYSTEMC_INCLUDE_DIRS_XCELIUM>" == $tag } { set systemc_incl_dirs_xcl       [split $value {,}] }
+      if { "<SYSTEMC_INCLUDE_DIRS_XCELIUM>" == $tag } { set systemc_incl_dirs_xcl [split $value {,}] }
       if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
       if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
       if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
@@ -922,7 +936,6 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
       if { "<LDFLAGS_XCELIUM>"            == $tag } { set ldflags_xcl             $value }
       if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
-      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
       if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
       if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
       if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
@@ -1019,6 +1032,7 @@ proc usf_compile_simmodel_sources { fh } {
       #
       # LINK (g++)
       #
+      set compiler "g++"
       set args [list]
       lappend args "-m64"
       foreach src_file $sysc_files {
@@ -1040,11 +1054,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args $ldflags_xcl
       }
      
-      if {$::tcl_platform(platform) == "windows"} {
-      if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
-      } else {
       if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
-      }
       
       # acd ldflags
       if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
@@ -1057,7 +1067,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "./xcelium_lib/$lib_name/lib${lib_name}.so"
      
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1070,11 +1080,17 @@ proc usf_compile_simmodel_sources { fh } {
         set args [list]
         lappend args "-m64"
         lappend args "-c"
-        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        if { $a_sim_vars(b_ABI) } {
+          lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        }
 
         # <CPP_INCLUDE_DIRS>
         if { [llength $cpp_incl_dirs] > 0 } {
           foreach incl_dir $cpp_incl_dirs {
+            # $xv_ext_lib_path/protobuf/include -> $xv_ext_lib_path/utils/protobuf/include
+            if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+              set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+            }
             lappend args "-I $incl_dir"
           }
         }
@@ -1083,26 +1099,12 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args $cpp_compile_option 
 
         # <G++_COMPILE_FLAGS>
-        if { [llength $gplus_compile_flags] > 0 } {
-          foreach opt $gplus_compile_flags {
-            lappend args $opt
-          }
-        }
-
-        # <G++_COMPILE_DEBUG_FLAGS>
+        foreach opt $gplus_compile_flags     { lappend args $opt }
+        foreach opt $gplus_compile_flags_xcl { lappend args $opt }
         if { $b_dbg } {
-          if { [llength $gplus_compile_dbg_flags] > 0 } {
-            foreach opt $gplus_compile_dbg_flags {
-              lappend args $opt
-            }
-          }
-        # <G++_COMPILE_OPT_FLAGS>
+          foreach opt $gplus_compile_dbg_flags { lappend args $opt }
         } else {
-          if { [llength $gplus_compile_opt_flags] > 0 } {
-            foreach opt $gplus_compile_opt_flags {
-              lappend args $opt
-            }
-          }
+          foreach opt $gplus_compile_opt_flags { lappend args $opt }
         }
 
         # config simmodel options
@@ -1126,7 +1128,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "xcelium_lib/$lib_name/${file_name}.o"
         
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
@@ -1144,7 +1146,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1157,11 +1159,17 @@ proc usf_compile_simmodel_sources { fh } {
         set args [list]
         lappend args "-m64"
         lappend args "-c"
-        lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        if { $a_sim_vars(b_ABI) } {
+          lappend args "-D_GLIBCXX_USE_CXX11_ABI=0"
+        }
 
         # <C_INCLUDE_DIRS>
         if { [llength $c_incl_dirs] > 0 } {
           foreach incl_dir $c_incl_dirs {
+            # $xv_ext_lib_path/protobuf/include -> $xv_ext_lib_path/utils/protobuf/include
+            if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+              set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+            }
             lappend args "-I $incl_dir"
           }
         }
@@ -1213,11 +1221,11 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "xcelium_lib/$lib_name/${file_name}.o"
         
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
 
       #
-      # LINK (g++)
+      # LINK (gcc)
       #
       set args [list]
       foreach src_file $cpp_files {
@@ -1231,7 +1239,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "xcelium_lib/$lib_name/lib${lib_name}.so"
 
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
     }
   }
 }
@@ -1344,7 +1352,7 @@ proc usf_xcelium_write_elaborate_script {} {
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""
@@ -1789,7 +1797,7 @@ proc usf_xcelium_write_simulate_script {} {
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""
@@ -2173,7 +2181,11 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend arg_list "-nodep"
     lappend arg_list "-gnu"
     set gcc_ver [get_param "simulator.xcelium.gcc.version"] 
-    lappend arg_list "-gcc_vers $gcc_ver"
+    set vers [split $gcc_ver "."]
+    set major [lindex $vers 0]
+    set minor [lindex $vers 1]
+    set xcl_gcc_ver "${major}.${minor}"
+    lappend arg_list "-gcc_vers $xcl_gcc_ver"
     lappend arg_list "-cxxext cxx"
     lappend arg_list "-xmscrc $a_sim_vars(tmp_obj_dir)"
   }
@@ -2197,7 +2209,9 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend xmsc_gcc_opts "-Wall"
     lappend xmsc_gcc_opts "-Wno-deprecated"
   }
-  lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+  if { $a_sim_vars(b_ABI) } {
+    lappend xmsc_gcc_opts "-D_GLIBCXX_USE_CXX11_ABI=0"
+  }
   lappend xmsc_gcc_opts "-DSC_INCLUDE_DYNAMIC_PROCESSES"
 
   variable l_system_sim_incl_dirs

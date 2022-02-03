@@ -51,9 +51,10 @@ proc xps_init_vars {} {
   set a_sim_vars(b_directory_specified)           0
   set a_sim_vars(b_scripts_only)                  0
   set a_sim_vars(b_use_static_lib)                0
-  set a_sim_vars(b_int_systemc_mode)              [get_param "project.enableSystemCSupport"]
+  set a_sim_vars(b_int_systemc_mode)              1
   set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
+  set a_sim_vars(s_local_ip_repo_leaf_dir)        "ip_repo"
 
   set a_sim_vars(b_compile_simmodels)             0
   #
@@ -138,6 +139,7 @@ proc xps_init_vars {} {
   variable a_sim_cache_sysc_stub_files
   variable a_sim_cache_extract_source_from_repo
   variable a_sim_cache_gen_mem_files
+  variable a_pre_compiled_source_info
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -151,6 +153,7 @@ proc xps_init_vars {} {
   array unset a_sim_cache_sysc_stub_files
   array unset a_sim_cache_extract_source_from_repo
   array unset a_sim_cache_gen_mem_files
+  array unset a_pre_compiled_source_info
 }
 
 proc export_simulation {args} {
@@ -287,6 +290,9 @@ proc export_simulation {args} {
   ##############################
   # export simulation processing
   ##############################
+
+  xps_check_noc
+
   
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -581,6 +587,40 @@ proc xps_set_target_obj { obj } {
   return 0
 }
 
+proc xps_check_noc {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  #
+  # snoc - switch network check
+  #
+  if { [rdi::is_versal] } {
+    set b_contains_noc 0
+    foreach ip [get_ips -quiet -all] {
+      set ipdef [get_property -quiet ipdef $ip]
+      if {[regexp -nocase {:noc_} $ipdef]} {
+        set b_contains_noc 1
+        break
+      }
+    }
+
+    if { $b_contains_noc } {
+      #
+      # if design contains NoC (aggregator finds this from srcset 'top' and if not set then works on default simset 'top')
+      #   - if found, then check if it is generated. If not, print critical warning.
+      #
+      if { [rdi::is_design_contain_noc_blocks] } {
+        if { [get_param "project.enableXlnocSimWrapperStatusCheck"] } {
+          if { ![rdi::is_logical_noc_generated] } {
+            send_msg_id exportsim-Tcl-077 "CRITICAL WARNING" "The logical switch network (xlnoc) and simulation wrapper (<top>_sim_wrapper.v/vhd) could not be found. These sources are required for simulating the NoC IP. Please run 'generate_switch_network_for_noc' Tcl command for generating these sources and then rerun export_simulation to create a script for the updated source hierarchy.\n"
+          }
+        }
+      }
+    }
+  }
+}
+
 proc xps_create_rundir { dir run_dir_arg } {
   # Summary:
   # Argument Usage:
@@ -832,7 +872,7 @@ proc xps_write_sim_script { run_dir data_files filename } {
   variable l_target_simulator
   variable l_compiled_libraries
 
-  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib)]
+  set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir)]
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
   foreach simulator $l_target_simulator {
@@ -863,9 +903,9 @@ proc xps_write_sim_script { run_dir data_files filename } {
       set a_sim_vars(s_top) [get_property top [get_filesets $tcl_obj]]
       #send_msg_id exportsim-Tcl-027 INFO "Inspecting design source files for '$a_sim_vars(s_top)' in fileset '$tcl_obj'...\n"
       if {[string length $a_sim_vars(s_top)] == 0} {
-        send_msg_id exportsim-Tcl-070 ERROR \
+        [catch {send_msg_id exportsim-Tcl-070 ERROR \
         "A simulation top was not set. Before running export_simulation a top must be set on the simulation\
-        fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"
+        fileset. The top can be set on the simulation fileset by running: set_property top <top_module> \[current_fileset -simset\]\n"} err_msg]
         #set a_sim_vars(s_top) "unknown"
       }
 
@@ -999,7 +1039,7 @@ proc xps_write_script { simulator dir filename } {
 
   }
 
-  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $dir]]
+  set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [xps_get_files $simulator $clibs_dir $dir]]
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -1188,7 +1228,7 @@ proc xps_export_fs_non_hdl_data_files { data_files_arg } {
   }
 }
 
-proc xps_get_files { simulator launch_dir } {
+proc xps_get_files { simulator clibs_dir launch_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1598,6 +1638,12 @@ proc xps_get_files { simulator launch_dir } {
       }
     }
   }
+
+  # print pre-compiled source info
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    xcs_print_pre_compiled_info $clibs_dir
+  }
+
   return $files
 }
 
@@ -1779,6 +1825,18 @@ proc xps_extract_source_from_repo { ip_file orig_src_file b_is_static_arg b_is_d
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+
+        #################################################################
+        # Pre-compiled version of this IP static source file will be used
+        #################################################################
+        variable a_pre_compiled_source_info
+        set static_ip_filename [file tail $dst_cip_file]
+        set static_library     $library
+        if { ![info exists a_pre_compiled_source_info($static_ip_filename)] } {
+          # store this info for printing/debugging purposes
+          set a_pre_compiled_source_info($static_ip_filename) $static_library
+        }
+
         set a_sim_cache_extract_source_from_repo("${s_hash}-b_is_static") $b_is_static
       } else {
         # add this library to have the new mapping
@@ -2432,7 +2490,7 @@ proc xps_set_systemc_cmd { simulator fh src_file log_arg } {
        # 
       } else {
         if { $a_sim_vars(b_xport_src_files) } {
-          puts $fh "srcs/$src_file"
+          puts $fh "$src_file"
         } else {
           puts $fh "$src_file"
         }
@@ -6462,7 +6520,7 @@ proc xps_write_xcelium_opt_args { fh_unix } {
     set arg_list [linsert $arg_list 1 "-sysc"]
   }
 
-  #xps_append_more_options "xcelium" "compile" "xrun" arg_list
+  xps_append_more_options "xcelium" "compile" "xrun" arg_list
 
   puts $fh_unix "# Set ${tool} options"
   puts $fh_unix "${tool}_opts=\"[join $arg_list " "]\"\n"
@@ -6561,6 +6619,10 @@ proc xps_write_single_step_for_xcelium { fh_unix launch_dir srcs_dir } {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    # param to bind shared protobuf
+    set b_bind_protobuf false
+    [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
     variable a_shared_library_path_coln
     foreach {library lib_dir} [array get a_shared_library_path_coln] {
       if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
@@ -6797,7 +6859,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
@@ -6813,7 +6878,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
 
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
@@ -6839,11 +6907,12 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
           set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
         }
         if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-          set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+          set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+          set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
           # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
           # TODO: find way to make this data-driven
           set arg_list [linsert $arg_list end "-L$lib_dir"]
-          set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
+          set arg_list [linsert $arg_list end "-l$model_ver"]
         }
       }
 
@@ -6858,7 +6927,8 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
         #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
         if { [regexp "^noc_v" $shared_lib_name] } { continue; }
         if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-          set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+          set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+          set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
           # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
           # TODO: find way to make this data-driven
           set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
@@ -6945,7 +7015,10 @@ proc xps_write_vcs_opt_args { fh_unix launch_dir } {
     if { $a_sim_vars(b_contain_systemc_sources) } {
       set tool "syscan"
       set arg_list [list]
-      lappend arg_list "-sysc=232"
+      set sysc_ver [get_param "simulator.setSystemCVersionForVCS"]
+      if { {} != $sysc_ver } {
+        lappend arg_list "-sysc=$sysc_ver"
+      }
       lappend arg_list "-sysc=opt_if"
       lappend arg_list "-cpp \${gcc_path}/g++"
       lappend arg_list "-V"
@@ -7334,21 +7407,21 @@ proc xps_set_gcc_version_path { simulator } {
   switch -regexp -- $simulator {
     "xsim" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
     }
     "questa" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
     }
     "xcelium" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
@@ -7371,7 +7444,7 @@ proc xps_set_gcc_version_path { simulator } {
     }
     "vcs" {
       set gcc_type {}
-      set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
+      set a_sim_vars(s_gcc_version) [xps_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
       switch $gcc_type {
         1 { send_msg_id exportsim-Tcl-074 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
       }
@@ -7396,6 +7469,26 @@ proc xps_set_gcc_version_path { simulator } {
       send_msg_id exportsim-Tcl-076 INFO "Simulator systemC library path set to '$a_sim_vars(s_sys_link_path)'\n"
     }
   }
+}
+
+proc xps_get_gcc_version { simulator specified_gcc_version gcc_type_arg b_int_sm_lib_ref_debug } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $gcc_type_arg gcc_type
+  
+  # default GCC
+  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
+  
+  # custom GCC version
+  if { {} == $specified_gcc_version } {
+    set gcc_type 1
+  } else {
+    set gcc_version $specified_gcc_version
+    set gcc_type 2
+  }
+  return $gcc_version
 }
 
 proc xps_resolve_sysc_lib_path { type lib_path } { 
@@ -7730,14 +7823,14 @@ proc xps_export_ld_lib { simulator fh_unix } {
   set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
 
   # design contains AIE? bind protected cluster library
-  # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0/libaie_cluster_v1_0_0.so)
+  # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*/libaie_cluster_v*.so)
   set aie_ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $aie_ip_obj } {
     # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
     set cpt_dir [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
-    set model "aie_cluster_v1_0_0"
+    set model [xcs_get_sim_model_ver "aie_cluster_v"]
 
-    # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+    # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
     # TODO: find way to make this data-driven
     lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
