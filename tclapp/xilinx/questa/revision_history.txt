@@ -1,4 +1,4 @@
-2.264 delete src dir for non-precompile export flow
+2.264 merged 2022.1-dev to 2022.2-dev
 2.263 find simulation model directory paths from rdi datadir env values
 2.262 get and fix library path for VCS
 2.261 set ip repository directory name based on property

@@ -1,3 +1,19 @@
+2.312 merged 2022.1-dev to 2022.2-dev
+2.311 get and fix library path for VCS
+2.310 set ip repository directory name based on property
+2.309 helper proc to call execute_script task for linux
+2.308 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+2.307 disable binding of versal_cips when param is set
+2.306 throw error message in catch
+2.305 support for asm file compilation
+2.304 hide debug message under var
+2.303 helper to detect gcc version mismatch
+2.302 refactored gcc path and version detection
+2.301 helper proc to fetch simulation model version
+2.300 debug proc to print static file info
+2.299 fixed library search order to pass launch dir
+2.298 support for local VCS compiled simmodel library path for non-precompile flow
+2.297 fixed messsage for compiled library path
 2.296 bind user specified systemc/C/C++ libraries during elaboration
 2.295 refactored library search order proc to utils
 2.294 refactored generics proc to common helpers
@@ -6,7 +22,7 @@
 2.291 code refactoring
 2.290 check for leaf dir name wrt library name for linked library
 2.289 Extract IP file name from core-container to determine SV package libraries
-2.288 merged 2021.1-dev to 2021.2-dev
+2.288 pass vlog -mfsu to treat all sources as single compilation unit
 2.287 bind noc_na for netlist simulation
 2.286 set optional arg for simulate step
 2.285 find available boost library from RDI_DATA_DIR
