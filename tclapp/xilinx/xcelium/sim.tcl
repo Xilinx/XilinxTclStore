@@ -441,14 +441,31 @@ proc usf_xcelium_write_setup_files {} {
     set ip_ob {}
   }
 
+  #
+  # create following empty dummy simprim mapping for functional and behavioral simulation in cds.lib
+  #
+  #  "DEFINE simprims_ver xcelium_lib/simprims_ver"
+  #
+  # so xmelab can bind the pre-compiled components from unisim library only and do not collide with
+  # similar components that are compiled in simprim (this is a workaround for xcelium only since it
+  # fails to bind on finding two instances of compiled library for the same component (one in unisim
+  # and second in simprim)
+  #
+  # xmelab: *E,MULVLG: Possible bindings for instance of design unit 'DFE_NL_FIR' in 'xdfe_nlf_v1_0_0.xdfe_nlf_v1_0_0_top:xilinx' are:
+  #     simprims_ver.DFE_NL_FIR:module
+  #     unisims_ver.DFE_NL_FIR:module
+  #
+  # With the dummy binding, xmelab will find the expected component from unisim library only.
+  #
+  # NOTE: dummy binding is not required for timing (xmelab will bind the components from simprims)
+  #
   set b_add_dummy_binding 0
   if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
     if { {funcsim} == $netlist_mode } {
       set b_add_dummy_binding 1
     }
   } else {
-    # vhdl instantiates verilog for Versal behav sim (cr:1091134)
-    if { "versal" == [rdi::get_family -arch] } {
+    if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
       set b_add_dummy_binding 1
     }
   }
