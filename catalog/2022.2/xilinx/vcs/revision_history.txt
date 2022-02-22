@@ -1,3 +1,4 @@
+9.95 pass object files for library creation
 9.94 merged 2022.1-dev to 2022.2-dev
 9.93 find simulation model directory paths from rdi datadir env values
 9.92 get and fix library path for VCS
