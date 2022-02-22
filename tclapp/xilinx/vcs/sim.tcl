@@ -1225,7 +1225,7 @@ proc usf_compile_simmodel_sources { fh } {
       # LINK (gcc)
       #
       set args [list]
-      foreach src_file $cpp_files {
+      foreach src_file $c_files {
         set file_name [file root [file tail $src_file]]
         set obj_file "vcs_lib/$lib_name/${file_name}.o"
         lappend args $obj_file
