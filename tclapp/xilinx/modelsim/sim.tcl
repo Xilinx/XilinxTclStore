@@ -1054,6 +1054,16 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
+  if { $a_sim_vars(b_int_compile_glbl) || $a_sim_vars(b_force_compile_glbl) } {
+    if { ([lsearch -exact $arg_list "unisims_ver"] == -1) } {
+      if { $a_sim_vars(b_force_no_compile_glbl) } {
+        # skip unisims_ver
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 

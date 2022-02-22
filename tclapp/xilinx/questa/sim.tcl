@@ -1423,6 +1423,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { [llength $vhdl_generics] > 0 } {
     xcs_append_generics "questa" $vhdl_generics arg_list  
   }
+ 
+  #
+  # 1123017 (suppress "Warning: (vopt-10016) Option '-L <lib>' was detected by vlog for design-unit '<du>',
+  #          but was not detected by vopt. The vlog option will be ignored." for sv source based package
+  #          libraries that are referenced in vlog -L <sv-pkg-lib>)
+  #
+  lappend arg_list "-suppress 10016"
 
   set more_vopt_options [string trim [get_property "questa.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_vopt_options } {
