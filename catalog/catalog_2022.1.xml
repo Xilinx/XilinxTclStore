@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>a38b87d6e5e1085d43eb218962cccb6f0b022208</commit_id>
-      <revision>2.312</revision>
+      <commit_id>605f88e9300ca3360c41cd79a3a9bb646403b645</commit_id>
+      <revision>2.313</revision>
     </app>
     <app>
       <name>myapp</name>
@@ -99,8 +99,8 @@
     <app>
       <name>questa</name>
       <company>xilinx</company>
-      <commit_id>c0464191b3b1f12830e46fe9e96c8757a9ede218</commit_id>
-      <revision>2.264</revision>
+      <commit_id>605f88e9300ca3360c41cd79a3a9bb646403b645</commit_id>
+      <revision>2.265</revision>
     </app>
     <app>
       <name>questa_cdc</name>
@@ -141,14 +141,14 @@
     <app>
       <name>vcs</name>
       <company>xilinx</company>
-      <commit_id>c0464191b3b1f12830e46fe9e96c8757a9ede218</commit_id>
-      <revision>9.94</revision>
+      <commit_id>605f88e9300ca3360c41cd79a3a9bb646403b645</commit_id>
+      <revision>9.95</revision>
     </app>
     <app>
       <name>xcelium</name>
       <company>xilinx</company>
-      <commit_id>0fb43bdc2693a33c5fc7671dbf193bca103440f0</commit_id>
-      <revision>11.116</revision>
+      <commit_id>605f88e9300ca3360c41cd79a3a9bb646403b645</commit_id>
+      <revision>11.117</revision>
     </app>
     <app>
       <name>xsim</name>
