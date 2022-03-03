@@ -1,3 +1,4 @@
+2.434 support for toggle coverage type
 2.433 merged 2022.1-dev to 2022.2-dev
 2.432 remove gcc version for conditional decoupling
 2.431 pass gcc version for conditional decoupling
