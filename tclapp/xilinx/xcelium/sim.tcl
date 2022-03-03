@@ -972,6 +972,29 @@ proc usf_compile_simmodel_sources { fh } {
       if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
     }
 
+    #
+    # copy simmodel sources locally (if specified in include dir specification) - for default flow (non-export-source-files)
+    #
+    if { !$a_sim_vars(b_int_export_source_files) } {
+      foreach incl_dir $systemc_incl_dirs {
+        set leaf [file tail $incl_dir]
+        if { ("src" == $leaf) || ("sysc" == $leaf) } {
+          set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/$leaf"
+          set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+          if { [file exists $src_sim_model_dir] } {
+            [catch {file delete -force $dst_dir/$leaf} error_msg]
+            if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+              [catch {send_msg_id USF-Xcelium-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+            } else {
+              puts "copied '$src_sim_model_dir' to run dir:'$dst_dir'\n"
+            }
+          } else {
+            catch {send_msg_id USF-Xcelium-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+          }
+        }
+      }
+    }
+
     set obj_dir "$a_sim_vars(s_launch_dir)/xcelium_lib/$lib_name"
     if { ![file exists $obj_dir] } {
       if { [catch {file mkdir $obj_dir} error_msg] } {
@@ -1195,8 +1218,12 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args $c_compile_option 
 
         # <GCC_COMPILE_FLAGS>
-        if { [llength $gcc_compile_flags] > 0 } {
-          foreach opt $gcc_compile_flags {
+        #
+        # TODO : for now use gplus_compile_flags (add support for <GCC_COMPILE_FLAGS> in compile_simlib and update this accordingly)
+        #      : add <GCC_COMPILE_FLAGS> tag in remote_port_c_v4
+        #
+        if { [llength $gplus_compile_flags] > 0 } {
+          foreach opt $gplus_compile_flags {
             lappend args $opt
           }
         }
