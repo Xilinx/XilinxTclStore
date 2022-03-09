@@ -1,3 +1,4 @@
+3.515 check for aie ml env and bind aie2
 3.514 find simulation model directory paths from rdi datadir env values
 3.511 get and fix library path for VCS
 3.512 write_project_tcl quiet issue

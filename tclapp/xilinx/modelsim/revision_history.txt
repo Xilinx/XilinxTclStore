@@ -1,3 +1,4 @@
+2.314 check for aie ml env and bind aie2
 2.313 pass unisims_ver for Versal
 2.312 find simulation model directory paths from rdi datadir env values
 2.311 get and fix library path for VCS

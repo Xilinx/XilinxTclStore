@@ -1,3 +1,4 @@
+2.436 check for aie ml env and bind aie2
 2.435 revert support for toggle coverage type
 2.434 support for toggle coverage type
 2.433 delete src dir for non-precompile export flow

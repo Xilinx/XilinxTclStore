@@ -1,3 +1,4 @@
+11.119 check for aie ml env and bind aie2
 11.118 pass g++ switches
 11.117 pass object files for library creation
 11.116 add dummy simprims mapping for behavioral simulation
