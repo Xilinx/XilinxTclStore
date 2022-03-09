@@ -2015,6 +2015,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
+            if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+              set model "aie2"
+            }
             lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
           }
 
@@ -2361,8 +2364,13 @@ proc usf_questa_get_sccom_cmd_args {} {
         set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
         set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
         set lib_name [xcs_get_sim_model_ver "aie_cluster_v"]
-        lappend args "-L$data_dir/$cpt_dir/$lib_name"
-        lappend args "-l$lib_name"
+        if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+          lappend args "-L$data_dir/$cpt_dir/aie2"
+          lappend args "-laie2_cluster_v1_0_0"
+        } else {
+          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          lappend args "-l$lib_name"
+        }
       }
     }
 
