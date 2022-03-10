@@ -1,3 +1,4 @@
+11.118 check for aie ml env and bind aie2
 11.117 pass g++ switches
 11.116 pass object files for library creation
 11.115 merged 2022.1-dev to 2022.2-dev
