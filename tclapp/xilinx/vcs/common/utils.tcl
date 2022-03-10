@@ -5665,6 +5665,9 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
 
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
     set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+    if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+      set model_ver "aie2" 
+    }
     append ld_path ":$tp/$model_ver"
 
     set xilinx_vitis     {}

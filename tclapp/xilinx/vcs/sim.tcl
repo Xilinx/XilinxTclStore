@@ -577,6 +577,7 @@ proc usf_vcs_write_compile_script {} {
     if { $a_sim_vars(b_optimizeForRuntime) } {
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -1348,6 +1349,7 @@ proc usf_vcs_write_elaborate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -1884,6 +1886,7 @@ proc usf_vcs_write_simulate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -2970,6 +2973,24 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
         }
       }
     }
+  }
+}
+
+proc usf_vcs_init_env { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set b_init_env [get_property -quiet "init_simulator_env" $a_sim_vars(fs_obj)] 
+  if { $b_init_env } {
+    set gnu_pkg_dir [file dirname [file dirname $a_sim_vars(s_gcc_bin_path)]]
+    puts $fh_scr "\n# source VCS GNU package script (for setting GCC, binutils and LD_LIBRARY_PATH)"
+    puts $fh_scr "if \[\[ ! -z \$VG_GNU_PACKAGE \]\]; then"
+    puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
+    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc9_64.sh"
+    puts $fh_scr "fi\n"
   }
 }
 

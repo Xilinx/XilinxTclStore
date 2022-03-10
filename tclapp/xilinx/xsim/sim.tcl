@@ -2070,9 +2070,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
  
   set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = line branch condition all
   #
-  # 1. convert line/branch/condition/toggle to s/b/c/t and append to values list
+  # 1. convert line/branch/condition to s/b/c and append to values list
   # 2. throw error for invalid cc type
-  # 3. either line (s)/branch (b)/condition (c)/toggle (t) or all (sbct) allowed else error
+  # 3. either line (s)/branch (b)/condition (c) or all (sbc) allowed else error
   #
   if { {} != $cc_types } {
     set values [list]
@@ -2086,16 +2086,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         {b}         { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {condition} -
         {c}         { set id "c";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
-        {toggle}    -
-        {t}         { set id "t";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {all}       -
-        {sbct}      {
+        {sbc}      {
                       if { ([lsearch -exact $values "s"] == -1) } { lappend values "s" }
                       if { ([lsearch -exact $values "b"] == -1) } { lappend values "b" }
                       if { ([lsearch -exact $values "c"] == -1) } { lappend values "c" }
-                      if { ([lsearch -exact $values "t"] == -1) } { lappend values "t" }
                     }
-        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] }
+        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) or all (or sbc))\n"} err] }
       }
     }
     set cc_value [join $values {}]
