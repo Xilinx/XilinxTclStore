@@ -3015,6 +3015,7 @@ proc usf_append_sm_lib_path { sm_lib_paths_arg install_path sm_lib_dir match_str
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   upvar $sm_lib_paths_arg sm_lib_paths
 
   if { [regexp -nocase $match_string $sm_lib_dir] } {
@@ -3037,6 +3038,13 @@ proc usf_append_sm_lib_path { sm_lib_paths_arg install_path sm_lib_dir match_str
     set path_to_consider "$install_path$file_path_str"
     if { ([file exists $path_to_consider]) && ([file isdirectory $path_to_consider]) } {
       set ref_dir "\$xv_ref_path$file_path_str"
+      #
+      # for non-precompile mode set the unprotected simmodel dir to full compiled lib path "<install>/data/xsim/ip/<simmodel>"
+      # NOTE: $xv_ref_path is not applicable
+      # 
+      if { $a_sim_vars(b_compile_simmodels) } {
+        set ref_dir "$path_to_consider"
+      }
     }
     lappend sm_lib_paths $ref_dir
 
