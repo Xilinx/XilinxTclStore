@@ -5098,11 +5098,15 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
               set vh_file $vh_file_path
             }
           } else {
-            set vh_file $vh_file_path
             # if full path to vh_file not found, prepend project dir (for the cases when ipstatic dir is empty)
-            if { ![file exists $vh_file] } {
+            if { ![file exists $vh_file_path] } {
               set proj_dir [get_property directory $a_sim_vars(curr_proj_obj)]
-              set vh_file "$proj_dir/$vh_file"
+              set vh_file_proj "$proj_dir/$vh_file_path"
+              if { [file exists $vh_file_proj] } {
+                set vh_file $vh_file_proj
+              } else {
+                # keep original $vh_file path (not able to resolve for non-precompile case, that should be fine)
+              }
             }
           }
         }
@@ -5119,6 +5123,9 @@ proc xps_get_verilog_incl_file_dirs { simulator launch_dir { ref_dir "true" } } 
 
     if { $a_sim_vars(b_absolute_path) } {
       set dir "[xcs_resolve_file_path $dir $launch_dir]"
+      if { $a_sim_vars(b_xport_src_files) } {
+        set dir "srcs/incl"
+      }
     } else {
       if { $ref_dir } {
         if { $a_sim_vars(b_xport_src_files) } {
