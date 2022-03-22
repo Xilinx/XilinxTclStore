@@ -1,3 +1,49 @@
+11.119 check for aie ml env and bind aie2
+11.118 pass g++ switches
+11.117 pass object files for library creation
+11.116 add dummy simprims mapping for behavioral simulation
+11.115 delete src dir for non-precompile export flow
+11.114 find simulation model directory paths from rdi datadir env values
+11.113 get and fix library path for VCS
+11.112 set ip repository directory name based on property
+11.111 helper proc to call execute_script task for linux
+11.110 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+11.109 disable binding of versal_cips when param is set
+11.108 throw error message in catch
+11.107 support for asm file compilation
+11.106 set ABI 0 for previous release version
+11.102 hide debug message under var
+11.101 gcc version name fix for gccvers option
+11.100 helper to detect gcc version mismatch
+11.99 refactored gcc path and version detection
+11.98 helper proc to fetch simulation model version
+11.97 pass internal switch for gcc and simulator version
+11.96 debug proc to print static file info
+11.95 fixed options for non-precompile mode
+11.94 remvoved debug print message
+11.93 fixed library search order to pass launch dir
+11.92 support for local VCS compiled simmodel library path for non-precompile flow
+11.91 source vitis_params for setting region path variables
+11.90 donot initialize variables for step flow
+11.89 sanity check to determine if glbl top is required
+11.88 support for configuration options for sim models
+11.87 debug msg for reporting missing shared library for a given vlnv
+11.86 bind user specified systemc/C/C++ libraries during elaboration
+11.85 refactored library search order proc to utils
+11.84 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
+11.83 set verilog options for pure vhdl design if glbl.v compiled
+11.82 define xv_cxl_ip_path to point to compiled IP libraries
+11.81 refactored generics proc to common helpers
+11.80 added common helpers
+11.79 enable non precompile flow
+11.78 export xv_cxl_lib_path for simulate step only
+11.77 export xv_cxl_lib_path for simulate step
+11.76 fixes for non pre-compile flow
+11.75 fixed install path var
+11.74 support for step execution
+11.73 initialize vars from utils
+11.72 code refactoring
+11.71 check for leaf dir name wrt library name for linked library
 11.70 Extract IP file name from core-container to determine SV package libraries
 11.69 add simprims_ver mapping to resolve duplicate bindings
 11.68 fixed systemc library install path detection

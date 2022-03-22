@@ -60,6 +60,7 @@ proc usf_init_vars {} {
   variable a_shared_library_path_coln
   variable a_shared_library_mapping_path_coln
   variable a_ip_lib_ref_coln
+  variable a_pre_compiled_source_info
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -70,6 +71,7 @@ proc usf_init_vars {} {
   array unset a_shared_library_path_coln
   array unset a_shared_library_mapping_path_coln
   array unset a_ip_lib_ref_coln
+  array unset a_pre_compiled_source_info
 
   #######################
   # initialize param vars
@@ -221,37 +223,6 @@ proc usf_set_simulator_path { simulator } {
   set a_sim_vars(s_tool_bin_path) [string map {/ \\\\} $bin_path]
   if {$::tcl_platform(platform) == "unix"} {
     set a_sim_vars(s_tool_bin_path) $bin_path
-  }
-}
-
-proc usf_set_gcc_version_path { simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  variable a_sim_vars
-
-  send_msg_id USF-Questa-005 INFO "Finding GCC installation...\n"
-
-  # set GCC version
-  set gcc_type {}
-  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
-  switch $gcc_type {
-    1 { send_msg_id USF-Questa-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
-    2 { send_msg_id USF-Questa-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
-  }
- 
-  # set GCC install path 
-  set gcc_path  {}
-  set path_type {}
-  if { [xcs_get_gcc_path $simulator "Questa" $a_sim_vars(s_tool_bin_path) $a_sim_vars(s_gcc_version) $a_sim_vars(s_gcc_bin_path) gcc_path path_type $a_sim_vars(b_int_sm_lib_ref_debug)] } {
-    set a_sim_vars(s_gcc_bin_path) $gcc_path
-    switch $path_type {
-      1 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by -gcc_install_path switch from '$a_sim_vars(s_gcc_bin_path)'"                        }
-      2 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by simulator.${simulator}_gcc_install_dir property from '$a_sim_vars(s_gcc_bin_path)'" }
-      3 { send_msg_id USF-Questa-25 INFO "Using GCC executables set by GCC_SIM_EXE_PATH environment variable from '$a_sim_vars(s_gcc_bin_path)'"           }
-      4 { send_msg_id USF-Questa-25 INFO "Using simulator installed GCC executables from '$a_sim_vars(s_gcc_bin_path)'"                                    }
-    }
   }
 }
 
@@ -660,6 +631,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
   }
 
+  # print pre-compiled source info
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    xcs_print_pre_compiled_info $a_sim_vars(s_clibs_dir)
+  }
+
   return $files
 }
 
@@ -880,9 +856,8 @@ proc usf_launch_script { simulator step } {
     {compile} -
     {elaborate} {
       set start_time [clock seconds]
-      if {[catch {rdi::run_program $scr_file} error_log]} {
-        set faulty_run 1
-      }
+      set error_log {}
+      set faulty_run [xcs_exec_script $scr_file error_log]
       set end_time [clock seconds]
       send_msg_id USF-Questa-069 INFO "'$step' step finished in '[expr $end_time - $start_time]' seconds"
       # check errors
@@ -1668,6 +1643,18 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
         set b_process_file 0
         set b_is_static 1
+
+        #################################################################
+        # Pre-compiled version of this IP static source file will be used
+        #################################################################
+        variable a_pre_compiled_source_info
+        set static_ip_filename [file tail $dst_cip_file]
+        set static_library     $library
+        if { ![info exists a_pre_compiled_source_info($static_ip_filename)] } {
+          # store this info for printing/debugging purposes
+          set a_pre_compiled_source_info($static_ip_filename) $static_library
+        }
+        
       } else {
         # add this library to have the new library linkage in mapping file
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {

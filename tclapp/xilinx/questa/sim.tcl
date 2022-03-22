@@ -151,10 +151,6 @@ proc usf_questa_setup_simulation { args } {
 
   usf_set_simulator_path   "questa"
 
-  if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "questa"
-  }
-
   # initialize boost library reference
   set a_sim_vars(s_boost_dir) [xcs_get_boost_library_path]
 
@@ -182,6 +178,9 @@ proc usf_questa_setup_simulation { args } {
   # find/copy modelsim.ini file into run dir
   set a_sim_vars(s_clibs_dir) [usf_questa_verify_compiled_lib]
 
+  # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
+  xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "questa"
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0
@@ -191,7 +190,7 @@ proc usf_questa_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $a_sim_vars(s_clibs_dir) } {
       set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -923,6 +922,7 @@ proc usf_compile_simmodel_sources { fh } {
       set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
       set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
       if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
         if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
           [catch {send_msg_id USF-Questa-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
         } else {
@@ -1130,7 +1130,7 @@ proc usf_compile_simmodel_sources { fh } {
     
       set cmd_str [join $args " "]
       puts $fh "# compile '$lib_name' model sources"
-      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
    
       # 
       # LINK (sccom)
@@ -1182,7 +1182,7 @@ proc usf_compile_simmodel_sources { fh } {
     
       lappend args "-work $lib_name"
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_tool_bin_path)/sccom $cmd_str\n"
+      puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $cpp_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1235,7 +1235,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "questa_lib/$lib_name/${obj_file}"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
     
       # 
@@ -1252,7 +1252,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "questa_lib/$lib_name/lib${lib_name}.so"
       
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/g++ $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     } elseif { [llength $c_files] > 0 } {
       puts $fh "# compile '$lib_name' model sources"
@@ -1305,7 +1305,7 @@ proc usf_compile_simmodel_sources { fh } {
         lappend args "questa_lib/$lib_name/${obj_file}"
 
         set cmd_str [join $args " "]
-        puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
       }
     
       # 
@@ -1322,7 +1322,7 @@ proc usf_compile_simmodel_sources { fh } {
       lappend args "questa_lib/$lib_name/lib${lib_name}.so"
       
       set cmd_str [join $args " "]
-      puts $fh "$a_sim_vars(s_gcc_bin_path)/gcc $cmd_str\n"
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
 
     }
   }
@@ -1423,6 +1423,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { [llength $vhdl_generics] > 0 } {
     xcs_append_generics "questa" $vhdl_generics arg_list  
   }
+ 
+  #
+  # 1123017 (suppress "Warning: (vopt-10016) Option '-L <lib>' was detected by vlog for design-unit '<du>',
+  #          but was not detected by vopt. The vlog option will be ignored." for sv source based package
+  #          libraries that are referenced in vlog -L <sv-pkg-lib>)
+  #
+  lappend arg_list "-suppress 10016"
 
   set more_vopt_options [string trim [get_property "questa.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_vopt_options } {
@@ -1999,15 +2006,18 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
 
           # design contains AIE? bind protected cluster library
-          # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0/libaie_cluster_v1_0_0.so)
+          # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*/libaie_cluster_v*.so)
           set aie_ip_obj [xcs_find_ip "ai_engine"]
           if { {} != $aie_ip_obj } {
             # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
             set cpt_dir [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
-            set model "aie_cluster_v1_0_0"
-            # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+            set model [xcs_get_sim_model_ver "aie_cluster_v"]
+            # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
+            if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+              set model "aie2"
+            }
             lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
           }
 
@@ -2350,38 +2360,81 @@ proc usf_questa_get_sccom_cmd_args {} {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
-        # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v1_0_0
+        # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
         set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
         set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
-        set lib_name "aie_cluster_v1_0_0"
-        lappend args "-L$data_dir/$cpt_dir/$lib_name"
-        lappend args "-l$lib_name"
+        set lib_name [xcs_get_sim_model_ver "aie_cluster_v"]
+        if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+          lappend args "-L$data_dir/$cpt_dir/aie2"
+          lappend args "-laie2_cluster_v1_0_0"
+        } else {
+          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          lappend args "-l$lib_name"
+        }
       }
     }
 
     lappend args "-lib $a_sim_vars(default_top_library)"
+
     # bind IP static librarries
     set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
+    set ip_objs [get_ips -all -quiet]
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+      puts "Referenced pre-compiled shared libraries"
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
+    }
     set uniq_shared_libs    [list]
     set shared_libs_to_link [list]
-    foreach ip_obj [get_ips -all -quiet] {
+    foreach ip_obj $ip_objs {
       set ipdef [get_property -quiet "ipdef" $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]
       if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
         if { [lsearch -exact $uniq_shared_libs $vlnv_name] == -1 } {
+          if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+            puts " IP - $ip_obj ($vlnv_name) - SELECTED_SIM_MODEL=$ssm_type"
+          }
           if { ("tlm" == $ssm_type) } {
             # bind systemC library
             lappend shared_libs_to_link $vlnv_name
             lappend uniq_shared_libs $vlnv_name
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (BIND)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
           } else {
             # rtl, tlm_dpi (no binding)
+            if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+              puts "      (SKIP)-> $a_sim_vars(s_clibs_dir)/$vlnv_name"
+            }
+          }
+        }
+      } else {
+        # check if incompatible version found from compiled area
+        if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+          set ip_name [get_property -quiet "name" $ip_obj]
+          # ipdef -> xilinx.com:ip:versal_cips:3.0 -> versal_cips_v
+          set ip_prefix [lindex [split $ipdef {:}] 2]
+          set ip_prefix "${ip_prefix}_v"
+
+          # match first part from clibs area to see if it matches
+          set matches [lsearch -regexp -all $shared_ip_libs $ip_prefix]
+          if { [llength $matches] > 0 } {
+            puts " WARNING: Expected pre-compiled shared library for '$vlnv_name' referenced in IP '$ip_name' not found!"
+            puts "          (Library '$vlnv_name' will not be linked during elaboration)"
+            puts "          Available version(s) present in CLIBS '$a_sim_vars(s_clibs_dir)':"
+            foreach index $matches {
+              puts "           + [lindex $shared_ip_libs $index]"
+            }
           }
         }
       }
     }
     foreach vlnv_name $shared_libs_to_link {
       lappend args "-lib $vlnv_name"
+    }
+    if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+      puts "------------------------------------------------------------------------------------------------------------------------------------"
     }
 
     lappend args "-work $a_sim_vars(default_top_library)"

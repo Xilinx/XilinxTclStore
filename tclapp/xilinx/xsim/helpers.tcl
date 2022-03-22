@@ -75,6 +75,7 @@ proc usf_init_vars {} {
   variable a_shared_library_path_coln
   variable a_shared_library_mapping_path_coln
   variable a_ip_lib_ref_coln
+  variable a_pre_compiled_source_info
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -86,6 +87,7 @@ proc usf_init_vars {} {
   array unset a_shared_library_path_coln
   array unset a_shared_library_mapping_path_coln
   array unset a_ip_lib_ref_coln
+  array unset a_pre_compiled_source_info
 
   #######################
   # initialize param vars
@@ -254,25 +256,6 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       lappend opts "-d \"$str\""
     }
   }
-}
-
-proc usf_set_gcc_version_path { simulator } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-  
-  variable a_sim_vars
-
-  #send_msg_id USF-XSim-005 INFO "Finding GCC installation...\n"
-  
-  # set GCC version
-  set gcc_type {}
-  set a_sim_vars(s_gcc_version) [xcs_get_gcc_version $simulator $a_sim_vars(s_gcc_version) gcc_type $a_sim_vars(b_int_sm_lib_ref_debug)]
-  switch $gcc_type {
-    1 { send_msg_id USF-XSim-24 INFO "Using GCC version '$a_sim_vars(s_gcc_version)'"                             }
-    2 { send_msg_id USF-XSim-24 INFO "Using GCC version set by -gcc_version switch '$a_sim_vars(s_gcc_version)'" }
-  }
-  
 }
 
 proc usf_get_files_for_compilation { global_files_str_arg } {
@@ -498,9 +481,10 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # design contain systemc sources?
     set simulator "xsim"
     set prefix_ref_dir false
-    set sc_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+    set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
     set cpp_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"CPP\")"
     set c_filter   "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"C\")"
+    set asm_filter "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"ASM\")"
 
     # fetch systemc files
     set sc_files [xcs_get_c_files $sc_filter $a_sim_vars(b_int_csim_compile_order)]
@@ -594,6 +578,43 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
+
+    # fetch asm files
+    set asm_files [xcs_get_c_files $asm_filter $a_sim_vars(b_int_csim_compile_order)]
+    if { [llength $asm_files] > 0 } {
+      set g_files {}
+      set l_incl_dir_opts {}
+      #send_msg_id exportsim-Tcl-024 INFO "Finding SystemC files..."
+      foreach file $asm_files {
+        set file_extn [file extension $file]
+        if { {.h} == $file_extn } {
+          continue
+        }
+        set used_in_values [get_property "used_in" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        # is HLS source?
+        if { [lsearch -exact $used_in_values "c_source"] != -1 } {
+          continue
+        }
+        # set flag
+        if { !$a_sim_vars(b_contain_asm_sources) } {
+          set a_sim_vars(b_contain_asm_sources) true
+        }
+        # is dynamic? process
+        if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+          set file_type "ASM"
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend compile_order_files $file
+          }
+        }
+      }
+    }
+  }
+
+  # print pre-compiled source info
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    xcs_print_pre_compiled_info $a_sim_vars(s_clibs_dir)
   }
 
   return $files
@@ -799,9 +820,8 @@ proc usf_launch_script { simulator step } {
     {compile} -
     {elaborate} {
       set start_time [clock seconds]
-      if {[catch {rdi::run_program $scr_file} error_log]} {
-        set faulty_run 1
-      }
+      set error_log {}
+      set faulty_run [xcs_exec_script $scr_file error_log]
       set end_time [clock seconds]
       send_msg_id USF-XSim-069 INFO "'$step' step finished in '[expr $end_time - $start_time]' seconds"
       # check errors
@@ -1229,6 +1249,18 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         # do not process file and mark this as static
         set b_process_file 0
         set b_is_static 1
+       
+        #################################################################
+        # Pre-compiled version of this IP static source file will be used
+        #################################################################
+        variable a_pre_compiled_source_info
+        set static_ip_filename [file tail $dst_cip_file]
+        set static_library     $library
+        if { ![info exists a_pre_compiled_source_info($static_ip_filename)] } {
+          # store this info for printing/debugging purposes
+          set a_pre_compiled_source_info($static_ip_filename) $static_library
+        }
+       
       } else {
         # library to be compiled locally, add this to the local library linkage collection for mapping purposes
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {

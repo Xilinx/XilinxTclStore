@@ -132,10 +132,25 @@ proc usf_vcs_setup_simulation { args } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
+  # nopc - enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$a_sim_vars(b_use_static_lib) } {
+    set a_sim_vars(b_compile_simmodels) 1
+  }
+
+  if { $a_sim_vars(b_compile_simmodels) } {
+    set a_sim_vars(s_simlib_dir) "$a_sim_vars(s_launch_dir)/simlibs"
+    if { ![file exists $a_sim_vars(s_simlib_dir)] } {
+      if { [catch {file mkdir $a_sim_vars(s_simlib_dir)} error_msg] } {
+        send_msg_id USF-VCS-013 ERROR "Failed to create the directory ($a_sim_vars(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
+  }
+
   usf_set_simulator_path "vcs"
 
   if { $a_sim_vars(b_int_system_design) } {
-    usf_set_gcc_version_path "vcs"
+    usf_set_systemc_library_path "vcs"
   }
 
   # initialize boost library reference
@@ -165,6 +180,14 @@ proc usf_vcs_setup_simulation { args } {
   # find/copy synopsys_sim.setup file into run dir
   set a_sim_vars(s_clibs_dir) [usf_vcs_verify_compiled_lib]
 
+  # set systemC version
+  if { {6.2.0} == $a_sim_vars(s_gcc_version) } {
+    set a_sim_vars(sysc_ver) "232"
+  }
+
+  # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
+  xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "vcs"
+
   variable l_compiled_libraries
   variable l_xpm_libraries
   set b_reference_xpm_library 0
@@ -174,7 +197,7 @@ proc usf_vcs_setup_simulation { args } {
     }
   }
   if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
-    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(b_int_sm_lib_ref_debug)]
+    set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     if { {} != $a_sim_vars(s_clibs_dir) } {
       set libraries [xcs_get_compiled_libraries $a_sim_vars(s_clibs_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
       # filter local ip definitions
@@ -246,6 +269,12 @@ proc usf_vcs_setup_simulation { args } {
     }
   }
 
+  # nopc
+  if { $a_sim_vars(b_compile_simmodels) } {
+    # get the design simmodel compile order
+    set a_sim_vars(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
+  }
+
   # create setup file
   usf_vcs_write_setup_files
 
@@ -275,9 +304,12 @@ proc usf_vcs_setup_args { args } {
   # [-int_systemc_mode]: SystemC mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
+  # [-int_gcc_version <arg>]: GCC version (internal use)
+  # [-int_sim_version <arg>]: Simulator version (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
+  # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
 
   # Return Value:
@@ -303,6 +335,8 @@ proc usf_vcs_setup_args { args } {
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
+      "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
@@ -315,6 +349,7 @@ proc usf_vcs_setup_args { args } {
       "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
       "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
+      "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
@@ -542,6 +577,7 @@ proc usf_vcs_write_compile_script {} {
     if { $a_sim_vars(b_optimizeForRuntime) } {
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -618,6 +654,10 @@ proc usf_vcs_write_compile_script {} {
 
   # write compile order files
   if { $a_sim_vars(b_optimizeForRuntime) } {
+    # nopc
+    if { $a_sim_vars(b_compile_simmodels) } {
+      usf_compile_simmodel_sources $fh_scr
+    }
     usf_vcs_write_compile_order_files_opt $fh_scr
     #usf_vcs_write_compile_order_files_msg $fh_scr
   } else {
@@ -693,6 +733,598 @@ proc usf_vcs_check_if_glbl_file_needs_compilation {} {
   return false
 }
 
+# nopc
+proc usf_compile_simmodel_sources { fh } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set platform  "lin"
+
+  set b_dbg 0
+  if { $a_sim_vars(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
+  set simulator "vcs"
+  set data_dir [rdi::get_data_dir -quiet -datafile "systemc/simlibs"]
+  set cpt_dir  [xcs_get_simmodel_dir "vcs" $a_sim_vars(s_gcc_version) "cpt"]
+
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [llength $a_sim_vars(l_simmodel_compile_order)] == 0 } {
+    if { [file exists $a_sim_vars(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $a_sim_vars(s_simlib_dir)} error_msg]
+    }
+    return
+  }
+
+  # update mappings in synopsys_sim.setup
+  usf_add_simmodel_mappings
+
+  # find simmodel info from dat file and update do file
+  foreach lib_name $a_sim_vars(l_simmodel_compile_order) {
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
+    set fh_dat 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+    if {[catch {open $dat_file r} fh_dat]} {
+      send_msg_id USF-VCS-016 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+    set data [split [read $fh_dat] "\n"]
+    close $fh_dat
+
+    # is current platform supported?
+    set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
+    set b_process          0
+
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value }
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+
+    # not supported, work on next simmodel
+    if { !$b_process } { continue }
+
+    #send_msg_id USF-VCS-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
+    # create local lib dir
+    set simlib_dir "$a_sim_vars(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-VCS-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    # copy simmodel sources locally
+    if { $a_sim_vars(b_int_export_source_files) } {
+      if { {} == $simmodel_name } { send_msg_id USF-VCS-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-VCS-107 WARNING "Empty tag '$library_name'!\n"  }
+
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+      if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-VCS-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+          }
+      } else {
+        [catch {send_msg_id USF-VCS-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+      }
+    }
+
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include"
+    set target_dir      "$a_sim_vars(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-VCS-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
+
+    # simmodel file_info.dat data
+    set library_type            {}
+    set output_format           {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_flags_vcs [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set gcc_compile_flags       [list]
+    set gcc_compile_opt_flags   [list]
+    set gcc_compile_dbg_flags   [list]
+    set ldflags                 [list]
+    set ldflags_vcs             {}
+    set gplus_ldflags_option    {}
+    set gcc_ldflags_option      {}
+    set ldflags_lin64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lin64            [list]
+    set ldlibs_win64            [list]
+    set gplus_ldlibs_option     {}
+    set gcc_ldlibs_option       {}
+    set sysc_dep_libs           {}
+    set cpp_dep_libs            {}
+    set c_dep_libs              {}
+    set sccom_compile_flags     {}
+    set more_xsc_options        [list]
+    set simulator_platform      {}
+    set systemc_compile_option  {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
+    set shared_lib              {}
+    set systemc_incl_dirs       [list]
+    set systemc_incl_dirs_vcs   [list]
+    set cpp_incl_dirs           [list]
+    set osci_incl_dirs          [list]
+    set c_incl_dirs             [list]
+
+    set sysc_files [list]
+    set cpp_files  [list]
+    set c_files    [list]
+    
+    # process simmodel data from .dat file
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set value     [lindex $line_info 1]
+
+      # collect sources
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        set file_path "$data_dir/$value"
+
+        # local file path where sources will be copied for export option
+        if { $a_sim_vars(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
+      
+        if { ("<SYSTEMC_SOURCES>" == $tag) } { lappend sysc_files $file_path }
+        if { ("<CPP_SOURCES>"     == $tag) } { lappend cpp_files  $file_path }
+        if { ("<C_SOURCES>"       == $tag) } { lappend c_files    $file_path }
+      }
+
+      # get simmodel info
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
+      if { "<SYSTEMC_INCLUDE_DIRS_VCS>"   == $tag } { set systemc_incl_dirs_vcs   [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS_VCS>"      == $tag } { set gplus_compile_flags_vcs [split $value {,}] }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<GCC_COMPILE_FLAGS>"          == $tag } { set gcc_compile_flags       [split $value {,}] }
+      if { "<GCC_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gcc_compile_opt_flags   [split $value {,}] }
+      if { "<GCC_COMPILE_DEBUG_FLAGS>"    == $tag } { set gcc_compile_dbg_flags   [split $value {,}] }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
+      #if { "<LDFLAGS_VCS>"                == $tag } { set ldflags_vcs             $value }
+      if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lin64            [split $value {,}] }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64            [split $value {,}] }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option     $value             }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option       $value             }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs           $value             }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs            $value             }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs              $value             }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags     $value             }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options        [split $value {,}] }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform      $value             }
+      if { "<SYSTEMC_COMPILE_OPTION>"     == $tag } { set systemc_compile_option  $value             }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option      $value             }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option        $value             }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
+    }
+
+    #
+    # copy simmodel sources locally (if specified in include dir specification) - for default flow (non-export-source-files)
+    #
+    if { !$a_sim_vars(b_int_export_source_files) } {
+      foreach incl_dir $systemc_incl_dirs {
+        set leaf [file tail $incl_dir]
+        if { ("src" == $leaf) || ("sysc" == $leaf) } {
+          set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/$leaf"
+          set dst_dir "$a_sim_vars(s_launch_dir)/simlibs/$library_name"
+          if { [file exists $src_sim_model_dir] } {
+            [catch {file delete -force $dst_dir/$leaf} error_msg]
+            if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+              [catch {send_msg_id USF-VCS-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+            } else {
+              puts "copied '$src_sim_model_dir' to run dir:'$dst_dir'\n"
+            }
+          } else {
+            #[catch {send_msg_id USF-VCS-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+          }
+        }
+      }
+    }
+
+    set obj_dir "$a_sim_vars(s_launch_dir)/vcs_lib/$lib_name"
+    if { ![file exists $obj_dir] } {
+      if { [catch {file mkdir $obj_dir} error_msg] } {
+        send_msg_id USF-VCS-013 ERROR "Failed to create the directory ($obj_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    #
+    # write systemC/CPP/C command line
+    #
+    if { [llength $sysc_files] > 0 } {
+      set compiler "syscan"
+      puts $fh "# compile '$lib_name' model sources"
+      foreach src_file $sysc_files {
+        set file_name [file root [file tail $src_file]]
+
+        set args [list]
+        if { {} != $a_sim_vars(sysc_ver) } {
+          lappend args "-sysc=$a_sim_vars(sysc_ver)"
+        }
+        lappend args "-full64"
+        lappend args "-cpp $a_sim_vars(s_gcc_bin_path)/g++"
+        lappend args "-cflags \""
+        lappend args "-DSC_INCLUDE_DYNAMIC_PROCESSES"
+
+        # <SYSTEMC_INCLUDE_DIRS>
+        foreach incl_dir $systemc_incl_dirs {
+          #if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+          #  set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+          #}
+          lappend args "-I$incl_dir"
+        }
+
+        # <SYSTEMC_INCLUDE_DIRS_VCS>
+        foreach incl_dir $systemc_incl_dirs_vcs {
+          #if { [regexp {xv_ext_lib_path\/protobuf\/include} $incl_dir] } {
+            #set incl_dir [regsub -all {protobuf} $incl_dir {utils/protobuf}]
+          #}
+          lappend args "-I$incl_dir"
+        }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        foreach opt $gplus_compile_flags     { lappend args $opt }
+        foreach opt $gplus_compile_flags_vcs { lappend args $opt }
+        foreach opt $gplus_compile_opt_flags { lappend args $opt }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args "\""
+        lappend args $src_file
+        lappend args "-Mdir=vcs_lib/${lib_name}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_tool_bin_path)/$compiler $cmd_str\n"
+      }
+
+      #
+      # LINK (g++)
+      #
+      set compiler "g++"
+      set args [list]
+      lappend args "-m64"
+      foreach src_file $sysc_files {
+        set file_name [file root [file tail $src_file]]
+        #set obj_file "vcs_lib/$lib_name/${file_name}.o"
+        set obj_file "vcs_lib/${lib_name}/sysc/${file_name}.o"
+        lappend args $obj_file
+      }
+
+      # <LDFLAGS>
+      if { [llength $ldflags] > 0 } { foreach opt $ldflags { lappend args $opt } }
+
+      # <LDFLAGS_VCS>
+      #if { {} != $ldflags_vcs } {
+      #  lappend args $ldflags_vcs
+      #}
+
+      if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
+
+      # acd ldflags
+      if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
+
+      # <LDLIBS>
+      if { [llength $ldlibs] > 0 } {
+        foreach opt $ldlibs {
+          set vcs_lib_dir "$a_sim_vars(s_launch_dir)/vcs_lib"
+          if { [regexp "Lvcs_lib" $opt] } {
+            set opt [regsub -all {vcs_lib} $opt $vcs_lib_dir]
+          }
+          lappend args $opt
+        }
+      }
+
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "./vcs_lib/$lib_name/lib${lib_name}.so"
+
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
+
+    } elseif { [llength $cpp_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "g++"
+      #
+      # COMPILE (g++)
+      #
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set args [list]
+        lappend args "-m64"
+        lappend args "-c"
+
+        # 1074568
+        if { [regexp "^common_cpp_v1_0" $lib_name] } {
+          lappend args "-DVCSSYSTEMC"
+        }
+
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } {
+          foreach incl_dir $cpp_incl_dirs {
+            lappend args "-I $incl_dir"
+          }
+        }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } {
+          foreach opt $gplus_compile_flags {
+            lappend args $opt
+          }
+        }
+
+        # <G++_COMPILE_DEBUG_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } {
+            foreach opt $gplus_compile_dbg_flags {
+              lappend args $opt
+            }
+          }
+        # <G++_COMPILE_OPT_FLAGS>
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } {
+            foreach opt $gplus_compile_opt_flags {
+              lappend args $opt
+            }
+          }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "vcs_lib/$lib_name/${file_name}.o"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
+      }
+
+      #
+      # LINK (g++)
+      #
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "vcs_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-m64"
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "vcs_lib/$lib_name/lib${lib_name}.so"
+
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
+
+    } elseif { [llength $c_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "gcc"
+      #
+      # COMPILE (gcc)
+      #
+      foreach src_file $c_files {
+        set file_name [file root [file tail $src_file]]
+        set args [list]
+        lappend args "-m64"
+        lappend args "-c"
+
+        # <C_INCLUDE_DIRS>
+        if { [llength $c_incl_dirs] > 0 } {
+          foreach incl_dir $c_incl_dirs {
+            lappend args "-I $incl_dir"
+          }
+        }
+
+        # <C_COMPILE_OPTION>
+        lappend args $c_compile_option
+
+        # <GCC_COMPILE_FLAGS>
+        #
+        # TODO : for now use gplus_compile_flags (add support for <GCC_COMPILE_FLAGS> in compile_simlib and update this accordingly)
+        #      : add <GCC_COMPILE_FLAGS> tag in remote_port_c_v4
+        #
+        if { [llength $gplus_compile_flags] > 0 } {
+          foreach opt $gplus_compile_flags {
+            lappend args $opt
+          }
+        }
+
+        # <GCC_COMPILE_DEBUG_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gcc_compile_dbg_flags] > 0 } {
+            foreach opt $gcc_compile_dbg_flags {
+              lappend args $opt
+            }
+          }
+        # <GCC_COMPILE_OPT_FLAGS>
+        } else {
+          if { [llength $gcc_compile_opt_flags] > 0 } {
+            foreach opt $gcc_compile_opt_flags {
+              lappend args $opt
+            }
+          }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "vcs_lib/$lib_name/${file_name}.o"
+
+        set cmd_str [join $args " "]
+        puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
+      }
+
+      #
+      # LINK (gcc)
+      #
+      set args [list]
+      foreach src_file $c_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "vcs_lib/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+      lappend args "-m64"
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "vcs_lib/$lib_name/lib${lib_name}.so"
+
+      set cmd_str [join $args " "]
+      puts $fh "$a_sim_vars(s_gcc_bin_path)/$compiler $cmd_str\n"
+    }
+  }
+}
+
+proc usf_add_simmodel_mappings { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  # file should be present by now
+  set syn_file "$a_sim_vars(s_launch_dir)/synopsys_sim.setup"
+  if { ![file exists $syn_file] } {
+    return
+  }
+
+  # read synopsys_sim.setup contents
+  set fh 0
+  if {[catch {open $syn_file r} fh]} {
+    send_msg_id USF-VCS-011 ERROR "Failed to open file to read ($synfile)\n"
+    return 1
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+
+  # delete synopsys_sim.setup
+  [catch {file delete -force $syn_file} error_msg]
+
+  # create updated setup file (iterate over synopsys_sim.setup and replace the simulation model library path with local directory)
+  set fh 0
+  if {[catch {open $syn_file w} fh]} {
+    send_msg_id USF-VCS-011 ERROR "Failed to open file to write ($syn_file)\n"
+    return
+  }
+
+  set others_mapping ""
+  set b_start_adding_sim_model_mappings false
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    # end of mappings?
+    if { [regexp "^OTHERS" $line] } {
+      set others_mapping $line
+      set b_start_adding_sim_model_mappings true
+    } else {
+      puts $fh $line
+    }
+
+    if { $b_start_adding_sim_model_mappings } {
+      foreach library $a_sim_vars(l_simmodel_compile_order) {
+        set mapping "$library : $a_sim_vars(compiled_design_lib)/$library"      
+        puts $fh $mapping
+      }
+    }
+  }
+  puts $fh $others_mapping
+  close $fh
+}
+
 proc usf_vcs_write_elaborate_script {} {
   # Summary:
   # Argument Usage:
@@ -717,6 +1349,7 @@ proc usf_vcs_write_elaborate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -735,7 +1368,7 @@ proc usf_vcs_write_elaborate_script {} {
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "vcs" "elaborate" false $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "vcs" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
       puts $fh_scr ""
     }
@@ -745,7 +1378,9 @@ proc usf_vcs_write_elaborate_script {} {
   set arg_list [list]
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
-      lappend arg_list "-sysc=232"
+      if { {} != $a_sim_vars(sysc_ver) } {
+        lappend arg_list "-sysc=$a_sim_vars(sysc_ver)"
+      }
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
@@ -841,11 +1476,12 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            set lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+            set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-laie_cluster_v1_0_0"]
+            set arg_list [linsert $arg_list end "-l$model_ver"]
           }
         }
 
@@ -857,10 +1493,19 @@ proc usf_vcs_write_elaborate_script {} {
           set sm_lib_dir [file normalize $value]
           set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
 
+          if { $a_sim_vars(b_compile_simmodels) } {
+            if { [regexp "^protobuf" $shared_lib_name] } {
+             # skip
+            } else {
+              set sm_lib_dir "$a_sim_vars(s_launch_dir)/vcs_lib/$shared_lib_name"
+            }
+          }
+
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/aie_cluster_v1_0_0"
+            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             # TODO: find way to make this data-driven
             set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
@@ -1241,6 +1886,7 @@ proc usf_vcs_write_simulate_script {} {
   puts $fh_scr "#!/bin/sh -f"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
+    usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
@@ -1260,7 +1906,7 @@ proc usf_vcs_write_simulate_script {} {
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
-        xcs_write_library_search_order $fh_scr "vcs" "simulate" false $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
+        xcs_write_library_search_order $fh_scr "vcs" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
     puts $fh_scr ""
@@ -1625,7 +2271,10 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
   }
 
   set tool "syscan"
-  set arg_list [list "-sysc=232"]
+  set arg_list [list]
+  if { {} != $a_sim_vars(sysc_ver) } {
+    lappend arg_list "-sysc=$a_sim_vars(sysc_ver)"
+  }
   lappend arg_list "-sysc=opt_if"
   lappend arg_list "-cpp \$\{gcc_path\}/g++"
   lappend arg_list "-V"
@@ -1650,7 +2299,9 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
   set system_includes    "-I. "
 
   #append system_includes "-I\$\{PWD\}/c.obj/sysc/include "
-  append system_includes "-I\$\{VCS_HOME\}/include/systemc232 "
+  if { {} != $a_sim_vars(sysc_ver) } {
+    append system_includes "-I\$\{VCS_HOME\}/include/systemc$a_sim_vars(sysc_ver) "
+  }
   #append system_includes "-I\$\{VCS_HOME\}/lib "
   append system_includes "-I\$\{VCS_HOME\}/include "
   append system_includes "-I\$\{VCS_HOME\}/include/cosim/bf "
@@ -2322,6 +2973,24 @@ proc usf_vcs_write_glbl_compile { fh_scr } {
         }
       }
     }
+  }
+}
+
+proc usf_vcs_init_env { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  set b_init_env [get_property -quiet "init_simulator_env" $a_sim_vars(fs_obj)] 
+  if { $b_init_env } {
+    set gnu_pkg_dir [file dirname [file dirname $a_sim_vars(s_gcc_bin_path)]]
+    puts $fh_scr "\n# source VCS GNU package script (for setting GCC, binutils and LD_LIBRARY_PATH)"
+    puts $fh_scr "if \[\[ ! -z \$VG_GNU_PACKAGE \]\]; then"
+    puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
+    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc9_64.sh"
+    puts $fh_scr "fi\n"
   }
 }
 

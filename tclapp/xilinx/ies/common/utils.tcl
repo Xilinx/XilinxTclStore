@@ -4350,11 +4350,6 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
-        set dir_name [file root [file tail $lib_dir]]
-        if { $dir_name != $library } {
-          continue
-        }
-
         if { $b_is_systemc_library } {
           if { {questa} == $simulator } {
             if {$::tcl_platform(platform) == "unix"} {
@@ -4402,7 +4397,7 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
   }
 }
 
-proc xcs_get_simmodel_compile_order { } {
+proc xsc_get_simmodel_compile_order { } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4447,7 +4442,7 @@ proc xcs_get_simmodel_compile_order { } {
   return $sm_order
 } 
 
-proc xcs_find_lib_path_for_simmodel { simmodel } {
+proc xsc_find_lib_path_for_simmodel { simmodel } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4465,7 +4460,7 @@ proc xcs_find_lib_path_for_simmodel { simmodel } {
   }
 }
 
-proc xcs_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
+proc xsc_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
   # Summary:
   # Argument Usage:
   # Return Value:

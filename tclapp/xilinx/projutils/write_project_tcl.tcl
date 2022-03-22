@@ -37,6 +37,7 @@ proc write_project_tcl {args} {
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
   # [-no_copy_sources]: Do not import sources even if they were local in the original project
+  # [-absolute_remote_path]: Write remote sources with absolute paths
   # [-no_ip_version]: Flag to not include the IP version as part of the IP VLNV in create_bd_cell commands.
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
@@ -82,6 +83,7 @@ proc write_project_tcl {args} {
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
+      "-absolute_remote_path" { set a_global_vars(b_arg_absolute_remote_path) 1 }
       "-no_ip_version"        { set a_global_vars(b_arg_no_ip_version) 1 }
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
@@ -193,11 +195,11 @@ variable b_project_board_set 0
 
 # set file types to filter
 variable l_filetype_filter [list]
-    
+
 # Setup filter for non-user-settable filetypes
-set l_filetype_filter [list "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files" \
-                            "block diagrams" "block designs" "dsp design sources" "text" \
-                            "design checkpoint" "waveform configuration file" "csv"]
+set l_filetype_filter { "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files"
+                        "block diagrams" "block designs" "dsp design sources" "text"
+                        "design checkpoint" "waveform configuration file" "csv" }
 # ip file extension types
 variable l_valid_ip_extns [list]
 set l_valid_ip_extns      [list ".xci" ".bd" ".slx"]
@@ -222,25 +224,26 @@ proc reset_global_vars {} {
 
   variable a_global_vars
 
-  set a_global_vars(s_relative_to)        {.}
-  set a_global_vars(s_path_to_script_dir) ""
-  set a_global_vars(s_origin_dir_override) "" 
-  set a_global_vars(s_target_proj_dir)    ""
-  set a_global_vars(b_arg_force)          0
-  set a_global_vars(b_arg_no_copy_srcs)   0
-  set a_global_vars(b_arg_no_ip_version)  0
-  set a_global_vars(b_absolute_path)      0
-  set a_global_vars(b_internal)           0
-  set a_global_vars(b_validate)           0
-  set a_global_vars(b_arg_all_props)      0
-  set a_global_vars(b_arg_dump_proj_info) 0
-  set a_global_vars(b_local_sources)      0
-  set a_global_vars(curr_time)            [clock format [clock seconds]]
-  set a_global_vars(fh)                   0
-  set a_global_vars(dp_fh)                0
-  set a_global_vars(def_val_fh)           0
-  set a_global_vars(script_file)          ""
-  set a_global_vars(b_arg_quiet)          0
+  set a_global_vars(s_relative_to)              {.}
+  set a_global_vars(s_path_to_script_dir)       ""
+  set a_global_vars(s_origin_dir_override)      "" 
+  set a_global_vars(s_target_proj_dir)          ""
+  set a_global_vars(b_arg_force)                0
+  set a_global_vars(b_arg_no_copy_srcs)         0
+  set a_global_vars(b_arg_absolute_remote_path) 0
+  set a_global_vars(b_arg_no_ip_version)        0
+  set a_global_vars(b_absolute_path)            0
+  set a_global_vars(b_internal)                 0
+  set a_global_vars(b_validate)                 0
+  set a_global_vars(b_arg_all_props)            0
+  set a_global_vars(b_arg_dump_proj_info)       0
+  set a_global_vars(b_local_sources)            0
+  set a_global_vars(curr_time)                  [clock format [clock seconds]]
+  set a_global_vars(fh)                         0
+  set a_global_vars(dp_fh)                      0
+  set a_global_vars(def_val_fh)                 0
+  set a_global_vars(script_file)                ""
+  set a_global_vars(b_arg_quiet)                0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -411,6 +414,9 @@ proc write_project_tcl_script {} {
   if { $a_global_vars(b_absolute_path) } {
     send_msg_id Vivado-projutils-016 INFO "Please note that the -absolute_path switch was specified, hence the project source files will be referenced using\n\
     absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
+  } elseif { $a_global_vars(b_arg_absolute_remote_path) } {
+    send_msg_id Vivado-projutils-016 INFO "Please note that the -absolute_remote_path switch was specified, hence certain remote project source files will be referenced using\n\
+    absolute path only, in the generated script. As such, the generated script will only work in the same filesystem where those absolute paths are accessible."
   } else {
     if { "." != $a_global_vars(s_relative_to) } {
       if { {} == $a_global_vars(s_origin_dir_override) } {
@@ -446,6 +452,17 @@ proc write_project_tcl_script {} {
   reset_global_vars
 
   return 0
+}
+
+proc use_absolute_path  { file } {
+  variable a_global_vars
+  set result 0
+  if {$a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+    set result 1
+  } elseif {$a_global_vars(b_arg_absolute_remote_path) && ![is_local_to_project $file]} {
+    set result 1
+  }
+  return $result
 }
 
 proc wr_validate_files {} {
@@ -484,7 +501,7 @@ proc wr_validate_files {} {
   if {[llength $l_remote_files]>0} {
     lappend l_script_validate "  set files \[list \\"
     foreach file $l_remote_files {
-      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {    
+      if {[use_absolute_path $file]} {
         lappend l_script_validate "   $file \\"
       } else {
         set file_no_quotes [string trim $file "\""]
@@ -1463,6 +1480,10 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       continue
     }
 
+    if { ([ string equal $type "project" ]) && ([regexp -nocase "simulator\..*_version" $prop]) } {
+      continue
+    }
+
     # To handle the work-around solution of CR-988588 set board_part to base_board_part value then set board_connections
     if { ([ string equal $type "project" ]) && ([ string equal [ string tolower $prop ] "board_connections" ]) } {
       continue
@@ -1630,7 +1651,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
           set file $local_constrs_file
           set proj_file_path "\[get_files *$local_constrs_file\]"
         } else {
-          if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
+          if {[use_absolute_path $file]} {
             set proj_file_path "$file"
           } else {
             set file_no_quotes [string trim $file "\""]
@@ -1649,6 +1670,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
          [string equal -nocase $prop "compxlib.modelsim_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.questa_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.ies_compiled_library_dir"] ||
+         [string equal -nocase $prop "compxlib.xcelium_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.vcs_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.riviera_compiled_library_dir"] ||
          [string equal -nocase $prop "compxlib.activehdl_compiled_library_dir"] } {
@@ -2030,7 +2052,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
         }
         lappend l_local_file_list $file
       } else {
-        if {$a_global_vars(b_absolute_path) || [need_abs_path $file] } {
+        if {[use_absolute_path $file]} {
           lappend add_file_coln [string trim $file "\""]
         } else {
           set file_no_quotes [string trim $file "\""]
@@ -2223,7 +2245,7 @@ proc add_constrs_file { file_str } {
   variable a_global_vars
   variable l_script_data
 
-  if { $a_global_vars(b_absolute_path) || [need_abs_path $file_str]} {
+  if {[use_absolute_path  $file_str]} {
     lappend l_script_data "set file $file_str"
   } else {
     if { $a_global_vars(b_arg_no_copy_srcs) } {
@@ -2341,7 +2363,7 @@ proc write_constrs_fileset_file_properties { tcl_obj fs_name proj_dir file file_
   # write properties now
   if { $prop_count>0 } {
     if { {remote} == $file_category } {
-      if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+      if {[use_absolute_path $file]} {
         lappend l_script_data "set file \"$file\""
       } else {
         lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -2402,8 +2424,12 @@ proc write_specified_run { proj_dir proj_name runs } {
     if { $isPRProject == 1 && $isImplRun == 1 && $parent_run != "" } {
       set isChildImplRun [get_property is_implementation [$get_what $parent_run]]
       if { $isChildImplRun == 1 } {
+        set rm_instance ""
+        if { [lsearch [list_property [get_runs $tcl_obj]] RM_INSTANCE] != -1 } {
+          set rm_instance [get_property rm_instance [get_runs $tcl_obj]]
+        }
         set prConfig [get_property pr_configuration [get_runs $tcl_obj]]
-        if { [get_pr_configurations $prConfig] == "" } {
+        if { [get_pr_configurations $prConfig] == "" && $rm_instance == "" } {
 #         review this change. Either skip this run creation or flag error while sourcing script...???
           continue
         }
@@ -2420,7 +2446,13 @@ proc write_specified_run { proj_dir proj_name runs } {
     }
 
     if { $isChildImplRun == 1 } {
-      set cmd_str "  $cmd_str -pr_config $prConfig"
+      if { $prConfig != "" } {
+        set cmd_str "  $cmd_str -pr_config $prConfig"
+      }
+      
+      if { $rm_instance != "" } {
+        set cmd_str "  $cmd_str -rm_instance {$rm_instance}"
+      }
     }
 
     lappend l_script_data "# Create '$tcl_obj' run (if not found)"
@@ -2537,7 +2569,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     set file_props [list_property $file_object]
     set prop_info_list [list]
     set prop_count 0
-
+    set file
     foreach file_prop $file_props {
       set is_readonly [get_property is_readonly [rdi::get_attr_specs $file_prop -object $file_object]]
       if { [string equal $is_readonly "1"] } {
@@ -2587,7 +2619,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+        if {[use_absolute_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -3463,7 +3495,7 @@ proc write_reconfigmodule_file_properties { reconfigModule fs_name proj_dir l_fi
     # write properties now
     if { $prop_count>0 } {
       if { {remote} == $file_category } {
-        if { $a_global_vars(b_absolute_path) || [need_abs_path $file]} {
+        if {[use_absolute_path $file]} {
           lappend l_script_data "set file \"$file\""
         } else {
           lappend l_script_data "set file \"\$origin_dir/[get_relative_file_path_for_source $file [get_script_execution_dir]]\""
@@ -3570,7 +3602,23 @@ proc suppress_messages {} {
   variable levels_to_suppress
   set levels_to_suppress { {STATUS} {INFO} {WARNING} {CRITICAL WARNING} }
   set msg_rules [split [ debug::get_msg_control_rules -as_tcl ] \n]
+
+  set msgRuleList []
+  set messageperivous ""
   foreach line  $msg_rules {
+    set index [string first set_msg_config $line]
+    if { $index == -1 } {
+	    set messageperivous "$messageperivous$line" 
+    } else {
+	  if { $messageperivous != "" } {
+          lappend msgRuleList $messageperivous
+    	}
+       set messageperivous $line
+    }
+  }
+  lappend msgRuleList $messageperivous
+  
+  foreach line  $msgRuleList {
     set idx_suppress [lsearch $line "-suppress"]
     if { $idx_suppress >= 0  } {
       set idx_severity [lsearch $line "-severity"]

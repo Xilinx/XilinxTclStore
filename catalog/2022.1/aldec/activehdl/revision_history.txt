@@ -1,3 +1,4 @@
+1.28 source vitis_params for setting region path variables
 1.27 fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO150
 1.26 SystemC fixes PR-741
 1.25 Merged Aldec pull-request 730

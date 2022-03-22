@@ -1,3 +1,39 @@
+3.516 resolve verilog header source file paths for export absolute nonprecompile mode
+3.515 check for aie ml env and bind aie2
+3.514 find simulation model directory paths from rdi datadir env values
+3.511 get and fix library path for VCS
+3.512 write_project_tcl quiet issue
+3.511 write_project_tcl and copy_run support for different DFX modes
+3.510 additonal fix for absolute remote path
+3.509 support for absolute remote path
+3.508 set ip repository directory name based on property
+3.507 helper proc to call execute_script task for linux
+3.506 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+3.505 disable binding of versal_cips when param is set
+3.504 throw error message in catch
+3.502 support for asm file compilation
+3.501 helper to detect gcc version mismatch
+3.500 refactored gcc path and version detection
+3.499 enable systemC support var to true
+3.498 set protobuf binding param
+3.497 filter simulator version properties
+3.496 helper proc to fetch simulation model version
+3.495 debug proc to print static file info
+3.494 pass more options for xrun
+3.493 fixed library search order to pass launch dir
+3.492 fixed source file path for export_source_files switch
+3.491 updated message for NoC status
+3.490 check for NoC and switch network generation status
+3.488 updated help for export_simulation
+3.487 updated comment for cache vars
+3.485 bind user specified systemc/C/C++ libraries during elaboration
+3.484 refactored library search order proc to utils
+3.483 refactored generics proc to common helpers
+3.482 added common helpers
+3.481 initialize vars from utils
+3.480 code refactoring
+3.479 remove IES support
+3.478 check for leaf dir name wrt library name for linked library
 3.477 IDR run support
 3.476 Removed create_rqs_run command
 3.475 Extract IP file name from core-container to determine SV package libraries
