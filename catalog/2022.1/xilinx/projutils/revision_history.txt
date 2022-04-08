@@ -1,3 +1,4 @@
+3.518 Revert bdc dfx issue fix
 3.517 bd with stale bdc reference issue for DFX
 3.516 resolve verilog header source file paths for export absolute nonprecompile mode
 3.515 check for aie ml env and bind aie2
