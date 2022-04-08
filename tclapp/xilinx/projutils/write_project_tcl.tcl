@@ -252,7 +252,6 @@ proc reset_global_vars {} {
   }
 
   set a_global_vars(excludePropDict)      [dict create]
-  set a_global_vars(b_top_bd_generated)   1
 
   set l_script_data                       [list]
   set l_local_files                       [list]
@@ -920,7 +919,6 @@ proc wr_bd_bc_specific {} {
 
   variable l_bc_filesets
   variable l_script_data
-  variable a_global_vars
 
   set bd_files [get_files -norecurse *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
   set bc_filesets_size [llength $l_bc_filesets]
@@ -938,17 +936,9 @@ proc wr_bd_bc_specific {} {
     set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
     set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
     set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
-
-    if { [llength $refs] != 0 && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
-      if {$is_generated == 1} {
-        set filename [file tail $bd_file]
-        lappend l_script_data "generate_target all \[get_files $filename\]\n"
-      } else {
-        if { [llength [get_pr_configurations]] > 0} {
-          send_msg_id Vivado-projutils-022 INFO "$bd_file has non-generated or stale targets"
-        }
-        set a_global_vars(b_top_bd_generated) 0
-      }
+    if { [llength $refs] != 0 && $is_generated == 1 && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
+      set filename [file tail $bd_file]
+      lappend l_script_data "generate_target all \[get_files $filename\]\n"
     }
   }
 }
@@ -2475,9 +2465,9 @@ proc write_specified_run { proj_dir proj_name runs } {
 
     if { ($isImplRun == 1) && ($isPRProject == 1 && $isChildImplRun == 0) && ({DesignSrcs} == $fileset_type) } {
       set prConfig [get_property pr_configuration [get_runs $tcl_obj]]
-      lappend l_script_data "if { \[get_pr_configurations $prConfig\] != \"\" } {"
-      lappend l_script_data "  set_property pr_configuration $prConfig \[get_runs $tcl_obj\]"
-      lappend l_script_data "}"
+      if { [get_pr_configurations $prConfig] != "" } {
+        lappend l_script_data "set_property pr_configuration $prConfig \[get_runs $tcl_obj\]"
+      }
     }
 
     write_report_strategy $tcl_obj $report_strategy
@@ -3192,13 +3182,7 @@ proc wr_prConf {proj_dir proj_name} {
   # Return Value:
   # None
 
-  variable a_global_vars
-
   if { [get_property pr_flow [current_project]] == 0 } {
-    return
-  }
-
-  if { $a_global_vars(b_top_bd_generated) == 0} {
     return
   }
 
