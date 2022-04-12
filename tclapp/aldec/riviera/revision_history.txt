@@ -1,4 +1,6 @@
-1.27 fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO150
+1.28 source vitis_params for setting region path variables
+1.27.1 Removed env(XIL_ENABLE_VITIS_CODE_HOOKS)
+1.27 fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO1508
 1.26 SystemC fixes PR-741
 1.25 Merged Aldec pull-request 730
 1.24 SPT80423 - Package not found: VCOMPONENTS (library: unimacro), SPT80425 - Precompiled libraries from aldec website are ignored in Vivado flow

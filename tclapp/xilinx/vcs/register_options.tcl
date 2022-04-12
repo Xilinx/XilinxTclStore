@@ -48,6 +48,8 @@ proc register_options { simulator } {
     {{compile.g++.more_options}     {string} {}        {More G++ compilation options}}
     {{compile.gcc.more_options}     {string} {}        {More GCC compilation options}}
     {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
+    {{elaborate.link.sysc}          {string} {}        {Specify SystemC libraries to bind}}
+    {{elaborate.link.c}             {string} {}        {Specify C/C++ libraries to bind}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
     {{simulate.tcl.post}            {string} {}        {Specify post-simulate step TCL hook}}
     {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}

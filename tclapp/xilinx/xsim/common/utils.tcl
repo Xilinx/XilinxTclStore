@@ -13,6 +13,141 @@
 
 variable _xcs_defined 1
 
+proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  upvar $a_sim_vars_arg a_sim_vars
+  upvar $a_sim_mode_types_arg a_sim_mode_types
+
+  set a_sim_vars(curr_proj)                  {}
+  set a_sim_vars(s_simset)                   {}
+  set a_sim_vars(fs_obj)                     {}
+  set a_sim_vars(s_launch_dir)               {}
+  set a_sim_vars(s_type)                     {}
+  set a_sim_vars(s_comp_file)                {}
+  set a_sim_vars(sp_tcl_obj)                 {}
+  set a_sim_vars(s_clibs_dir)                {}
+  set a_sim_vars(s_install_path)             {}
+  set a_sim_vars(s_lib_map_path)             {}
+  set a_sim_vars(s_netlist_file)             {}
+  set a_sim_vars(s_int_os_type)              {}
+  set a_sim_vars(custom_sm_lib_dir)          {}
+  set a_sim_vars(s_tool_bin_path)            {}
+  set a_sim_vars(sp_hbm_ip_obj)              {}
+
+  set a_sim_vars(b_scripts_only)             0
+  set a_sim_vars(b_absolute_path)            0
+  set a_sim_vars(b_batch)                    0
+  set a_sim_vars(b_netlist_sim)              0
+  set a_sim_vars(b_extract_ip_sim_files)     0
+  set a_sim_vars(b_int_sm_lib_ref_debug)     0
+  set a_sim_vars(b_int_compile_glbl)         0
+  set a_sim_vars(s_int_debug_mode)           0
+  set a_sim_vars(b_int_halt_script)          0
+  set a_sim_vars(b_int_is_gui_mode)          0
+  set a_sim_vars(b_int_export_source_files)  0
+
+  #
+  # project, simset object setting
+  #
+  set a_sim_vars(curr_proj)                  [current_project]
+  set a_sim_vars(s_simset)                   [current_fileset -simset]
+  set a_sim_vars(fs_obj)                     [get_filesets $a_sim_vars(s_simset)]
+
+  set a_sim_vars(s_mode)                     "behavioral"
+  set a_sim_vars(s_flow_dir_key)             "behav"
+  set a_sim_vars(s_simulation_flow)          "behav_sim"
+  set a_sim_vars(s_netlist_mode)             "funcsim"
+
+  #
+  # project settings
+  #
+  set a_sim_vars(s_project_name)             [get_property "name"                              $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_project_dir)              [get_property "directory"                         $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_target_lang)              [get_property "target_language"                   $a_sim_vars(curr_proj)]
+  set a_sim_vars(simulator_language)         [get_property "simulator_language"                $a_sim_vars(curr_proj)]
+  set a_sim_vars(src_mgmt_mode)              [get_property "source_mgmt_mode"                  $a_sim_vars(curr_proj)]
+  set a_sim_vars(default_top_library)        [get_property "default_lib"                       $a_sim_vars(curr_proj)]
+  set a_sim_vars(b_is_managed)               [get_property "managed_ip"                        $a_sim_vars(curr_proj)]
+  set a_sim_vars(dynamic_repo_dir)           [get_property "ip.user_files_dir"                 $a_sim_vars(curr_proj)]
+  set a_sim_vars(ipstatic_dir)               [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
+  set a_sim_vars(b_use_static_lib)           [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
+  set a_sim_vars(s_local_ip_repo_leaf_dir)   [get_property "local_ip_repo_leaf_dir_name"       $a_sim_vars(curr_proj)]
+
+  #
+  # simset settings 
+  #
+  set a_sim_vars(s_sim_top)                  [get_property "top"                               $a_sim_vars(fs_obj)]
+  set a_sim_vars(b_force_no_compile_glbl)    [get_property "force_no_compile_glbl"             $a_sim_vars(fs_obj)] 
+
+  #
+  # sim mode types
+  #
+  set a_sim_mode_types(behavioral)           "behav"
+  set a_sim_mode_types(post-synthesis)       "synth"
+  set a_sim_mode_types(post-implementation)  "impl"
+  set a_sim_mode_types(funcsim)              "func"
+  set a_sim_mode_types(timesim)              "timing"
+
+  #
+  # general settings
+  #
+  set a_sim_vars(s_compile_pre_tcl_wrapper)  "vivado_wc_pre"
+
+  #
+  # data dir
+  #
+  set data_dir                               [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
+  set a_sim_vars(s_ip_repo_dir)              [file normalize [file join $data_dir "ip/xilinx"]]
+
+  #
+  # Simulation model versions
+  #
+  set a_sim_vars(l_sim_model_versions)       [rdi::get_sim_model_versions]
+}
+
+proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  upvar $a_sim_vars_arg a_sim_vars
+
+  set a_sim_vars(sp_cpt_dir)                 {}
+  set a_sim_vars(sp_ext_dir)                 {}
+  set a_sim_vars(s_gcc_bin_path)             {}
+  set a_sim_vars(s_sim_version)              {}
+  set a_sim_vars(s_gcc_version)              {}
+  set a_sim_vars(s_boost_dir)                {}
+
+  set a_sim_vars(b_contain_systemc_sources)  0
+  set a_sim_vars(b_contain_cpp_sources)      0
+  set a_sim_vars(b_contain_c_sources)        0
+  set a_sim_vars(b_contain_asm_sources)      0
+  set a_sim_vars(b_contain_systemc_headers)  0
+
+  set a_sim_vars(b_int_systemc_mode)         0
+  set a_sim_vars(b_int_system_design)        0
+  set a_sim_vars(b_system_sim_design)        0
+  set a_sim_vars(b_int_csim_compile_order)   0
+  set a_sim_vars(b_int_en_vitis_hw_emu_mode) 0
+}
+
+proc xcs_set_common_param_vars { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set a_sim_vars(b_force_compile_glbl) [get_param "project.forceCompileGlblForSimulation"]
+
+  if { !$a_sim_vars(b_force_compile_glbl) } {
+    set a_sim_vars(b_force_compile_glbl) [get_property "force_compile_glbl" $a_sim_vars(fs_obj)]
+  }
+}
+
 proc xcs_create_fs_options_spec { simulator opts } {
   # Summary:
   # Argument Usage:
@@ -206,61 +341,95 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
-proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_exec_script { scr_file error_log_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $error_log_arg error_log
+
+  set faulty_run 0
+  set b_useScriptExec [get_param "project.useScriptExecutionCmd"]
+
+  if { ($::tcl_platform(platform) == "unix") && $b_useScriptExec } {
+    if {[catch {rdi::execute_script $scr_file} error_log]} {
+      set faulty_run 1
+    }
+  } else {
+    if {[catch {rdi::run_program $scr_file} error_log]} {
+      set faulty_run 1
+    }
+  }
+  return $faulty_run
+}
+
+proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure verilog?
-  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
+  if { $b_ver && (!$b_vhd && !$b_sc && !$b_cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_vhdl { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure VHDL?
-  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c) } {
+  if { $b_vhd && (!$b_ver && !$b_sc && !$b_cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_systemc { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure systemC?
-  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c) } {
+  if { $b_sc && (!$b_ver && !$b_vhd && !$cpp && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_cpp { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure cpp?
-  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c) } {
+  if { $b_cpp && (!$b_ver && !$b_vhd && !$b_sc && !$b_c && !$b_asm) } {
     return true
   }
   return false
 }
 
-proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c } {
+proc xcs_is_pure_c { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
   # Return Value:
   
   # is pure c?
-  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp) } {
+  if { $b_c && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp && !$b_asm) } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_pure_asm { b_ver b_vhd b_sc b_cpp b_c b_asm } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  # is pure asm?
+  if { $b_asm && (!$b_ver && !$b_vhd && !$b_sc && !$b_cpp && !$b_c) } {
     return true
   }
   return false
@@ -1149,6 +1318,9 @@ proc xcs_get_file_type_category { file_type } {
     {C} {
       set type {C}
     }
+    {ASM} {
+      set type {ASM}
+    }
   }
   return $type
 }
@@ -1708,7 +1880,7 @@ proc xcs_get_path_from_data {path_from_data} {
   return [file normalize [file join $data_dir $path_from_data]]
 }
 
-proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
+proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_sm_lib_ref_debug 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -1755,7 +1927,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
       # IP is not locked. Is this referenced from local repository?
       #   1. get the IPDEF value of this IP and then the IP def object
       #   2. get the first repository path value from this IP def obj, if any, else continue
-      #   3. is tail-end (leaf) dir name is "ip_repo"? if not, continue
+      #   3. is tail-end (leaf) dir name is "ip_repo" or "iprepo"? if not, continue
       #   4. split the repository path value and search for "IP_HEAD"
       #      - if not found, use this repo path as is
       #      - else get the sub-path starting from "IP_HEAD" till end
@@ -1773,7 +1945,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
 
       # 3. **********************************************************************
       set ip_repo_sub_dir [file tail $local_repo]
-      if { {ip_repo} != $ip_repo_sub_dir } {
+      if { $local_ip_repo_leaf_dir != $ip_repo_sub_dir } {
         continue
       }
 
@@ -1788,17 +1960,30 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
  
       # 5. **********************************************************************
       if { [string equal -nocase $install_dir $local_dir] != 1 } {
+        set b_print_local_ip_msg 0
+        set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ip_def_obj]
         foreach file_obj [get_files -quiet -all -of_objects $ip_obj -filter {USED_IN=~"*ipstatic*"}] {
           set lib [get_property library $file_obj]
+
+          # default lib? continue (files marked ipstatic *MUST* compile to IP library for compiling it locally)
           if { {xil_defaultlib} == $lib } { continue }
+
           # add local library to collection
           dict append lib_dict $lib
+
+          # add to library database info and mark it as custom ip
           if { ![info exists a_sim_lib_info($lib)] } {
             set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+            if { !$b_print_local_ip_msg } {
+              set b_print_local_ip_msg 1
+            }
           }
           if { !$b_libs_referenced_from_local_repo } {
             set b_libs_referenced_from_local_repo 1
           }
+        }
+        if { $b_print_local_ip_msg } {
+          send_msg_id SIM-utils-081 INFO "Using sources from local definition of IP '$ip_obj' ($vlnv_name) from '$local_repo'\n"
         }
       }
     }
@@ -1807,7 +1992,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
   if { ($b_libs_referenced_from_locked_ips || $b_libs_referenced_from_local_repo) && $b_pre_compile } {
     send_msg_id SIM-utils-020 INFO "The project contains locked or custom IPs. The pre-compiled version of these IPs will not be referenced and the sources from these IP libraries will be compiled locally.\n"
 
-    set b_en_code 0
+    set b_en_code 1
     if { $b_en_code } {
       if { $b_int_sm_lib_ref_debug } {
         if { [array size a_sim_lib_info] > 0 } {
@@ -1826,7 +2011,7 @@ proc xcs_get_libs_from_local_repo { b_pre_compile {b_int_sm_lib_ref_debug 0} } {
             set ip_lib  [lindex $ip_info 1]
             set type    $value
             lappend lines "$ip_name $ip_lib $type"
-            lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
+            #lappend lines "-------------------------------------------------------------- ------------------------------------------------------------------------------ ---------"
           }
           foreach line $lines {mt add row $line}
           puts [mt format 2string]
@@ -1902,10 +2087,9 @@ proc xcs_find_files { src_files_arg tcl_obj filter dir b_absolute_path in_fs_obj
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   upvar $src_files_arg src_files
 
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
       set file [file normalize $file]
@@ -1952,8 +2136,8 @@ proc xcs_is_embedded_flow {} {
   # Argument Usage:
   # Return Value:
 
-  variable s_embedded_files_filter
-  set embedded_files [get_files -all -quiet -filter $s_embedded_files_filter]
+  set ft "FILE_TYPE == \"BMM\" || FILE_TYPE == \"ELF\""
+  set embedded_files [get_files -all -quiet -filter $ft]
   if { [llength $embedded_files] > 0 } {
     return 1
   }
@@ -2564,9 +2748,6 @@ proc xcs_fs_contains_hdl_source { fs } {
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
-  variable l_valid_hdl_extns
-
   set b_contains_hdl 0
   set tokens [split [find_top -fileset $fs -return_file_paths] { }]
   for {set i 0} {$i < [llength $tokens]} {incr i} {
@@ -2577,10 +2758,10 @@ proc xcs_fs_contains_hdl_source { fs } {
     set extn [file extension $file]
 
     # skip ip's
-    if { [lsearch -exact $l_valid_ip_extns $extn] >= 0 } { continue; }
+    if { [lsearch -exact [xcs_get_valid_ip_extns] $extn] >= 0 } { continue; }
 
     # check if any HDL sources present in fileset
-    if { [lsearch -exact $l_valid_hdl_extns $extn] >= 0 } {
+    if { [lsearch -exact [xcs_get_valid_hdl_extns] $extn] >= 0 } {
       set b_contains_hdl 1
       break
     }
@@ -2593,7 +2774,6 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   variable l_compile_order_files_uniq
 
   set tcl_obj $sp_tcl_obj
@@ -2601,7 +2781,7 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   set manual_compile_order  [expr {$src_mgmt_mode != "All"}]
 
   # was -of_objects <ip> specified?, fetch current fileset
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     set tcl_obj $fs_obj
   }
 
@@ -2666,12 +2846,13 @@ proc xcs_get_top_library { s_simulation_flow sp_tcl_obj fs_obj src_mgmt_mode def
   return "xil_defaultlib"
 }
 
-proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir filter } {
+proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir } {
   # Summary: Copy fileset IP data files to output directory
   # Argument Usage:
   # Return Value:
 
   set data_files [list]
+  set filter [xcs_get_data_files_filter]
   foreach ip_obj [get_ips -quiet -all] {
     set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
   }
@@ -2690,7 +2871,6 @@ proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir }
   # Argument Usage:
   # Return Value:
 
-  variable l_valid_ip_extns
   #if { [regexp {^post_} $s_simulation_flow] } {
   #  return
   #}
@@ -2729,7 +2909,7 @@ proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir }
       send_msg_id SIM-utils-046 INFO "Design contains embedded sources, generating MEM files for simulation...\n"
       generate_mem_files $s_launch_dir
     }
-  } elseif { [xcs_is_ip $target_obj $l_valid_ip_extns] } {
+  } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     set comp_file $target_obj
     xcs_generate_comp_file_for_simulation $comp_file runs_to_launch
   } else {
@@ -2772,6 +2952,7 @@ proc xcs_get_compiler_name { simulator file_type } {
         "SystemC"                      {set compiler "xsc"}
         "CPP"                          {set compiler "xsc"}
         "C"                            {set compiler "xsc"}
+        "ASM"                          {set compiler "xsc"}
       }
     }
     "modelsim" -
@@ -2951,10 +3132,9 @@ proc xcs_export_fs_non_hdl_data_files { s_simset s_launch_dir dynamic_repo_dir }
   # Argument Usage:
   # Return Value:
 
-  variable s_non_hdl_data_files_filter
   set data_files [list]
 
-  foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter $s_non_hdl_data_files_filter] {
+  foreach file_obj [get_files -all -quiet -of_objects [get_filesets $s_simset] -filter [xcs_get_non_hdl_data_files_filter]] {
     if { [lsearch -exact [list_property -quiet $file_obj] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file_obj] } {
         continue;
@@ -3404,16 +3584,76 @@ proc xcs_get_platform { fs_obj } {
   return $platform
 }
 
+proc xcs_get_data_files_filter {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ft "FILE_TYPE == \"Data Files\"                  || \
+          FILE_TYPE == \"Memory File\"                 || \
+          FILE_TYPE == \"STATIC MEMORY FILE\"          || \
+          FILE_TYPE == \"Memory Initialization Files\" || \
+          FILE_TYPE == \"CSV\"                         || \
+          FILE_TYPE == \"Coefficient Files\"           || \
+          FILE_TYPE == \"Configuration Data Object\""
+
+  return $ft
+}
+
+proc xcs_get_non_hdl_data_files_filter {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set ft "FILE_TYPE != \"Verilog\"                      && \
+          FILE_TYPE != \"SystemVerilog\"                && \
+          FILE_TYPE != \"Verilog Header\"               && \
+          FILE_TYPE != \"Verilog/SystemVerilog Header\" && \
+          FILE_TYPE != \"SystemC Header\"               && \
+          FILE_TYPE != \"Verilog Template\"             && \
+          FILE_TYPE != \"VHDL\"                         && \
+          FILE_TYPE != \"VHDL 2008\"                    && \
+          FILE_TYPE != \"VHDL Template\"                && \
+          FILE_TYPE != \"EDIF\"                         && \
+          FILE_TYPE != \"NGC\"                          && \
+          FILE_TYPE != \"IP\"                           && \
+          FILE_TYPE != \"XCF\"                          && \
+          FILE_TYPE != \"NCF\"                          && \
+          FILE_TYPE != \"UCF\"                          && \
+          FILE_TYPE != \"XDC\"                          && \
+          FILE_TYPE != \"NGO\"                          && \
+          FILE_TYPE != \"Waveform Configuration File\"  && \
+          FILE_TYPE != \"BMM\"                          && \
+          FILE_TYPE != \"ELF\"                          && \
+          FILE_TYPE != \"Design Checkpoint\""
+
+  return $ft
+}
+
+proc xcs_get_valid_ip_extns {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set extns [list ".xci" ".bd" ".slx"]
+  return $extns
+}
+
+proc xcs_get_valid_hdl_extns {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set extns [list ".vhd" ".vhdl" ".vhf" ".vho" ".v" ".vf" ".verilog" ".vr" ".vg" ".vb" ".tf" ".vlog" ".vp" ".vm" ".vh" ".h" ".svh" ".sv" ".veo" ".so"]
+  return $extns
+}
+
 proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  variable s_data_files_filter
-  variable s_non_hdl_data_files_filter
-  variable l_valid_ip_extns
-
-  if { [xcs_is_ip $tcl_obj $l_valid_ip_extns] } {
+  if { [xcs_is_ip $tcl_obj [xcs_get_valid_ip_extns]] } {
     send_msg_id SIM-utils-053 INFO "Inspecting IP design source files for '$top'...\n"
 
     # export ip data files to run dir
@@ -3421,10 +3661,11 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
       set ip_filter "FILE_TYPE == \"IP\""
       set ip_name [file tail $tcl_obj]
       set data_files [list]
-      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
+      set filter [xcs_get_data_files_filter]
+      set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter]]
 
       # non-hdl data files
-      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
+      foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter [xcs_get_non_hdl_data_files_filter]] {
         if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
@@ -3439,7 +3680,7 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
 
     # export all fileset data files to run dir
     if { [get_param "project.copyDataFilesForSim"] } {
-      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir $s_data_files_filter
+      xcs_export_fs_data_files $launch_dir $dynamic_repo_dir
     }
 
     # export non-hdl data files to run dir
@@ -3722,20 +3963,25 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   }
   set fmt {%-50s%-2s%-30s%-2s%-20s%-2s%-10s%-2s%-20s}
   set sep ":"
-  if { $b_int_sm_lib_ref_debug } {
-    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
-    puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
-    puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
-    foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
-      puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+
+  # print allowed values debug msg
+  set b_print_msg 0
+  if { $b_print_msg } {
+    if { $b_int_sm_lib_ref_debug } {
       puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      puts " IP                                                 IPDEF                           Allowed Types         Selected    SystemC Libraries"
+      puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      foreach name $v_ip_names def $v_ip_defs sim_type $v_allowed_sim_types tlm_type $v_tlm_types sys_lib $v_sysc_libs {
+        puts [format $fmt $name $sep $def $sep $sim_type $sep $tlm_type $sep $sys_lib]
+        puts "-------------------------------------------------------------------------------------------------------------------------------------------------------------"
+      }
+      puts "\nLibraries referenced from IP's"
+      puts "------------------------------"
+      foreach sc_lib $ref_libs {
+        puts " + $sc_lib" 
+      }
+      puts "------------------------------"
     }
-    puts "\nLibraries referenced from IP's"
-    puts "------------------------------"
-    foreach sc_lib $ref_libs {
-      puts " + $sc_lib" 
-    }
-    puts "------------------------------"
   }
   return $ref_libs
 }
@@ -3773,6 +4019,9 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
   }
   set lib_data [split [read $fh] "\n"]
   close $fh
+ 
+  set b_donot_bind_versal_cips 0
+  [catch {set b_donot_bind_versal_cips [get_param "project.donotBindPreCompiledVersalCips"]} err]
 
   foreach line $lib_data {
     set line [string trim $line]
@@ -3786,6 +4035,9 @@ proc xcs_get_shared_ip_libraries { clibs_dir } {
       set lib_tokens [split $shared_lib_token {=}]
       set is_shared_lib [string trim [lindex $lib_tokens 1]]
       if { {1} == $is_shared_lib } {
+        if { ([regexp "^versal_cips_v" $library]) && $b_donot_bind_versal_cips } {
+          continue
+        }
         lappend shared_ip_libs $library
       }
     }
@@ -3842,6 +4094,55 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
   return $c_files
 }
 
+proc xcs_get_asm_files { asm_filter {b_csim_compile_order 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+ 
+  set asm_files [list]
+  if { $b_csim_compile_order } {
+    foreach file_obj [get_files -quiet -compile_order sources -used_in simulation -filter $asm_filter -of_objects [current_fileset -simset]] {
+      lappend asm_files $file_obj
+    }
+  } else {
+    foreach file_obj [get_files -quiet -all -filter $asm_filter] {
+      if { [lsearch -exact [list_property -quiet $file_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+        set comp_file [get_property parent_composite_file -quiet $file_obj]
+        if { "" == $comp_file } {
+          continue
+        }
+        set file_extn [file extension $comp_file]
+        if { (".xci" == $file_extn) } {
+          xcs_add_asm_files_from_xci $comp_file $asm_filter asm_files
+        } elseif { (".bd" == $file_extn) } {
+          set bd_file_name [file tail $comp_file]
+          set bd_obj [get_files -quiet -all $bd_file_name]
+          if { "" != $bd_obj } {
+            if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
+              set comp_file [get_property parent_composite_file -quiet $bd_obj]
+              if { "" != $comp_file } {
+                set file_extn [file extension $comp_file]
+                if { (".xci" == $file_extn) } {
+                  xcs_add_asm_files_from_xci $comp_file $asm_filter asm_files
+                }
+              }
+            } else {
+              # this is top level BD for this SystemC/CPP/C/ASM file, so add it
+              lappend asm_files $file_obj
+            }
+          } else {
+            # this is top level BD for this SystemC/CPP/C/ASM file, so add it
+            lappend asm_files $file_obj
+          }
+        }
+      } else {
+        lappend asm_files $file_obj
+      }
+    }
+  }
+  return $asm_files
+}
+
 proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
   # Summary:
   # Argument Usage:
@@ -3864,6 +4165,30 @@ proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
     }
   }
 }
+
+proc xcs_add_asm_files_from_xci { comp_file asm_filter asm_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $asm_files_arg asm_files
+
+  set ip_name [file root [file tail $comp_file]]
+  set ip [get_ips -quiet -all $ip_name]
+  if { "" != $ip } {
+    set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
+    if { "tlm" == $selected_sim_model } {
+      foreach ip_file_obj [get_files -quiet -all -filter $c_filter -of_objects $ip] {
+        set used_in_values [get_property "USED_IN" $ip_file_obj]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          continue;
+        }
+        set asm_files [concat $asm_files $ip_file_obj]
+      }
+    }
+  }
+}
+
 
 proc xcs_contains_C_files {} {
   # Summary:
@@ -4061,6 +4386,42 @@ proc xcs_get_vivado_release_version {} {
 
   return $version
 } 
+
+proc xcs_verify_clibs_gcc_version { clibs_dir gcc_version simulator} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ({} == $clibs_dir) || (![file exists $clibs_dir]) } {
+    return
+  }
+
+  set version_file "$clibs_dir/.cxl.${simulator}.g++.version"
+  if { ![file exists $version_file] } {
+    return
+  }
+
+  set fh 0
+  if { [catch {open $version_file r} fh] } {
+    send_msg_id SIM-utils-078 WARNING "Failed to open file for read! '$version_file'\n"
+    return $sm_order
+  }
+
+  set data [split [read $fh] "\n"]
+  close $fh
+
+  set version_line [lindex $data 0]
+  if { {} != $version_line } {
+    set version [lindex [split $version_line " "] 2]
+    if { ({} != $version) && ({} != $gcc_version) } {
+      if { ![string match "$gcc_version*" $version] } {
+        send_msg_id SIM-utils-079 "CRITICAL WARNING" "Incompatible GCC compiled simulation library found! Library '$clibs_dir' is compiled with GCC version '$version', expected version is '$gcc_version'. Please recompile the simulation library or set the correct compiled library path for '$gcc_version'.\n"
+      } else {
+        send_msg_id SIM-utils-080 INFO "Simulation library compiled with '$version' version ('$clibs_dir)\n"
+      }
+    }
+  }
+}
 
 proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
@@ -4324,7 +4685,7 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
             if { $b_int_sm_lib_ref_debug } {
               puts "    + error: file does not exist '$dat_file'"
             }
-            send_msg_id SIM-utils-064 ERROR "The data information file for the '$library' library does not exist! '$dat_file' (this file is generated by compile_simlib tcl command). Please check if compilation errors were reported in compile_simlib.log file.\n"
+            [catch {send_msg_id SIM-utils-064 ERROR "The data information file for the '$library' library does not exist! '$dat_file' (this file is generated by compile_simlib tcl command). Please check if compilation errors were reported in compile_simlib.log file.\n"} err]
           }
         }
       }
@@ -4350,6 +4711,11 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
         set sh_file_path "$lib_dir/$shared_libname"
+        set dir_name [file root [file tail $lib_dir]]
+        if { $dir_name != $library } {
+          continue
+        }
+
         if { $b_is_systemc_library } {
           if { {questa} == $simulator } {
             if {$::tcl_platform(platform) == "unix"} {
@@ -4397,7 +4763,7 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
   }
 }
 
-proc xsc_get_simmodel_compile_order { } {
+proc xcs_get_simmodel_compile_order { } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4442,7 +4808,7 @@ proc xsc_get_simmodel_compile_order { } {
   return $sm_order
 } 
 
-proc xsc_find_lib_path_for_simmodel { simmodel } {
+proc xcs_find_lib_path_for_simmodel { simmodel } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4460,7 +4826,7 @@ proc xsc_find_lib_path_for_simmodel { simmodel } {
   }
 }
 
-proc xsc_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
+proc xcs_find_dependent_simmodel_libraries { library sysc_dep_libs_arg cpp_dep_libs_arg c_dep_libs_arg  } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -4541,6 +4907,54 @@ proc xcs_is_c_library { library } {
   return 0
 }
 
+proc xcs_find_sm_dir { sm_dir type } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set pt_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+  set data_paths_v [split $::env(RDI_DATADIR) $sep]
+  foreach d_path $data_paths_v {
+    set pt_dir "$d_path/$sm_dir"
+    if { ([file exists $pt_dir]) && ([file isdirectory $pt_dir]) } {
+      # found requested protected or ext dir from data dir env paths
+      break
+    }
+  }
+
+  #
+  # check if custom sim-model root specified for protected directory (not required for ext)
+  #
+  if { "cpt" == $type } {
+    # return default install path to simulation model directory (protected or ext)
+    set root_dir [get_param "simulator.customSimModelRootDir"]
+    if { {} == $root_dir } {
+      return $pt_dir
+    }
+
+    set b_invalid_path 1
+    # custom sim-model root path specified
+    if { [file exists $root_dir] } {
+      set dir "$root_dir/data"
+      if { [file exists $dir] } {
+        set pt_dir "$dir/$sm_dir"
+        if { [file exists $pt_dir] } {
+          # custom simulation model dir found
+          set b_invalid_path 0
+        }
+      }
+    }
+    if { $b_invalid_path } {
+      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' ($root_dir) either does not exist or is invalid! Using libraries from default install location.\n"
+    }
+  }
+  return $pt_dir
+}
+
 proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
@@ -4551,69 +4965,62 @@ proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir
 
   set target_paths [list]
 
-  set sm_cpt_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
+  #
+  # 1. find protected dir and append to target paths to search for
+  #
+  set sp_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - simmodel protected sub-dir: $sm_cpt_dir"
+    puts "(DEBUG) - protected sub-dir  (default): $sp_sub_dir"
   }
-  set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-  # is custom protected sim-model path specified?
-  set param "simulator.customSimModelRootDir"
-  set custom_cpt_dir ""
-  [catch {set custom_cpt_dir [get_param $param]} err]
-  if { {} != $custom_cpt_dir } {
-    if { [file exists $custom_cpt_dir] } {
-      set custom_dir "$custom_cpt_dir/data"
-      if { [file exists $custom_dir] } {
-        set cpt_dir $custom_dir
-      }
-    } else {
-      send_msg_id SIM-utils-066 WARNING "The path specified with the '$param' does not exist! Using libraries from default install location.\n"
-    }
-  }
-
-  # default protected dir
-  set tp "$cpt_dir/$sm_cpt_dir"
+  set sp_dir [xcs_find_sm_dir $sp_sub_dir "cpt"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected (default) : $tp"
+    puts "(DEBUG) - protected lib path (default): $sp_dir"
   }
-  if { ([file exists $tp]) && ([file isdirectory $tp]) } {
-    lappend target_paths $tp
+  if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
+    lappend target_paths $sp_dir
   } else {
     # fallback
     if { "xsim" == $simulator } {
-      set tp [file dirname $clibs_dir]
-      set tp "$tp/$sm_cpt_dir"
-      if { ([file exists $tp]) && ([file isdirectory $tp]) } {
+      set sp_dir [file dirname $clibs_dir]
+      set sp_dir "$sp_dir/$sp_sub_dir"
+      if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
         if { $b_int_sm_lib_ref_debug } {
-          puts "(DEBUG) - protected (fallback): $tp"
+          puts "(DEBUG) - protected lib path (clibdir): $sp_dir"
         }
-        lappend target_paths $tp
+        lappend target_paths $sp_dir
       }
     }
   }
-
-  set sp_cpt_dir $tp
-
-  # default ext dir
-  set sm_ext_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
-  lappend target_paths "$cpt_dir/$sm_ext_dir"
-
-  set sp_ext_dir "$cpt_dir/$sm_ext_dir"
+  set sp_cpt_dir $sp_dir
+  
+  #
+  # 2. find ext dir and append to target paths to search for
+  #
+  set ext_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
+  set ext_dir     [xcs_find_sm_dir $ext_sub_dir "ext"]
   if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected ext path (default): $sp_ext_dir"
+    puts "(DEBUG) - protected ext path (default): $ext_dir"
   }
+  lappend target_paths "$ext_dir"
+  set sp_ext_dir "$ext_dir"
 
-  # add ext utils dir for xcelium static library
+  #
+  # 3. add ext utils dir for xcelium static library
+  #
   if { "xcelium" == $simulator } {
-    lappend target_paths "$cpt_dir/$sm_ext_dir/utils"
+    lappend target_paths "$sp_ext_dir/utils"
   }
 
-  # add ip dir for xsim
+  #
+  # 4. add ip dir for xsim
+  #
   if { "xsim" == $simulator } {
     lappend target_paths "$clibs_dir/ip"
   }
 
-  # prepend custom simmodel library paths, if specified? 
+  #
+  # 5. prepend custom simmodel library paths, if specified? 
+  #
   set sm_lib_path $custom_sm_lib_dir
   if { $sm_lib_path != "" } {
     set custom_paths [list]
@@ -4627,7 +5034,7 @@ proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir
     }
   }
 
-  # add compiled library directory
+  # 6. add compiled library directory
   lappend target_paths "$clibs_dir"
 
   if { $b_int_sm_lib_ref_debug } {
@@ -4937,239 +5344,6 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_gcc_version { simulator specified_gcc_version gcc_type_arg b_int_sm_lib_ref_debug } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $gcc_type_arg gcc_type
-
-  # default GCC 
-  set gcc_version [get_param "simulator.${simulator}.gcc.version"]
-
-  # custom GCC version
-  if { {} == $specified_gcc_version } {
-    set gcc_type 1
-  } else {
-    set gcc_version $specified_gcc_version
-    set gcc_type 2
-  }
-  return $gcc_version
-}
-
-proc xcs_get_gcc_path { simulator sim_product_name simulator_install_path gcc_version gcc_install_path gcc_path_arg path_type_arg b_int_sm_lib_ref_debug } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  # not required for xsim
-  if { "xsim" == $simulator } {
-    return true
-  }
-
-  upvar $gcc_path_arg gcc_path
-  upvar $path_type_arg path_type
-  set gcc_path      {}
-  set path_type     0
-  set resolved_path {}
-
-  # gcc precedence (switch -> property -> PATH (info))
-
-  # 1. if switch specified, use this path
-  if { [llength $gcc_install_path] > 0 } {
-    if { [xcs_check_gcc_path $gcc_install_path resolved_path] } {
-      set gcc_path $resolved_path
-      set path_type 1
-      return true
-    } else {
-      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the '-gcc_install_path' switch is either invalid or does not exist! '$gcc_install_path'\n"} err]
-      return false
-    }
-  }
-
-  # 2. if property specified, use this path
-  set gcc_prop_dir [get_property -quiet simulator.${simulator}_gcc_install_dir [current_project]]
-  if { [llength $gcc_prop_dir] > 0 } {
-    if { [xcs_check_gcc_path $gcc_prop_dir resolved_path] } {
-      set gcc_path $resolved_path
-      set path_type 2
-      return true
-    } else {
-      [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified for the 'simulator.${simulator}_gcc_install_dir' property is either invalid or does not exist! '$gcc_prop_dir'\n"} err]
-      return false;
-    }
-  }
-
-  # 3. if env specified, use this path
-  if { [info exists ::env(GCC_SIM_EXE_PATH)] } {
-    set gcc_env_dir $::env(GCC_SIM_EXE_PATH)
-    if { [llength $gcc_env_dir] > 0 } {
-      if { [xcs_check_gcc_path $gcc_env_dir resolved_path] } {
-        set gcc_path $resolved_path
-        set path_type 3
-        return true
-      } else {
-        [catch {send_msg_id SIM-utils-069 ERROR "GCC compiler path specified with the 'GCC_SIM_EXE_PATH' path environment variable is either invalid or does not exist! '$gcc_env_dir'\n"} err]
-        return false;
-      }
-    }
-  }
-
-  set tool_extn {.exe}
-  if {$::tcl_platform(platform) == "unix"} {
-    set tool_extn {}
-  }
-  set tool "gcc${tool_extn}"
-
-  # 4. find from simulator install area
-  if { {} != $simulator_install_path } {
-    set sim_root_dir $simulator_install_path
-    switch $simulator {
-      {questa} {
-        # fetch tool install dir
-        if {$::tcl_platform(platform) == "unix"} {
-          set sim_root_dir [file dirname $sim_root_dir]
-          # gcc sub-dir wrt install dir
-          set gcc_sub_dir  "gcc-${gcc_version}-linux_x86_64/bin"
-          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-          if { [file exists $gcc_root_dir] } {
-            set gcc_exe_file "$gcc_root_dir/$tool" 
-            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-              set gcc_path $gcc_root_dir
-              set path_type 4
-              return true
-            }
-          }
-        }
-      }
-      {xcelium} {
-        # fetch tool install dir
-        set sim_root_dir [file dirname $sim_root_dir]
-        set sim_root_dir [file dirname $sim_root_dir]
-        set sim_root_dir [file dirname $sim_root_dir]
-        # gcc sub-dir wrt install dir
-        set gcc_sub_dir  "tools/cdsgcc/gcc/${gcc_version}/bin"
-        set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-        if { [file exists $gcc_root_dir] } {
-          set gcc_exe_file "$gcc_root_dir/$tool" 
-          if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-            set gcc_path $gcc_root_dir
-            set path_type 4
-            return true
-          }
-        }
-      }
-      {vcs} {
-        # Two possibilities to find gcc for VCS:-
-        #   1. from outside VCS install area (use VG_GNU_PACKAGE)
-        #       VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
-        #       $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
-        #
-        # 2. from within VCS install area (use VCS_HOME)
-        #     IMPORTANT: VCS installs latest GCC version under this dir (7.4.0), so we can't use 6.2.0
-        #     VCS_HOME = /tools/gensys/vcs/<sim-ver>
-        #     $VCS_HOME/gnu/linux/gcc-64/bin (this contains 7.4.0)
-
-        # VG_GNU_PACKAGE = /tools/installs/synopsys/vg_gnu/<sim-ver>/linux
-        if { [info exists ::env(VG_GNU_PACKAGE)] } {
-          set sim_root_dir $::env(VG_GNU_PACKAGE)
-          # $VG_GNU_PACKAGE/gcc-6.2.0_64-shared/bin
-          set gcc_sub_dir  "gcc-${gcc_version}_64-shared/bin"
-          # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin
-          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-          # /tools/installs/synopsys/vg_gnu/<sim-ver>/linux/gcc-<sim-ver>_64-shared/bin/gcc
-          if { [file exists $gcc_root_dir] } {
-            set gcc_exe_file "$gcc_root_dir/$tool" 
-            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-              set gcc_path $gcc_root_dir
-              set path_type 4
-              return true
-            }
-          }
-        } else {
-          # /tools/gensys/vcs/<sim-ver>
-          set sim_root_dir [file dirname $sim_root_dir]
-          # gcc sub-dir wrt install dir
-          set gcc_sub_dir  "gnu/linux/gcc-64/bin"
-          set gcc_root_dir "$sim_root_dir/$gcc_sub_dir"
-          if { [file exists $gcc_root_dir] } {
-            set gcc_exe_file "$gcc_root_dir/$tool" 
-            if { ([file exists $gcc_exe_file]) && ([file isfile $gcc_exe_file]) && (![file isdirectory $gcc_exe_file]) } {
-              set gcc_path $gcc_root_dir
-              set path_type 4
-              return true
-            }
-          }
-        }
-      }
-    }
-  }
-
-  # 5. critical warning (not found from property neither from switch)
-  set sim_ver_param "simulator.${simulator}.version"
-  set sim_ver [get_param $sim_ver_param]
-  send_msg_id SIM-utils-070 "CRITICAL WARNING" "Failed to locate the GNU compiler (g++/gcc) executable path! Please set the path using the -gcc_install_path switch or by setting the simulator.${simulator}_gcc_install_dir project property or by setting the GCC_SIM_EXE_PATH environment variable. Please see 'launch_simulation -help' for more details on setting the path and the recommended GCC version that is applicable for the $sim_product_name $sim_ver simulator version for the current Vivado release.\n"
- 
-  if { $b_int_sm_lib_ref_debug } {
-    set path_sep {;}
-    if {$::tcl_platform(platform) == "unix"} { set path_sep {:} }
-    set gcc_paths [xcs_get_bin_paths $tool $path_sep]
-    if { [llength $gcc_paths] > 0 } {
-      puts "---------------------------------------------------------------------"
-      puts "GCC compiler path(s) currently set with the PATH environment variable"
-      puts "---------------------------------------------------------------------"
-      foreach path $gcc_paths {
-        puts " <GCC PATH> - $path"
-      }
-      puts "---------------------------------------------------------------------"
-    }
-  }
-  return false;
-}
-
-proc xcs_check_gcc_path { path resolved_path_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $resolved_path_arg resolved_path
-
-  set gcc_path $path
-  # setup gcc exe names based on platform
-  set tool_extn {.exe}
-  if {$::tcl_platform(platform) == "unix"} {
-    set tool_extn {}
-  }
-  set gcc_exe_name   "gcc${tool_extn}"
-  set gplus_exe_name "g++${tool_extn}"
-
-  # 1. fix/trim slashes
-  set gcc_path [regsub -all {[\[\]]} $gcc_path {/}];
-  set gcc_path [string trimright $gcc_path {/}]
-
-  # 2. path does not exist
-  if { ![file exists $gcc_path] } {
-    return false
-  }
-
-  # 3. check last element in path - is /install/bin/gcc or /install/bin/g++?
-  set last_element [file tail $gcc_path]
-  if { ($last_element == $gcc_exe_name) || ($last_element == $gplus_exe_name) } {
-    # get parent dir -> /install/bin
-    set gcc_path [file dirname $gcc_path]
-  } else {
-    # /install/bin
-    # add exe name to make sure this is the correct gcc path
-    set exe_path "$gcc_path/$gcc_exe_name"
-    if { ![file exists $exe_path] } {
-      # invalid path - does not point to gcc install dir
-      return false
-    }
-  }
-  set resolved_path $gcc_path
-  return true
-}
-
 proc xcs_get_design_libs { files {b_realign 0} } {
   # Summary:
   # Argument Usage:
@@ -5265,4 +5439,359 @@ proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
   puts $fh_scr "elif \[\[ (\$arg = \"gui\") \]\]; then"
   puts $fh_scr "  mode=\"-gui\""
   puts $fh_scr "fi\n"
+}
+
+proc xcs_get_incl_files_from_ip { tcl_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set incl_files [list]
+  set ip_name [file tail $tcl_obj]
+  set ft "FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\""
+  foreach file [get_files -quiet -all -of_objects [get_files -quiet *$ip_name] -filter $ft] {
+    lappend incl_files $file
+  }
+  return $incl_files
+}
+
+proc xcs_get_global_include_file_cmdstr { run_dir incl_files_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $incl_files_arg incl_files
+
+  set file_str [list]
+  foreach file $incl_files {
+    # set file [extract_files -files [list "$file"] -base_dir $run_dir/ip_files]
+    lappend file_str "\"$file\""
+  }
+  return [join $file_str " "]
+}
+
+proc xcs_xtract_file { b_extract_ip_sim_files file  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { [get_param "project.enableCentralSimRepo"] } {
+    return $file
+  }
+
+  if { $b_extract_ip_sim_files } {
+    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    set xcix_ip_path [get_property "core_container" $file_obj]
+    if { {} != $xcix_ip_path } {
+      set ip_name [file root [file tail $xcix_ip_path]]
+      set ip_ext_dir [get_property "ip_extract_dir" [get_ips all -quiet $ip_name]]
+      set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
+      # remove leading "../"
+      set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
+      set file [file join $ip_ext_dir $ip_file]
+    }
+  }
+  return $file
+}
+
+proc xcs_append_other_options { tool file_type global_files_str opts_arg  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  # TODO
+}
+
+proc xcs_append_generics { simulator generic_list opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  upvar $opts_arg opts
+
+  foreach element $generic_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    switch $simulator {
+      "modelsim" {
+        set str "-g$name="
+        if { [string length $val] > 0 } {
+          set str $str$val
+        } else {
+          if { [get_param "project.enable2StepFlowForModelSim"] } {
+            set str $str\"\"
+          }
+        }
+        lappend opts $str
+      }
+      "questa" {
+        set str "-g$name="
+        if { [string length $val] > 0 } {
+          set str $str$val
+        }
+        lappend opts $str
+      }
+      "vcs" {
+        set str "$name="
+        if { [string length $val] > 0 } {
+          set str "$str\"$val\""
+        }
+        lappend opts "-gv $str"
+      }
+      "xcelium" {
+        set str "$name=>"
+        if { [string length $val] > 0 } {
+          set str "$str$val"
+        }
+        lappend opts "-generic"
+        lappend opts "\"$str\""
+      }
+    }
+  }
+}
+
+proc xcs_append_define_generics { simulator def_gen_list tool opts_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  foreach element $def_gen_list {
+    set key_val_pair [split $element "="]
+    set name [lindex $key_val_pair 0]
+    set val  [lindex $key_val_pair 1]
+    set str "$name="
+    if { [string length $val] > 0 } {
+      if { "vcs" == $simulator } {
+        set str "$str\"$val\""
+      } elseif { "xcelium" == $simulator } {
+        set str "$str$val"
+      }
+    }
+    switch -regexp -- $tool {
+      "vlogan" { lappend opts "+define+$str" }
+      "xmvlog" { lappend opts "-define"; lappend opts "\"$str\"" }
+    }
+  }
+}
+
+proc xcs_write_tcl_pre_hook { fh_scr tcl_pre_hook s_compile_pre_tcl_wrapper run_dir  } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { {} == $tcl_pre_hook } {
+    return
+  }
+
+  if { ![file exists $tcl_pre_hook] } {
+    [catch {send_msg_id SIM-utils-074 ERROR "File does not exist:'$tcl_pre_hook'\n"} err]
+  }
+  set tcl_wrapper_file $s_compile_pre_tcl_wrapper
+  xcs_delete_backup_log $tcl_wrapper_file $run_dir
+  xcs_write_tcl_wrapper $tcl_pre_hook ${tcl_wrapper_file}.tcl $run_dir
+  set vivado_cmd_str "-mode batch -notrace -nojournal -log ${tcl_wrapper_file}.log -source ${tcl_wrapper_file}.tcl"
+  set cmd "vivado $vivado_cmd_str"
+  puts $fh_scr "echo \"$cmd\""
+  set full_cmd "\$xv_path/bin/vivado $vivado_cmd_str"
+  puts $fh_scr "ExecStep $full_cmd\n"
+}
+
+proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels launch_dir s_gcc_version s_clibs_dir sp_cpt_dir l_link_sysc_libs_arg l_link_c_libs_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_shared_library_path_coln
+  
+  upvar $l_link_sysc_libs_arg l_link_sysc_libs
+  upvar $l_link_c_libs_arg    l_link_c_libs
+
+  puts $fh_scr "# set library search order"
+
+  set l_sm_lib_paths [list]
+  foreach {library lib_dir} [array get a_shared_library_path_coln] {
+    switch $simulator {
+      {xcelium} {
+        # param to bind shared protobuf
+        set b_bind_protobuf false
+        [catch {set b_bind_protobuf [get_param "project.bindProtobufSharedLibForXcelium"]} err]
+
+        if { ("libprotobuf.so" == $library) && (!$b_bind_protobuf) } {
+          # don't bind shared library but bind static library built with the simmodel itself
+          continue
+        }
+        # don't bind static protobuf (simmodel will bind these during compilation)
+        if { ("libprotobuf.a" == $library) } {
+          continue;
+        }
+      }
+    }
+    set sm_lib_dir [file normalize $lib_dir]
+    set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
+    switch $simulator {
+      {xcelium} -
+      {vcs} {
+        if { $b_compile_simmodels } {
+          set lib_name [string trimleft $library "lib"]
+          set lib_name [string trimright $lib_name ".so"]
+          set lib_type [file tail [file dirname $lib_dir]]
+          if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+            # skip
+          } else {
+            set sm_lib_dir "$launch_dir/${simulator}_lib/$lib_name"
+          }
+        }
+      }
+    }
+    lappend l_sm_lib_paths $sm_lib_dir
+  }
+
+  set ld_path "LD_LIBRARY_PATH=."
+
+  # for aie
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
+    set sm_ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
+    set sm_cpt_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "cpt"]
+    set sm_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+    set cpt_dir    $sm_dir
+
+    set tp "$cpt_dir/$sm_cpt_dir"
+
+    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
+    set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+    if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
+      set model_ver "aie2" 
+    }
+    append ld_path ":$tp/$model_ver"
+
+    set xilinx_vitis     {}
+    set cardano_api_path {}
+
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano_api_path "$xilinx_vitis/aietools/lib/${simulator}64.o"
+    } else {
+      set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
+      send_msg_id SIM-utils-075 WARNING "XILINX_VITIS is not set, using Cardano libraries from '$cardano_api_path'"
+    }
+    append ld_path ":$cardano_api_path"
+  }
+  if { [llength l_sm_lib_paths] > 0 } {
+    foreach sm_lib_path $l_sm_lib_paths {
+      append ld_path ":$sm_lib_path"
+    }
+  }
+
+  # append user specified systemC/C/C++ libraries
+  variable a_link_libs
+  array unset a_link_libs
+  foreach lib $l_link_sysc_libs {
+    set lib_dir [file dirname $lib]
+    if { ![info exists a_link_libs($lib_dir)] } {
+      set a_link_libs($lib_dir) ""
+      append ld_path ":$lib_dir"
+    }
+  }
+  foreach lib $l_link_c_libs {
+    set lib_dir [file dirname $lib]
+    if { ![info exists a_link_libs($lib_dir)] } {
+      set a_link_libs($lib_dir) ""
+      append ld_path ":$lib_dir"
+    }
+  }
+
+  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+
+  if { ("vcs" == $simulator) && (("elaborate" == $step) || ("simulate" == $step)) } {
+    set lb [string trimright [rdi::get_rdi_library_path] {:}]
+    if { {} != $lb } {
+      puts $fh_scr "LIBRARY_PATH=$lb\n"
+    }
+  }
+      
+  puts $fh_scr $ld_path
+
+  if { ("elaborate" == $step) || ("simulate" == $step) } {
+    puts $fh_scr "\nexport xv_cxl_lib_path=\"$s_clibs_dir\""
+    puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
+  } else {
+    puts $fh_scr ""
+  }
+
+  puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  # for aie
+  if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set xilinx_vitis $::env(XILINX_VITIS)
+      set cardano "$xilinx_vitis/aietools"
+      set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
+      #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
+      puts $fh_scr "source $chess_script"
+    } else {
+      send_msg_id SIM-utils-076 WARNING "Failed to find chess script from cardano path! (XILINX_VITIS is not set)"
+    }
+  }
+}
+
+proc xcs_print_pre_compiled_info { clibs_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_pre_compiled_source_info
+
+  if { [array size a_pre_compiled_source_info] > 0 } {
+    package require struct::matrix
+    struct::matrix mt;
+    mt add columns 3;
+    set lines [list]
+    puts "----------------------------------------------------------------------------------------------------------------------"
+    puts "Pre-compiled static files referenced from '$clibs_dir'"
+    puts "----------------------------------------------------------------------------------------------------------------------"
+    lappend lines "IP_STATIC_FILE TYPE PRE_COMPILED_LIBRARY"
+    lappend lines "-------------------------------------------- ------ -----------------------------------------"
+    set type "static"
+    foreach {key value} [array get a_pre_compiled_source_info] {
+      lappend lines "$key $type $value"
+    }
+    lappend lines "-------------------------------------------- ------ -----------------------------------------"
+    foreach line $lines {mt add row $line}
+    puts [mt format 2string]
+    mt destroy
+  }
+}
+
+proc xcs_get_sim_model_ver { model {b_exact false}} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set version {}
+  foreach name [rdi::get_sim_model_versions] {
+    # match first part
+    if { !$b_exact } {
+      if { [regexp "^$model" $name] } {
+        set version $name
+        break
+      }
+    # match exact name
+    } else {
+      if { $model == $name } {
+        set version $name
+        break
+      }
+    }
+  }
+
+  if { {} == $version } {
+    send_msg_id SIM-utils-077 WARNING "Failed to find the simulation model version for '$model'!\n"
+  }
+  return $version
 }

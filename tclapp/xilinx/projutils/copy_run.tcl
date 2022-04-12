@@ -185,7 +185,25 @@ proc copy_run_ {} {
       lappend create_run_cmd $m_cpr_options(parent_run) 
     }
   }
-  
+
+  if { [lsearch [list_property [get_runs $m_cpr_options(run_to_copy)]] RM_INSTANCE] != -1 } {
+    set rm_instance [get_property rm_instance [get_runs $m_cpr_options(run_to_copy)]]
+
+    if { [string length $rm_instance] != 0 } {
+      lappend create_run_cmd "-rm_instance"
+      lappend create_run_cmd "$rm_instance"
+    }
+  }
+
+  if { [lsearch [list_property [get_runs $m_cpr_options(run_to_copy)]] PR_CONFIGURATION] != -1 } {
+    set pr_config [get_property pr_configuration [get_runs $m_cpr_options(run_to_copy)]]
+
+    if { [string length $pr_config] != 0 } {
+      lappend create_run_cmd "-pr_config"
+      lappend create_run_cmd $pr_config
+    }
+  }
+
   # create the new run
   if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-407 INFO "Creating run: ${create_run_cmd}\n"

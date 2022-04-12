@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.27
+package provide ::tclapp::aldec::common::helpers 1.28
 
 namespace eval ::tclapp::aldec::common {
 
@@ -856,9 +856,9 @@ proc usf_init_vars {} {
 	set properties(b_contain_c_sources)       0
 	set properties(b_contain_systemc_headers) 0	
 	set properties(b_int_en_vitis_hw_emu_mode) 0
-    if { [ info exists ::env(XIL_ENABLE_VITIS_CODE_HOOKS) ] } {
-      set properties(b_int_en_vitis_hw_emu_mode) 1
-    }
+#    if { [ info exists ::env(XIL_ENABLE_VITIS_CODE_HOOKS) ] } {
+#      set properties(b_int_en_vitis_hw_emu_mode) 1
+#    }
 
   set properties(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
   set properties(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]

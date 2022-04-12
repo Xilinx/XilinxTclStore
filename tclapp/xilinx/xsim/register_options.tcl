@@ -55,11 +55,13 @@ proc register_options { simulator } {
     {{elaborate.load_glbl}           {bool}        {1}                                                  {Load GLBL module}}
     {{elaborate.rangecheck}          {bool}        {0}                                                  {Enable runtime value range check for VHDL}}
     {{elaborate.sdf_delay}           {enum}        {{sdfmax} {sdfmax} {{sdfmin} {sdfmax}}}              {Specify SDF timing delay type to be read for use in timing simulation}}
+    {{elaborate.link.sysc}           {string}      {}                                                   {Specify SystemC libraries to bind}}
+    {{elaborate.link.c}              {string}      {}                                                   {Specify C/C++ libraries to bind}}
     {{elaborate.xsc.more_options}    {string}      {}                                                   {More XSC elaboration options}}
     {{elaborate.xelab.more_options}  {string}      {}                                                   {More XELAB elaboration options}}
     {{elaborate.coverage.name}       {string}      {}                                                   {Specify coverage database name}}
     {{elaborate.coverage.dir}        {string}      {}                                                   {Specify coverage database directory name}}
-    {{elaborate.coverage.type}       {string}      {}                                                   {Specify coverage type(s) (line branch condition or all)}}
+    {{elaborate.coverage.type}       {string}      {}                                                   {Specify coverage type(s) (line (or s) branch (or b) condition (or c) or all (or sbc))}}
     {{elaborate.coverage.library}    {bool}        {0}                                                  {Track std/unisim/retarget libraries}}
     {{elaborate.coverage.celldefine} {bool}        {0}                                                  {Track modules with celldefine attributes}}
     {{simulate.tcl.post}             {string}      {}                                                   {Specify post-simulate step TCL hook}}

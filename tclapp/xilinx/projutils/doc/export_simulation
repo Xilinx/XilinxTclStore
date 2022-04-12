@@ -1,257 +1,325 @@
 
 Description:
 
-  Export a simulation script file for the target simulator (please see the list of supported
-  simulators below). The generated script will contain simulator commands for compiling, 
-  elaborating and simulating the design.
+  Export a simulation script file for the target simulator. The generated
+  script will contain simulator tool commands for compiling, elaborating, and
+  simulating the design.
 
-  The command will retrieve the simulation compile order of specified objects, and export
-  this information in a shell script with the compiler commands and default options for the
-  target simulator. The specified object can be either a simulation fileset, IP or a BD (Block
-  Design).
+  The command retrieves the simulation compile order of specified object and
+  export this information in a shell script, .do or .prj file.
 
-  If the object is not specified, then this command will generate the script for the active
-  simulation "top" from the current simulation fileset. Any verilog include directories or file
-  paths for the files containing verilog define statements will be added to the compiler command line.
+  The specified object can be either a simulation fileset, IP or a BD (Block
+  Design). If the object is not specified, then this command will generate a
+  script for the active simulation top in the current simulation fileset
+  source hierarchy.
 
-  By default, the design source file and include directory paths in the compiler command line
-  will be set relative to the "reference_dir" variable that is set in the generated script.
-  To make these paths absolute, specify the "-absolute_path" switch.
+  By default, the design source file and include directory paths in the
+  compiler command line will be set in relative format. To make these paths
+  absolute, specify the -absolute_path switch. The command will also copy
+  data files (if any) from the fileset, IP or a BD to the output directory.
+  If the design contains verilog sources, then the generated script will also
+  copy the glbl.v file from the Vivado software installation area to the
+  output directory.
 
-  The command will also copy data files (if any) from the fileset, IP or a BD to the output
-  directory. If the design contains "Verilog" sources, then the generated script will also copy
-  the "glbl.v" file from the software installation path to the output directory.
+  Note: In order to perform simulation with the generated script, the Xilinx
+  simulation library must be compiled first using compile_simlib Tcl command.
+  The compiled library directory path then must be specified when generating
+  the script. The generated script will automatically include the setup files
+  for the target simulator from the compiled library directory.
 
-  A default ".do" file that is used in the compiler commands in the simulation script for the
-  target simulator, will be written to the output directory.
+  Note: If a design contains IP/BD sources, these sources must be generated
+  first before exporting the script. The command does not generate output
+  products of these sources, but checks for the status of these sources and
+  print message accordingly.
 
-  NOTE: In order to perform simulation with the generated script, the simulation libraries must
-  be compiled first using the 'compile_simlib' Tcl command. The compiled library directory path
-  must be specified when generating this script. The generated script will automatically include
-  the setup files for the target simulator from the compiled library directory.
-
-  Supported simulators:-
-
-    Vivado Simulator (xsim)
-    ModelSim Simulator (modelsim) 
-    Questa Advanced Simulator (questa)
-    Incisive Enterprise Simulator (ies)
-    Xcelium Parallel Simulator (xcelium)
-    Verilog Compiler Simulator (vcs)
-    Riviera-PRO Simulator (riviera)
-    Active-HDL Simulator (activehdl)
+  This command returns nothing.
 
 Arguments:
 
-  -simulator - (Required) Specify name of the target simulator for which the simulation script
-  needs to be generated. The valid simulators names are "xsim" "modelsim" "questa" "ies" "xcelium"
-  "vcs" (or "vcs_mx") "riviera" and "activehdl". To generate simulation script for all simulators,
-  specify "all".
+  -simulator <arg> - (Required) Specify the target simulator name for which
+  the simulation script needs to be generated. The valid simulator names are: 
+  xsim, modelsim, questa, xcelium, vcs, riviera, and activehdl. If this
+  option is not specified, then the command will generate the script for 
+  all simulators.
 
-  -of_objects - (Optional) Specify name of the target design object for which the simulation script
-  needs to be generated. The target object can be either a simulation fileset (simset), IP or a BD. If
-  this option is not specified, then this command will generate the script for the current simulation
-  fileset.
+  -of_objects <arg> - (Optional) Specify the target object for which the
+  simulation script needs to be generated. The target object can be a
+  simulation fileset (simset), an IP, or BD source. If this option is not
+  specified, then the command will generate scripts for the current 
+  simulation fileset.
 
-  -ip_user_files_dir - (Optional) Specify path to the extracted design files for the generated IP.
-  Default path of this directory is '<project>/<project>.ip_user_files'. For a managed project, the
-  default path is "ip_user_files".
+  Note: The -of_objects option requires objects to be specified using the
+  get_files, get_ips, current_fileset, or current_fileset -simset commands
+  rather than specifying objects by name. In addition, -of_objects cannot be
+  used with a search <pattern>.
 
-  -ipstatic_source_dir - (Optional) Specify path to the extracted static design files for the generated
-  IP. Default path of this directory is '<project>/<project>.ip_user_files/ipstatic'. For a managed
-  project, the default path is "ip_user_files/ipstatic".
-  
-  -lib_map_path - (Optional) Specify path to the Xilinx pre-compiled simulation library for the specified
-  simulator. The simulation library is compiled using compile_simlib. Please see the header section in the
-  generated script for more information. If this switch is not specified, then the generated script
-  will not reference the pre-compiled simulation library and the static IP files will be compiled locally.
+  -ip_user_files_dir <arg> - (Optional) Specify the directory path to the
+  extracted design files for the generated IP/BD source. This is generally
+  the sub-directory named <project>/project.ip_user_files in the project 
+  directory structure.For a managed-IP project, the default path is 
+  ip_user_files.
 
-  -script_name - (Optional) Specify name of the generated script. Default name is '<simulation_top>.sh'.
-  If the -of_objects switch is specified, then the default syntax of the script will be as follows:-
+  -ipstatic_source_dir <arg> - (Optional) Specify the directory path to the
+  exported IP/BD generated static source files. This is generally the
+  sub-directory named <project>/<project>.ip_user_files. For a managed-IP
+  project, the default path is ip_user_files/ipstatic.
+
+  -lib_map_path <arg> - (Optional) Specify directory path to the pre-compiled
+  simulation library for the specified simulator. The simulation library is
+  compiled using compile_simlib Tcl Command (Please see the header section in
+  the generated script for more information). If this switch is not
+  specified, then the generated script will not reference the pre-compiled
+  simulation library and the static IP files will be compiled locally.
+
+   *  To specify a pre-compiled library location, if you specified a
+      simulator name with the -simulator switch, then use the following
+      syntax:
+
+        -lib_map_path <compiled-library>
+
+   *  To specify multiple pre-compiled library locations, if you specified
+      the all value with the -simulator switch, then use the following
+      syntax:
+
+        -lib_map_path [list {<simulator>=<compiled-library>}
+                      {<simulator>=<compiled-library>}
+                      ...
+                      {<simulator>=<compiled-library>}]
+
+      Where <simulator> is the name of the simulator and <compiled-library>
+      is the path to the simulation library compiled for the simulator
+      specified with <simulator>.
+
+  -gcc_install_path <arg> - (Optional) Specify the directory path to the GNU
+  executables for the target simulator. This option is required for designs
+  that contain SystemC, C++, or C sources.
+
+  -script_name <arg> - (Optional) Specify the name of the generated script.
+  Default name is <simulation_top>.sh. If the -of_objects switch is
+  specified, then the default syntax of the script will be as follows:
 
     -------------------------------------------------------------
-     Object Type                            Script Name
-    -------------------------------------------------------------
-    -of_objects [current_fileset -simset]   <simulation_top>.sh
-    -of_objects [get_ips <ip>]              <ip_name>.sh
-    -of_objects [get_files <ip>.xci]        <ip_name>.sh
-    -of_objects [get_files <name>.bd]       <bd_name>.sh
-    -------------------------------------------------------------
+         Object Type                            Script Name
+        -------------------------------------------------------------
+        -of_objects [current_fileset -simset]   <simulation_top>.sh
+        -of_objects [get_ips <ip>]              <ip_name>.sh
+        -of_objects [get_files <ip>.xci]        <ip_name>.sh
+        -of_objects [get_files <name>.bd]       <bd_name>.sh
+        -------------------------------------------------------
 
-  -directory - (Required) Specify the directory path where the script file will be generated.
+  -directory <arg> - (Optional) Specify the directory path where the script
+  file needs to be generated. By default, the script will be generated in the
+  export_sim/<simulator> directory.
 
-  -runtime - (Optional) Specify simulation run time.
+  -runtime <arg> - (Optional) Specify the simulation run time. If this option
+  is not specified, then the simulation will run for infinite time or until a
+  logical break or finish condition.
 
-  -define - (Optiona) Specify the list of verilog defines used in the design.
+  -define <arg> - (Optional) Specify the Verilog defines applicable for the
+  current design. The syntax for specifying the defines is:
 
-  -generic - (Optional) Specify the list of VHDL generics used in the design.
+    -define [list {<variable[=value]} ... [{<variable[=value]>}]]
 
-  -include - (Optional) Specify the list of include directory paths for verilog include files in the design.
+  -generic <arg> - (Optional) Specify the VHDL generics applicable for the
+  current design. The syntax for specifying the generic variables is:
 
-  -absolute_path - (Optional) Specify this option to make source and include directory paths absolute.
-  By default, all paths are set relative to the output directory specified with the -directory switch.
+    -generic [list {<variable[=value]} ... [{<variable[=value]>}]]
 
-  A "reference_dir" variable will be set when generating script for "ies" and "vcs" to point to the output
-  directory that was set with the -directory switch.
+  -include <arg> - (Optional) Specify include directory paths for verilog
+  include files in the design. The syntax for specifying the include file
+  directory paths is:
 
-  -use_ip_compiled_libs - (Optional) Specify this option to reference pre-compiled IP static library during
-  compilation. This switch requires '-ip_user_files_dir' and '-ipstatic_source_dir' switches as well for
-  generating scripts using the pre-compiled IPs.
+    -include [list {<include-directory} ... [{<include-directory>}]]
 
-  -absolute_path - (Optional) Specify this option to set file paths to absolute format in the generated
-  script. By default, the file paths will be set relative to the directory where this script was generated. 
+  -more_options <arg> - (Optional) Specify additional switches/args for the
+  simulator tools that need to be added when executing the script. The syntax
+  for specifying the switches/args is:
 
-  -export_source_files - (Optional) Specify this option to copy the IP design files to the generated script
-  directory in a sub-directory named 'srcs'. The generated script will reference the design files from this
-  'srcs' directory.
+    -more_options [list {<simulator>.<step>.<tool>:<list of switches/args>}
+                  {<simulator>.<step>.<tool>:<list of switches/args>}
+                  ...
+                  {<simulator>.<step>.<tool>:<list of switches/args>}]
 
-  -32bit - (Optional) Specify this option to perform 32-bit simulation. If this option is not specified then
-  by default 64-bit option will be added to the simulation command line as applicable.
+  where,
 
-  -force - (Optional) Overwrite an existing script of the same name. If the script file already exists, this
-  command will return an error unless the -force argument is specified.
+   *  <simulator> : Name of the simulator
 
-  -quiet - (Optional) Execute the command quietly, ignoring any command line errors and returning no messages.
-  The command also returns TCL_OK regardless of any errors encountered during execution.
+   *  <step> : Name of the step (compile, elaborate, simulate)
 
-  -verbose - (Optional) Temporarily override any message limits and return all messages from this command.
+   *  <tool> : Name of the simulator tool (xvlog, vcom, vcs, etc.)
+
+  -use_ip_compiled_libs - (Optional) Reference precompiled IP static library
+  during compilation. The IP static source will not be compiled but instead
+  it is compiled version will be referenced during elaboration. This switch
+  requires -ip_user_files_dir and the -ipstatic_source_dir switches as well
+  for generating scripts using the pre-compiled IPs.
+
+  -absolute_path - (Optional) Specify this option to make the source and
+  include directory paths into absolute format in the generated script file.
+  By default, all the paths are written relative to the script output directory.
+
+  -export_source_files - (Optional) Specify this option to copy the design,
+  generated IP/BD, and data sources to the <simulator>/srcs sub-directory. If
+  the -of_objects specifies an IP or BD source, then the source files for
+  these objects will be copied to the <IP/BD>/<simulator>/srcs sub-directory.
+  The source and include file paths in the generated script will be set
+  relative to the srcs directory (the file paths can be made absolute using
+  the -absolute_path switch).
+
+  -generate_hier_access - (Optional) Specify this option to extract the path
+  information for the hierarchical access simulation flow.
+
+  -32bit - (Optional) Specify this option to perform 32-bit simulation. If
+  this option is not specified then by default a 64-bit option will be added
+  to the simulation command line as applicable.
+
+  -force - (Optional) Overwrite an existing script file of the same name. If
+  the script file already exists, is command returns an error unless the
+  -force argument is specified.
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
 
   Note: Message limits can be defined with the set_msg_config command.
 
 Examples:
 
-  - Generate a simulation script named "tb_design.sh" for the current simulation fileset with the top set to
-    "tb_design" for project "/project_1/project_1.xpr" for the "xsim" simulator. Use the pre-compiled IP static
-    library from the Vivado installation. The script will be generated in "./test_xsim" directory:-
+  Generate a simulation script for the clk_core IP in a managed-IP project
+  for the questa simulator.
 
-    % export_simulation -simulator xsim
-                        -directory "./test_xsim"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -use_ip_compiled_libs
+    export_simulation \
+         -simulator questa \
+         -of_objects [get_ips clk_core] \
+         -directory proj/test_ip_questa \
+         -ip_user_files_dir managed_ip_project/ip_user_files_dir \
+     i   -ipstatic_source_dir managed_ip_project/ip_user_files_dir/ipstatic \
+         -lib_map_path /design/compiled_libs/questa/lib \
+         -use_ip_compiled_libs
 
-  - Generate a simulation script for project "/project_1/project_1.xpr" for the "modelsim" simulator. Use the
-    pre-compiled IP static library from the "/design/compiled_libs/modelsim/lib" directory and export the IP/BD
-    source files to the "./proj/test_modelsim/srcs" directory. The source file paths in the generated script
-    will be set relative to the "./srcs" directory in "./proj/test_modelsim":-
+  Generate a simulation script named tb_design.sh in test_xsim directory for
+  the current simulation fileset with the top set to tb_design for project
+  project_1/project_1.xpr for the xsim simulator. Use the pre-compiled IP
+  static library from the Vivado installation.
 
-    % export_simulation -simulator modelsim
-                        -directory "./proj/test_modelsim"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/modelsim/lib"
-                        -use_ip_compiled_libs
-                        -export_source_files
+    export_simulation \
+          -simulator xsim \
+          -directory test_xsim \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+          -use_ip_compiled_libs
 
-  - Generate a simulation script for project "/project_1/project_1.xpr" for the "questa" simulator. Use the
-    pre-compiled IP static library from the "/design/compiled_libs/questa/lib" directory, set source file paths
-    to the absolute format in the generated script and run simulator tools in 32bit mode:-
+  Generate a simulation script for project project_1/project_1.xpr for the
+  modelsim simulator. Use the pre-compiled IP static library from the
+  /design/compiled_libs/modelsim/lib directory and export the IP/BD source
+  files to the proj/test_modelsim/srcs directory.
 
-    % export_simulation -simulator questa
-                        -directory "./proj/test_questa"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/questa/lib"
-                        -use_ip_compiled_libs
-                        -absolute_path
-                        -32bit
-                       
+    export_simulation \
+          -simulator modelsim \
+          -directory proj/test_modelsim \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+          -lib_map_path /design/compiled_libs/modelsim/lib \
+          -export_source_files \
+          -use_ip_compiled_libs
 
-  - Generate a simulation script for the "clk_core" IP for the "ies" simulator. Use pre-compiled IP static
-    library from the "/design/compiled_libs/ies/lib" directory and overwrite the existing script named
-    "test_ip_ies.sh" in "./output" directory:-
+  Generate a simulation script for project project_1/project_1.xpr for the
+  questa simulator. Use the pre-compiled IP static library from the
+  design/compiled_libs/questa/lib directory, set source file paths to the
+  absolute format and run simulator tools in 32bit mode.
 
-    % export_simulation -simulator ies
-                        -directory "./proj/test_ies"
-                        -of_objects [get_ips clk_core]
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/ies/lib"
-                        -use_ip_compiled_libs
-                        -script_name "./output/test_ip_ies.sh"
-                        -force
+    export_simulation \
+          -simulator questa \
+          -directory proj/test_questa \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+          -lib_map_path design/compiled_libs/questa/lib \
+          -absolute_path \
+          -32bit \
+          -use_ip_compiled_libs
 
-  - Generate a simulation script for the current simulation fileset for the "xcelium" simulator. Use pre-compiled
-    IP static library from the "/design/compiled_libs/xcelium/lib" directory and run simulation for 1000ns:-
+  Generate a simulation script for the clk_core IP for the xcelium simulator.
+  Use pre-compiled IP static library from the
+  /design/compiled_libs/xcelium/lib directory and overwrite the existing
+  script named test_ip_xcelium.sh in the output directory.
 
-    % export_simulation -simulator xcelium
-                        -directory "./proj/test_xcelium"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/xcelium/lib"
-                        -use_ip_compiled_libs
-                        -script_name "./output/test_ip_xcelium.sh"
+    export_simulation \
+          -simulator xcelium \
+          -of_objects [get_ips clk_core] \
+          -directory proj/test_xcelium \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+          -lib_map_path /design/compiled_libs/xcelium/lib \
+          -script_name output/test_ip_xcelium.sh \
+          -force \
+          -use_ip_compiled_libs
 
+  Generate and execute a simulation script for the clk_core BD for the vcs
+  simulator. Pass HEX_VAR verilog define, pass INCREMENT vhdl generic, pass
+  more options for vlogan and vcs and run simulation for 4000ns.
 
-  - Generate a simulation script for the "clk_core" BD (Block Design) for the "vcs" simulator. Use pre-compiled
-    IP static library from the "/design/compiled_libs/vcs/lib" directory, pass HEX_VAR verilog define, pass INCREMENT
-    vhdl generic and run simulation for 1000ns:-
+   *  Export the script for the clk_core IP.
 
-    % export_simulation -simulator vcs
-                        -directory "./proj/test_vcs"
-                        -of_objects [get_files clk_core.bd]
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/vcs/lib"
-                        -use_ip_compiled_libs
-                        -script_name "./output/test_ip_vcs.sh"
-                        -define [list {HEX_VAR=4'b0101}]
-                        -generic [list {INCREMENT=10}]
-                        -runtime 1000ns
+        export_simulation \
+               -simulator vcs \
+               -of_objects [get_files clk_core.bd] \
+               -directory xp/clk_core/vcs \
+               -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+               -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+               -lib_map_path /design/compiled_libs/vcs/lib \
 
-  - Generate a simulation script for the current simulation fileset for the "riviera" simulator. Use pre-compiled
-    IP static library from the "/design/compiled_libs/riviera/lib" directory, include verilog header files from the
-    "./fifo/incl" directory and run simulation for 1000ns:-
+        -script_name output/test_ip_vcs.sh \
+               -define [list {HEX_VAR=4'b0101}] \
+               -generic [list {INCREMENT=10}] \
+               -more_options \
+                [list {vcs.compile.vlogan:-V} {vcs.elaborate.vcs:-timescale 1ps/1ps}] \
+               -runtime 4000ns \
 
-    % export_simulation -simulator riviera
-                        -directory "./proj/test_riviera"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/riviera/lib"
-                        -use_ip_compiled_libs
-                        -include [list {./fifo/incl}]
-                        -runtime 1000ns
+        -use_ip_compiled_libs
 
-  - Generate a simulation script for the current simulation fileset for the "activehdl" simulator. Use pre-compiled
-    IP static library from the "/design/compiled_libs/activehdl/lib" directory, include verilog header files from the
-    "./fifo/incl" directory and run simulation for 1000ns:-
+   *  Verify the simulation for the clk_core IP.
 
-    % export_simulation -simulator activehdl
-                        -directory "./proj/test_activehdl"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/activehdl/lib"
-                        -use_ip_compiled_libs
-                        -include [list {./fifo/incl}]
-                        -runtime 1000ns
+        cd xp/char_fifo/vcs
+             ./verify.sh
 
-  - Generate a simulation script for all simulators. Use pre-compiled IP static library from the respective simulator
-    directory specified with the -lib_map_path switch:-
+  Generate a simulation script for the current simulation fileset for the
+  riviera simulator. Include verilog header files from the fifo/incl
+  directory and run simulation for 3000ns.
 
-    % export_simulation -simulator all
-                        -directory "./proj/test_sim"
-                        -ip_user_files_dir "/project_1/project_1.ip_user_files_dir"
-                        -ipstatic_source_dir "/project_1/project_1.ip_user_files_dir/ipstatic"
-                        -lib_map_path [list {xsim=/compiled_libs/xsim/lib}
-                                            {modelsim=/compiled_libs/modelsim/lib} 
-                                            {questa=/compiled_libs/questa/lib} 
-                                            {ies=/compiled_libs/ies/lib} 
-                                            {xcelium=/compiled_libs/xcelium/lib} 
-                                            {vcs=/compiled_libs/vcs/lib} 
-                                            {riviera=/compiled_libs/riviera/lib} 
-                                            {activehdl=/compiled_libs/activehdl/lib} ]
-                        -use_ip_compiled_libs
+    export_simulation \
+          -simulator riviera \
+          -directory proj/test_riviera \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir /project_1/project_1.ip_user_files_dir/ipstatic \
+          -lib_map_path /design/compiled_libs/riviera/lib \
+          -include [list {fifo/incl}] \
+          -runtime 3000ns \
+          -use_ip_compiled_libs
 
-  - Generate a simulation script for the "clk_core" IP from a managed IP project for "xsim" simulator. Use the
-    pre-compiled IP static library from the Vivado installation.:-
+  Generate a simulation script for all simulators. Use pre-compiled IP static
+  library from the respective simulator directory paths specified with the
+  -lib_map_path switch.
 
-    % export_simulation -simulator questa
-                        -directory "./proj/test_mip_xsim"
-                        -of_objects [get_ips clk_core]
-                        -ip_user_files_dir "/managed_ip_project/ip_user_files_dir"
-                        -ipstatic_source_dir "/managed_ip_project/ip_user_files_dir/ipstatic"
-                        -lib_map_path "/design/compiled_libs/xsim/lib"
-                        -use_ip_compiled_libs
+    export_simulation \
+          -simulator all \
+          -directory proj/test_sim \
+          -ip_user_files_dir project_1/project_1.ip_user_files_dir \
+          -ipstatic_source_dir project_1/project_1.ip_user_files_dir/ipstatic \
+          -lib_map_path [list {xsim=/compiled_libs/xsim/lib} \
+                              {modelsim=/compiled_libs/modelsim/lib}  \
+                              {questa=/compiled_libs/questa/lib}  \
+                              {xcelium=/compiled_libs/xcelium/lib}  \
+                              {vcs=/compiled_libs/vcs/lib}  \
+                              {riviera=/compiled_libs/riviera/lib}  \
+                              {activehdl=/compiled_libs/activehdl/lib} ] \
+          -use_ip_compiled_libs
 
 See Also:
 
