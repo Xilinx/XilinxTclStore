@@ -79,16 +79,23 @@ if {[catch { ::tclapp::octavo::osdzu3::osdzu3_export_xdc } catchErrorString]} {
 close_design
 
 # Clean up the generated files from the script run
-# Delete the project on disk
+# Wait 10 seconds then delete files on disk
+puts "Wait 10 seconds then delete files on disk"
+set seconds "10"
+set expiry [expr {$seconds + [clock seconds]}]
+while {[clock seconds] < $expiry} {}
+
+puts "Delete generated files"
 file delete -force "./.gen"
 file delete -force "./.srcs"
 file delete -force "./.Xil"
 file delete -force "./src/sources_1/ip/char_fifo/.Xil"
 file delete -force "./src/sources_1/ip/clk_core/.Xil"
-file delete -force "./${name}_routed.dcp"
 file delete -force "./impl_xdc.xdc"
 file delete -force "./osdzu3_io_delay.tcl"
-file delete -force "./osdzu3_package_pins.tcl"
+file delete -force "./osdzu3_package_osdzu3_timing.xdcpins.tcl"
 file delete -force "./osdzu3_timing.xdc"
+file delete -force "./osdzu3_package_pins.tcl"
+file delete -force "./${name}_routed.dcp"
 
 return 0
