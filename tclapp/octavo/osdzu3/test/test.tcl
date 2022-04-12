@@ -96,6 +96,6 @@ file delete -force "./osdzu3_io_delay.tcl"
 file delete -force "./osdzu3_package_osdzu3_timing.xdcpins.tcl"
 file delete -force "./osdzu3_timing.xdc"
 file delete -force "./osdzu3_package_pins.tcl"
-file delete -force "./${name}_routed.dcp"
+file delete -force "${file_dir}/${name}_routed.dcp"
 
 return 0
