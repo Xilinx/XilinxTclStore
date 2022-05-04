@@ -23,16 +23,12 @@
           <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.</summary>
         </proc>
         <proc>
-          <name>export_ip_user_files</name>
-          <summary>Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.</summary>
-        </proc>
-        <proc>
           <name>export_simulation</name>
           <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>generate_hier_access</name>
-          <summary>Generate sources for hierarchical access simulation</summary>
+          <summary/>
         </proc>
         <proc>
           <name>setup_ip_static_library</name>
@@ -41,6 +37,10 @@
         <proc>
           <name>write_project_tcl</name>
           <summary>Export Tcl script for re-creating the current project</summary>
+        </proc>
+        <proc>
+          <name>x_export_ip_user_files</name>
+          <summary>Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.</summary>
         </proc>
       </procs>
     </app>
