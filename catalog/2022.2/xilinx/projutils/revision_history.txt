@@ -1,4 +1,4 @@
-3.517 refactor export_ip_user_files to native task
+3.517 revert refactor export_ip_user_files to native task
 3.515 resolve verilog header source file paths for export absolute nonprecompile mode
 3.514 merged 2022.1-dev to 2022.2-dev
 3.511 get and fix library path for VCS
