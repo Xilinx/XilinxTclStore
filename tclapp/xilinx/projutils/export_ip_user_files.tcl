@@ -9,7 +9,7 @@ package require Vivado 1.2014.1
 package require struct::set
 
 namespace eval ::tclapp::xilinx::projutils {
-  namespace x_export export_ip_user_files
+  namespace export x_export_ip_user_files
 }
 
 namespace eval ::tclapp::xilinx::projutils {
