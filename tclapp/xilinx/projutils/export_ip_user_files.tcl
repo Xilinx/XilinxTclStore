@@ -9,7 +9,7 @@ package require Vivado 1.2014.1
 package require struct::set
 
 namespace eval ::tclapp::xilinx::projutils {
-  namespace export export_ip_user_files
+  namespace export x_export_ip_user_files
 }
 
 namespace eval ::tclapp::xilinx::projutils {
@@ -89,7 +89,7 @@ proc xif_init_vars {} {
 }
 
 
-proc export_ip_user_files {args} {
+proc x_export_ip_user_files {args} {
   # Summary: Generate and export IP/IPI user files from a project. This can be scoped to work on one or more IPs.
 
   # Argument Usage:

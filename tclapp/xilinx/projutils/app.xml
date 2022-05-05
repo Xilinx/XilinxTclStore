@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>revert refactor export_ip_user_files to native task</revision_history>
+      <revision_history>refactor export_ip_user_files to native task</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
