@@ -1,3 +1,4 @@
+3.520 refactor setup_ip_static_library to native task
 3.519 refactor export_ip_user_files to native task
 3.517 revert refactor export_ip_user_files to native task
 3.515 resolve verilog header source file paths for export absolute nonprecompile mode
