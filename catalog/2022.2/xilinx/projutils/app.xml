@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>remove setup_ip_static_library and export_ip_user_files</revision_history>
+      <revision_history>fixed summary description</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
