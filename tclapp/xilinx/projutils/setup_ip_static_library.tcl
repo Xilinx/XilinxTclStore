@@ -8,7 +8,7 @@
 package require Vivado 1.2014.1
 
 namespace eval ::tclapp::xilinx::projutils {
-  namespace export setup_ip_static_library
+  namespace export x_setup_ip_static_library
 }
 
 namespace eval ::tclapp::xilinx::projutils {
@@ -59,7 +59,7 @@ proc isl_init_vars {} {
   }
 }
 
-proc setup_ip_static_library {args} {
+proc x_setup_ip_static_library {args} {
   # Summary: Extract IP static files from the project or repository and prepare it for compile_simlib
 
   # Argument Usage:

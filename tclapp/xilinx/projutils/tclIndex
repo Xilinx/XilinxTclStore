@@ -10,8 +10,6 @@ set auto_index(::tclapp::xilinx::projutils::convert_ngc) [list source [file join
 set auto_index(::tclapp::xilinx::projutils::copy_run) [list source [file join $dir copy_run.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_bd_synth) [list source [file join $dir export_bd_synth.tcl]]
 set auto_index(::tclapp::xilinx::projutils::export_simulation) [list source [file join $dir export_simulation.tcl]]
-set auto_index(::tclapp::xilinx::projutils::x_export_ip_user_files) [list source [file join $dir export_ip_user_files.tcl]]
-set auto_index(::tclapp::xilinx::projutils::setup_ip_static_library) [list source [file join $dir setup_ip_static_library.tcl]]
 set auto_index(::tclapp::xilinx::projutils::write_project_tcl) [list source [file join $dir write_project_tcl.tcl]]
 set auto_index(::tclapp::xilinx::projutils::create_bd_partition_def) [list source [file join $dir create_bd_partition_def.tcl]]
 set auto_index(::tclapp::xilinx::projutils::generate_hier_access) [list source [file join $dir generate_hier_access.tcl]]
