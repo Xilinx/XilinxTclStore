@@ -38,8 +38,7 @@ proc hbs_init_vars {} {
 }
 
 proc generate_hier_access {args} {
-  # Summary:
-  # Generate sources for hierarchical access simulation
+  # Summary: Generate sources for hierarchical access simulation
   
   # Argument Usage: 
   # [-bypass <arg> = xil_dut_bypass]: Hierarchical access module name

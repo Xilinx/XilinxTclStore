@@ -157,8 +157,7 @@ proc xps_init_vars {} {
 }
 
 proc export_simulation {args} {
-  # Summary:
-  # Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
+  # Summary: Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.
 
   # Argument Usage:
   # [-simulator <arg> = all]: Simulator for which the simulation script will be created (value=all|xsim|modelsim|questa|xcelium|vcs|riviera|activehdl)

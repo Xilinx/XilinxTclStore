@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed summary description</revision_history>
+      <revision_history>fixed summary description for apps</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -24,11 +24,11 @@
         </proc>
         <proc>
           <name>export_simulation</name>
-          <summary/>
+          <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>generate_hier_access</name>
-          <summary/>
+          <summary>Generate sources for hierarchical access simulation</summary>
         </proc>
         <proc>
           <name>write_project_tcl</name>
