@@ -5795,3 +5795,55 @@ proc xcs_get_sim_model_ver { model {b_exact false}} {
   }
   return $version
 }
+
+proc xcs_get_verilog_defines { simulator fs args_list } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args_list args
+  
+  set v_defines [get_property "verilog_define" $fs]
+  if { [llength $v_defines] > 0 } {
+    switch $simulator {
+      "xsim" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          lappend args "-d \"$str\""
+        }
+      }
+    }
+  }
+}
+
+proc xcs_get_vhdl_generics { simulator fs args_list } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args_list args
+
+  set v_generics [get_property "generic" $fs]
+  if { [llength $v_generics] > 0 } {
+    switch $simulator {
+      "xsim" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          lappend args "-generic_top \"$str\""
+        }
+      }
+    }
+  }
+}

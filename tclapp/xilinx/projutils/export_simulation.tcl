@@ -22,6 +22,7 @@ proc xps_init_vars {} {
   #
   # define bool vars
   #
+  set a_sim_vars(b_simulator_specified)           0
   set a_sim_vars(b_lib_map_path_specified)        0
   set a_sim_vars(b_gcc_bin_path_specified)        0
   set a_sim_vars(b_script_specified)              0
@@ -50,7 +51,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_ipstatic_source_dir_specified) 0
   set a_sim_vars(b_directory_specified)           0
   set a_sim_vars(b_scripts_only)                  0
-  set a_sim_vars(b_use_static_lib)                0
+  set a_sim_vars(b_use_static_lib)                [get_property -quiet "sim.use_ip_compiled_libs" [current_project]]
   set a_sim_vars(b_int_systemc_mode)              1
   set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
@@ -73,8 +74,8 @@ proc xps_init_vars {} {
   set a_sim_vars(ip_filename)               ""
   set a_sim_vars(s_ip_file_extn)            ".xci"
   set a_sim_vars(sp_of_objects)             {}
-  set a_sim_vars(s_ip_user_files_dir)       ""
-  set a_sim_vars(s_ipstatic_source_dir)     ""
+  set a_sim_vars(s_ip_user_files_dir)       [get_property -quiet "ip.user_files_dir" [current_project]]
+  set a_sim_vars(s_ipstatic_source_dir)     [get_property -quiet "sim.ipstatic.source_dir" [current_project]]
   set a_sim_vars(src_mgmt_mode)             "All"
   set a_sim_vars(s_simulation_flow)         "behav_sim"
   set a_sim_vars(sp_tcl_obj)                ""
@@ -201,29 +202,29 @@ proc export_simulation {args} {
 
     # special processing for lib_map_path switch
     if { [xps_process_lib_map_path $option] } {
+      incr i
       continue
     }
 
     switch -regexp -- $option {
-      "-simulator"                { incr i;set a_sim_vars(s_simulator)           [string tolower [lindex $args $i]]                                        }
-      "-lib_map_path"             { incr i;set l_lib_map_path                    [lindex $args $i];set a_sim_vars(b_lib_map_path_specified)              1 }
-      "-gcc_install_path"         { incr i;set a_sim_vars(s_gcc_bin_path)        [lindex $args $i];set a_sim_vars(b_gcc_bin_path_specified)              1 }
-      "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)                1 }
-      "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)         1 }
-      "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified)       1 }
-      "-script_name"              { incr i;set a_sim_vars(s_script_filename)     [lindex $args $i];set a_sim_vars(b_script_specified)                    1 }
-      "-directory"                { incr i;set a_sim_vars(s_xport_dir)           [lindex $args $i];set a_sim_vars(b_directory_specified)                 1 }
-      "-runtime"                  { incr i;set a_sim_vars(s_runtime)             [lindex $args $i];set a_sim_vars(b_runtime_specified)                   1 }
-      "-define"                   { incr i;set l_defines                         [lindex $args $i];set a_sim_vars(b_define_specified)                    1 }
-      "-generic"                  { incr i;set l_generics                        [lindex $args $i];set a_sim_vars(b_generic_specified)                   1 }
-      "-include"                  { incr i;set l_include_dirs                    [lindex $args $i];set a_sim_vars(b_include_specified)                   1 }
-      "-more_options"             { incr i;set l_more_options                    [lindex $args $i];set a_sim_vars(b_more_options_specified)              1 }
-      "-32bit"                    { set a_sim_vars(b_32bit)                                                                                              1 }
-      "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                      1 }
-      "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                                     1 }
-      "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                                    1 }
-      "-generate_hier_access"     { set a_sim_vars(b_generate_hier_access)                                                                               1 }
-      "-force"                    { set a_sim_vars(b_overwrite)                                                                                          1 }
+      "-simulator"                { incr i;set a_sim_vars(s_simulator)           [lindex $args $i];set a_sim_vars(b_simulator_specified)           1 }
+      "-gcc_install_path"         { incr i;set a_sim_vars(s_gcc_bin_path)        [lindex $args $i];set a_sim_vars(b_gcc_bin_path_specified)        1 }
+      "-of_objects"               { incr i;set a_sim_vars(sp_of_objects)         [lindex $args $i];set a_sim_vars(b_of_objects_specified)          1 }
+      "-ip_user_files_dir"        { incr i;set a_sim_vars(s_ip_user_files_dir)   [lindex $args $i];set a_sim_vars(b_ip_user_files_dir_specified)   1 }
+      "-ipstatic_source_dir"      { incr i;set a_sim_vars(s_ipstatic_source_dir) [lindex $args $i];set a_sim_vars(b_ipstatic_source_dir_specified) 1 }
+      "-script_name"              { incr i;set a_sim_vars(s_script_filename)     [lindex $args $i];set a_sim_vars(b_script_specified)              1 }
+      "-directory"                { incr i;set a_sim_vars(s_xport_dir)           [lindex $args $i];set a_sim_vars(b_directory_specified)           1 }
+      "-runtime"                  { incr i;set a_sim_vars(s_runtime)             [lindex $args $i];set a_sim_vars(b_runtime_specified)             1 }
+      "-define"                   { incr i;set l_defines                         [lindex $args $i];set a_sim_vars(b_define_specified)              1 }
+      "-generic"                  { incr i;set l_generics                        [lindex $args $i];set a_sim_vars(b_generic_specified)             1 }
+      "-include"                  { incr i;set l_include_dirs                    [lindex $args $i];set a_sim_vars(b_include_specified)             1 }
+      "-more_options"             { incr i;set l_more_options                    [lindex $args $i];set a_sim_vars(b_more_options_specified)        1 }
+      "-32bit"                    { set a_sim_vars(b_32bit)                                                                                        1 }
+      "-absolute_path"            { set a_sim_vars(b_absolute_path)                                                                                1 }
+      "-use_ip_compiled_libs"     { set a_sim_vars(b_use_static_lib)                                                                               1 }
+      "-export_source_files"      { set a_sim_vars(b_xport_src_files)                                                                              1 }
+      "-generate_hier_access"     { set a_sim_vars(b_generate_hier_access)                                                                         1 }
+      "-force"                    { set a_sim_vars(b_overwrite)                                                                                    1 }
       default {
         if { [regexp {^-} $option] } {
           send_msg_id exportsim-Tcl-003 ERROR "Unknown option '$option', please type 'export_simulation -help' for usage info.\n"
@@ -231,6 +232,11 @@ proc export_simulation {args} {
         }
       }
     }
+  }
+
+  # set simulator
+  if { $a_sim_vars(b_simulator_specified) } {
+    set $a_sim_vars(s_simulator) [string tolower $a_sim_vars(s_simulator)]
   }
 
   # valid options?
@@ -364,6 +370,18 @@ proc xps_process_lib_map_path { option } {
 
       # option processed
       return true 
+    } else {
+      # get the -lib_map_path value part
+      set opt_val [join [lrange $l_option 1 end]]
+
+      # trim brackets, if any
+      set opt_val [string trim $opt_val "\]\[ "]
+
+      set l_lib_map_path $opt_val
+      set a_sim_vars(b_lib_map_path_specified) 1
+
+      # option processed
+      return true 
     }
   }
   return false
@@ -412,8 +430,10 @@ proc xps_print_precompile_lib_info_msg { } {
       if { ($a_sim_vars(b_use_static_lib)) && $b_is_ip_project } {
         # is -lib_map_path not specified?
         if { !$a_sim_vars(b_lib_map_path_specified) } {
-          send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" \
-           "Library mapping is not provided. The scripts will not be aware of pre-compiled libraries. It is highly recommended to use the -lib_map_path switch and point to the relevant simulator library mapping file path.\n"
+          #send_msg_id exportsim-Tcl-056 "CRITICAL WARNING" \
+          # "Library mapping is not provided. The scripts will not be aware of pre-compiled libraries. It is highly recommended to use the -lib_map_path switch and point to the relevant simulator library mapping file path.\n"
+          send_msg_id exportsim-Tcl-056 "INFO" \
+           "Compiled simulation library path not specified (-lib_map_path). Alternatively, the command will use the value from 'compxlib.<simulator>_compiled_library_dir' project property setting (make sure to set this property before running export_simulation command so that the pre-compiled simulation can be referenced in the script)\n"
           set b_print 0
         }
       }
@@ -2193,6 +2213,10 @@ proc xps_get_lib_map_path { simulator {b_ignore_default_for_xsim 0} } {
         set lmp_value [file normalize $lmp]
       }
     }
+  } else {
+    # fetch from project property
+    set lmp [get_property -quiet "compxlib.${simulator}_compiled_library_dir" [current_project]]
+    set lmp_value [file normalize $lmp]
   }
 
   if { $b_ignore_default_for_xsim } {
@@ -5871,6 +5895,14 @@ proc xps_write_xsim_tcl_cmd_file { dir filename } {
   set runtime "run -all"
   if { $a_sim_vars(b_runtime_specified) } {
     set runtime "run $a_sim_vars(s_runtime)"
+  } else {
+    set rt [string trim [get_property "xsim.simulate.runtime" $a_sim_vars(fs_obj)]]
+    set rt_value [string tolower $rt]
+    if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
+      set runtime "run all"
+    } else {
+      set runtime "run $rt"
+    }
   }
   puts $fh "\n$runtime"
 
@@ -7306,6 +7338,13 @@ proc xps_append_config_opts { opts_arg simulator tool } {
   # Return Value:
 
   upvar $opts_arg opts
+  variable a_sim_vars
+  
+  set defines  [list]
+  set generics [list]
+  
+  xcs_get_verilog_defines $simulator $a_sim_vars(fs_obj) defines
+  xcs_get_vhdl_generics $simulator $a_sim_vars(fs_obj) generics
 
   set opts_str {}
   switch -exact -- $simulator {
@@ -7313,7 +7352,11 @@ proc xps_append_config_opts { opts_arg simulator tool } {
       if {"xvlog" == $tool} {set opts_str "--incr --relax"}
       if {"xvhdl" == $tool} {set opts_str "--incr --relax"}
       if {"xsc"   == $tool} {set opts_str ""}
-      if {"xelab" == $tool} {set opts_str "--incr --debug typical --relax --mt auto"}
+      if {"xelab" == $tool} {
+        set opts_str "--incr --debug typical --relax --mt auto"
+        if { [llength $defines]  > 0 } { append opts_str " [join $defines " "]"  }
+        if { [llength $generics] > 0 } { append opts_str " [join $generics " "]" }
+      }
       if {"xsim"  == $tool} {set opts_str ""}
     }
     "modelsim" {
