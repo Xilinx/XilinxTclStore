@@ -1,3 +1,4 @@
+3.524 helpers for define and generic
 3.523 fixed summary description for apps
 3.522 fixed summary description
 3.521 remove setup_ip_static_library and export_ip_user_files
