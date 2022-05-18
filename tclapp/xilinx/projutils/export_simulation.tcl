@@ -298,7 +298,6 @@ proc export_simulation {args} {
   ##############################
 
   xps_check_noc
-
   
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -517,6 +516,8 @@ proc xps_xport_simulation { obj } {
   set data_files [list]
   xps_xport_data_files data_files
   xps_set_script_filename
+  #xps_auto_generate_ips
+  #xps_auto_export_ip_user_files
 
   set filename ${a_sim_vars(s_script_filename)}.sh
   if { [xps_write_sim_script $run_dir $data_files $filename] } {
@@ -611,6 +612,15 @@ proc xps_check_noc {} {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  if { ![rdi::is_versal] } {
+    return
+  }
+
+  #
+  # TODO: generate switch-network
+  #
+  #[catch {generate_switch_network_for_noc} err_msg]
 
   #
   # snoc - switch network check
@@ -896,6 +906,9 @@ proc xps_write_sim_script { run_dir data_files filename } {
   set tcl_obj $a_sim_vars(sp_tcl_obj)
 
   foreach simulator $l_target_simulator {
+    # auto-set project compiled library path settings (based on param/env)
+    [catch {rdi::configure_sim_lib_path -relax $simulator} err_msg]
+
     # initialize and fetch compiled libraries for precompile flow
     set l_compiled_libraries [xps_get_compiled_libraries $simulator l_local_ip_libs]
     set simulator_name [xcs_get_simulator_pretty_name $simulator] 
@@ -3594,7 +3607,11 @@ proc xps_write_libs_unix { simulator fh_unix launch_dir } {
     if { {} != $lmp } {
       set compiled_lib_dir $lmp
       if { ![file exists $compiled_lib_dir] } {
-        [catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
+        #
+        # default <project>.cache/compile_simlib/<simulator> directory might not exist, so don't error out
+        #
+        #[catch {send_msg_id exportsim-Tcl-046 ERROR "Compiled simulation library directory path does not exist:$compiled_lib_dir\n"}]
+        #
         puts $fh_unix "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
         puts $fh_unix "  if \[\[ (\$1 != \"\" && -e \$1) \]\]; then"
         puts $fh_unix "    lib_map_path=\"\$1\""
@@ -7295,6 +7312,31 @@ proc xps_append_more_options { simulator step tool arg_list_var } {
         }
       }
     }
+  }
+}
+
+proc xps_auto_generate_ips { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { $a_sim_vars(b_is_ip_object_specified) } {
+    [catch {generate_target "simulation" [get_files $a_sim_vars(sp_tcl_obj)] -quiet} err_msg]
+    [catch {update_compile_order -fileset $a_sim_vars(fs_obj)} err_msg]
+  }
+}
+
+proc xps_auto_export_ip_user_files { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { $a_sim_vars(b_is_ip_object_specified) } {
+    [catch {export_ip_user_files -of_objects [get_files $a_sim_vars(sp_tcl_obj)] -no_script -sync -force -quiet} err_msg]
   }
 }
 
