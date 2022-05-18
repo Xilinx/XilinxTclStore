@@ -1,3 +1,4 @@
+3.525 donot print warnings for non-existent compiled library dir
 3.524 helpers for define and generic
 3.523 fixed summary description for apps
 3.522 fixed summary description
