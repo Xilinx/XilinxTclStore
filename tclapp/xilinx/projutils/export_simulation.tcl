@@ -516,8 +516,8 @@ proc xps_xport_simulation { obj } {
   set data_files [list]
   xps_xport_data_files data_files
   xps_set_script_filename
-  #xps_auto_generate_ips
-  #xps_auto_export_ip_user_files
+  xps_auto_generate_ips
+  xps_auto_export_ip_user_files
 
   set filename ${a_sim_vars(s_script_filename)}.sh
   if { [xps_write_sim_script $run_dir $data_files $filename] } {
