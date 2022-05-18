@@ -7324,7 +7324,9 @@ proc xps_auto_generate_ips { } {
 
   if { $a_sim_vars(b_is_ip_object_specified) } {
     [catch {generate_target "simulation" [get_files $a_sim_vars(sp_tcl_obj)] -quiet} err_msg]
-    [catch {update_compile_order -fileset $a_sim_vars(fs_obj)} err_msg]
+    if { ![rdi::is_gui] } {
+      [catch {update_compile_order -fileset $a_sim_vars(fs_obj)} err_msg]
+    }
   }
 }
 
