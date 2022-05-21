@@ -53,7 +53,7 @@ proc xps_init_vars {} {
   set a_sim_vars(b_scripts_only)                  0
   set a_sim_vars(b_use_static_lib)                [get_property -quiet "sim.use_ip_compiled_libs" [current_project]]
   set a_sim_vars(b_int_systemc_mode)              1
-  set a_sim_vars(b_int_system_design)             [rdi::is_system_sim_design]
+  set a_sim_vars(b_int_system_design)             0
   set a_sim_vars(b_int_sm_lib_ref_debug)          0
   set a_sim_vars(s_local_ip_repo_leaf_dir)        "ip_repo"
 
@@ -66,6 +66,7 @@ proc xps_init_vars {} {
   set a_sim_vars(curr_time)                 [clock format [clock seconds]]
   set a_sim_vars(curr_proj_obj)             [current_project]
   set a_sim_vars(fs_obj)                    [current_fileset -simset]
+  set a_sim_vars(sfs_obj)                   [current_fileset]
   set a_sim_vars(s_simulator)               "all"
   set a_sim_vars(s_xport_dir)               "export_sim"
   set a_sim_vars(s_simulator_name)          ""
@@ -244,6 +245,12 @@ proc export_simulation {args} {
     return
   }
 
+  # create switch-network
+  xps_create_xlnoc
+
+  # is system design?
+  set a_sim_vars(b_int_system_design) [rdi::is_system_sim_design]
+
   # control precompile flow
   xcs_control_pre_compile_flow a_sim_vars(b_use_static_lib)
 
@@ -297,7 +304,6 @@ proc export_simulation {args} {
   # export simulation processing
   ##############################
 
-  xps_check_noc
   
   # no -of_objects specified
   if { ({} == $objs) || ([llength $objs] == 1) } {
@@ -608,45 +614,16 @@ proc xps_set_target_obj { obj } {
   return 0
 }
 
-proc xps_check_noc {} {
+proc xps_create_xlnoc {} {
   # Summary:
   # Argument Usage:
   # Return Value:
 
-  if { ![rdi::is_versal] } {
-    return
-  }
-
-  #
-  # TODO: generate switch-network
-  #
-  #[catch {generate_switch_network_for_noc} err_msg]
-
-  #
-  # snoc - switch network check
-  #
   if { [rdi::is_versal] } {
-    set b_contains_noc 0
-    foreach ip [get_ips -quiet -all] {
-      set ipdef [get_property -quiet ipdef $ip]
-      if {[regexp -nocase {:noc_} $ipdef]} {
-        set b_contains_noc 1
-        break
-      }
-    }
-
-    if { $b_contains_noc } {
-      #
-      # if design contains NoC (aggregator finds this from srcset 'top' and if not set then works on default simset 'top')
-      #   - if found, then check if it is generated. If not, print critical warning.
-      #
-      if { [rdi::is_design_contain_noc_blocks] } {
-        if { [get_param "project.enableXlnocSimWrapperStatusCheck"] } {
-          if { ![rdi::is_logical_noc_generated] } {
-            send_msg_id exportsim-Tcl-077 "CRITICAL WARNING" "The logical switch network (xlnoc) and simulation wrapper (<top>_sim_wrapper.v/vhd) could not be found. These sources are required for simulating the NoC IP. Please run 'generate_switch_network_for_noc' Tcl command for generating these sources and then rerun export_simulation to create a script for the updated source hierarchy.\n"
-          }
-        }
-      }
+    [catch {generate_switch_network_for_noc} err_msg]
+    if { ![rdi::is_gui] } {
+      [catch {update_compile_order -fileset $a_sim_vars(sfs_obj)} err_msg]
+      [catch {update_compile_order -fileset $a_sim_vars(fs_obj)} err_msg]
     }
   }
 }
