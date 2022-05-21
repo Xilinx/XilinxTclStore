@@ -1,3 +1,4 @@
+3.528 auto generate switch network
 3.527 check for gui mode in order to update compile order
 3.526 auto generate IP and export files
 3.525 donot print warnings for non-existent compiled library dir
