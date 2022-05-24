@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>auto generate switch network</revision_history>
+      <revision_history>move export simulation to native</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -21,10 +21,6 @@
         <proc>
           <name>export_bd_synth</name>
           <summary>Create and write a single design checkpoint and stub files for a Block Design (BD), for use with third party synthesis tools. Perform synthesis as necessary.</summary>
-        </proc>
-        <proc>
-          <name>export_simulation</name>
-          <summary>Export a script and associated data files (if any) for driving standalone simulation using the specified simulator.</summary>
         </proc>
         <proc>
           <name>generate_hier_access</name>
