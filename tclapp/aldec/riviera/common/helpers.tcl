@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.28
+package provide ::tclapp::aldec::common::helpers 1.30
 
 namespace eval ::tclapp::aldec::common {
 
@@ -831,6 +831,12 @@ proc usf_init_vars {} {
   set properties(launch_directory) {}
   set properties(s_sim_top)        [get_property "TOP" [current_fileset -simset]]
   set properties(associatedLibrary) [get_property "DEFAULT_LIB" $project]
+  
+  set properties(b_compile_simmodels)       0
+  set properties(l_simmodel_compile_order)  [list]
+  set properties(s_simlib_dir)              {}
+  set properties(b_int_export_source_files) 0
+  set properties(s_gcc_bin_path)            {}
   
   # launch_simulation tcl task args
   set properties(simset)           [current_fileset -simset]
@@ -1829,6 +1835,36 @@ proc usf_aldec_set_simulator_path {} {
   }
 }
 
+
+proc usf_aldec_set_gcc_path {} {
+  variable properties
+
+  if { $properties(s_gcc_bin_path) != "" && [ file exists $properties(s_gcc_bin_path) ] } {
+    return
+  }
+
+  set directoryPath [ file dirname $properties(s_tool_bin_path)]
+
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera {
+      if {$::tcl_platform(platform) == "unix"} {
+
+        set gccPath [ file join $directoryPath "gcc_Linux" ]
+        if { ![ file exists $gccPath ] } {
+          set gccPath [ file join $directoryPath "gcc_Linux64" ]
+        }
+        set properties(s_gcc_bin_path) [ file join $gccPath "bin" ]
+      } else {
+
+        set properties(s_gcc_bin_path) [ file join $directoryPath "mingw" "bin" ]
+      }
+    }
+    ActiveHDL {
+      set properties(s_gcc_bin_path) [ file join $directoryPath "mingw" "bin" ]
+    }
+  }
+}
+
 proc usf_get_files_for_compilation { global_files_str_arg } {
   # Summary:
   # Argument Usage:
@@ -1954,21 +1990,42 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         foreach {key value} [array get a_shared_library_path_coln] {
           set shared_lib_name $key
           set lib_path        $value
-	
+
           set incl_dir "$lib_path/include"
-          if { [file exists $incl_dir] } {
-            if { !$properties(use_absolute_paths) } {
-              # get relative file path for the compiled library
-              set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
+          if { $properties(b_compile_simmodels) } {
+            set lib_name [ file tail $lib_path ]
+            set lib_type [ file tail [ file dirname $lib_path ] ]
+
+            if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+              lappend l_C_incl_dirs_opts "-I \"$lib_path/include\""
+              
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
+            } else {
+              set incl_dir "simlibs/$lib_name/include"
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+
+              set lib_path [ file join [ getLibraryDir ] $lib_name ]
+
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
+            }  
+
+          } else {
+            if { [file exists $incl_dir] } {
+              if { !$properties(use_absolute_paths) } {
+                # get relative file path for the compiled library
+                set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
+              }
+              #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
             }
-            #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
-            lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
-			
-			set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
-			set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
           }
         }
-    
+
         foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
           if { !$properties(use_absolute_paths) } {
             set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
@@ -2260,6 +2317,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
   
   return $files
+}
+
+proc getLibraryDir { } {
+  set libraryDir [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  append libraryDir "_lib"
+  
+  return $libraryDir
 }
 
 proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
@@ -4991,7 +5055,7 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             }
           }
         }
-        if { [file exists $sh_file_path] } {
+        if { [file exists $sh_file_path] || $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]

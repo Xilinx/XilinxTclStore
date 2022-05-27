@@ -1,3 +1,5 @@
+1.30 Support for non-precompile flow - SystemC/C/C++
+1.29 define xv_cxl_ip_path to point to compiled IP libraries
 1.28 source vitis_params for setting region path variables
 1.27.1 Removed env(XIL_ENABLE_VITIS_CODE_HOOKS)
 1.27 fixes for SPT80647, SPT80651, BKO837, BKO1501, BKO1504, BKO1505, BKO1508
