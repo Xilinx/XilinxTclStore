@@ -1,15 +1,11 @@
 ####################################################################################
 #
-# utils.tcl
+# Filename: utils.tcl
+# Purpose : Simulation helper utilities
 #
 # Script created on 11/17/2015 by Nik Cimino (Xilinx, Inc.)
 #
 ####################################################################################
-
-# These procedures are not designed to be part of the global namespace, but should 
-# be sourced inside of a simulation app's namespace. This is done to prevent 
-# collisions of these functions if they all belonged to the same namespace, i.e.
-# multiple utils.tcl files loaded with the same namespace.
 
 variable _xcs_defined 1
 
@@ -5818,6 +5814,28 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
           lappend args "-d \"$str\""
         }
       }
+      "modelsim" -
+      "questa" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "+define+$name="
+          # escape '
+          if { [regexp {'} $val] } {
+            regsub -all {'} $val {\\'} val
+          }
+ 
+          if { [string length $val] > 0 } {
+            if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+              set str "$str$val"
+            } else {
+              set str "$str\"$val\""
+            }
+            lappend args " $str"
+          }
+        }
+      }
     }
   }
 }
@@ -5843,6 +5861,23 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
           }
           lappend args "-generic_top \"$str\""
         }
+      }
+      "modelsim" -
+      "questa" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "-g$name="
+          if { [string length $val] > 0 } {
+            set str $str$val
+          } else {
+            if { [get_param "project.enable2StepFlowForModelSim"] } {
+              set str $str\"\"
+            }
+          }
+        }
+        lappend args $str
       }
     }
   }
