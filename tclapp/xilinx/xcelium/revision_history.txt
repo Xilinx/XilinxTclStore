@@ -1,3 +1,4 @@
+11.120 script cleanup
 11.119 helpers for define and generic
 11.118 check for aie ml env and bind aie2
 11.117 pass g++ switches

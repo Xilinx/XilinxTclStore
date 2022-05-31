@@ -1,3 +1,4 @@
+9.99 script cleanup
 9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2
 9.96 pass g++ switches
