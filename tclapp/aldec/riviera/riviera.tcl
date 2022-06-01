@@ -12,4 +12,4 @@ namespace eval ::tclapp::aldec::riviera {
     lappend ::auto_path $home
   }
 }
-package provide ::tclapp::aldec::riviera 1.28
+package provide ::tclapp::aldec::riviera 1.30
