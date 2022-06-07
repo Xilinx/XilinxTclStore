@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.30
+package require ::tclapp::aldec::common::helpers 1.31
 
-package provide ::tclapp::aldec::common::sim 1.30
+package provide ::tclapp::aldec::common::sim 1.31
 
 namespace eval ::tclapp::aldec::common {
 
@@ -294,6 +294,7 @@ proc usf_setup_args { args } {
 	  "-int_en_vitis_hw_emu_mode" { set ::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) 1				}
       "-int_export_source_files"  { set ::tclapp::aldec::common::helpers::properties(b_int_export_source_files)  1                 }
       "-int_gcc_bin_path"         { incr i;set ::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_compile_glbl"         { set ::tclapp::aldec::common::helpers::properties(b_int_compile_glbl)         1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -709,8 +710,52 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]]
-  if { $b_load_glbl } {
+  set sim_flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+  set b_load_glbl [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL ] [ get_filesets $::tclapp::aldec::common::helpers::properties(simset) ] ]
+  set simulator [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+
+  set glblWasAdded 0
+  if { {behav_sim} == $sim_flow } {
+    if { [ ::tclapp::aldec::common::helpers::usf_compile_glbl_file $simulator $b_load_glbl $design_files ] || $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        set glblWasAdded 1
+        ::tclapp::aldec::common::helpers::usf_copy_glbl_file
+        set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
+        set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
+        puts $fh "\n# compile glbl module\nvlog $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    set targetLang  [get_property "TARGET_LANGUAGE" [current_project]]
+
+    if { \
+         ([::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] && ({VHDL} == $targetLang)) \
+      || ($::tclapp::aldec::common::helpers::properties(b_int_compile_glbl)) \
+      || ($::tclapp::aldec::common::helpers::properties(b_force_compile_glbl)) \
+    } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::aldec::common::helpers::properties(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          set glblWasAdded 1
+          ::tclapp::aldec::common::helpers::usf_copy_glbl_file
+          set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
+          set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
+          puts $fh "\n# compile glbl module\nvlog $file_str"
+        }
+      }
+    }
+  }
+
+  if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+  
+  } elseif { $glblWasAdded == 0 && $b_load_glbl } {
     ::tclapp::aldec::common::helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
     set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
@@ -1398,39 +1443,127 @@ proc usf_aldec_get_elaboration_cmdline {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
+  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ]
+  if { $::tclapp::aldec::common::helpers::properties(b_int_compile_glbl) || $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) || $b_load_glbl } {
+    if { ([lsearch -exact $arg_list "unisims_ver"] == -1) } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip unisims_ver
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
-	# add design libraries
-	set design_libs [ ::tclapp::aldec::common::helpers::getDesignLibraries $design_files ]
-	set xilinxVipWasAdded 0
-	foreach lib $design_libs {
-		if {[string length $lib] == 0} { continue; }
-		lappend arg_list "-L"
-		lappend arg_list "$lib"
+  # add design libraries
+  set design_libs [ ::tclapp::aldec::common::helpers::getDesignLibraries $design_files ]
+  set xilinxVipWasAdded 0
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
 
-		if { $lib == "xilinx_vip" } {
-			set xilinxVipWasAdded 1
-		}
-	}
+    if { $lib == "xilinx_vip" } {
+      set xilinxVipWasAdded 1
+    }
+  }
 
-    # if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
-      # foreach lib $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {		
-        # if {[string length $lib] == 0} { continue; }
-        # lappend arg_list "-L"
-        # lappend arg_list "$lib"
-      # }
+  # if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+    # foreach lib $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {
+      # if {[string length $lib] == 0} { continue; }
+      # lappend arg_list "-L"
+      # lappend arg_list "$lib"
     # }
+  # }
 
-    if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
-		lappend arg_list "-L" "xilinx_vip"
-	}
-  
+  if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
+    lappend arg_list "-L" "xilinx_vip"
+  }
+
   set d_libs [join $arg_list " "]  
   set arg_list [list $t_opts]
   lappend arg_list "$d_libs"
   set cmd_str [join $arg_list " "]
   return $cmd_str
+}
+
+proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  set flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+  set target_lang [ get_property "TARGET_LANGUAGE" [ current_project ] ]
+
+  set b_verilog_sim_netlist 0
+  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    if { {Verilog} == $target_lang } {
+      set b_verilog_sim_netlist 1
+    }
+  }
+
+  set b_add_glbl 0
+  set b_top_level_glbl_inst_set 0
+
+  # is glbl specified explicitly?
+  if { ([lsearch ${top_level_inst_names} {glbl}] != -1) } {
+    set b_top_level_glbl_inst_set 1
+  }
+
+  set fs_obj [ get_filesets $::tclapp::aldec::common::helpers::properties(simset) ]
+  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ]
+  set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+
+  if { [ ::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] || $b_verilog_sim_netlist } {
+    if { {behav_sim} == $flow } {
+      if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
+        set b_add_glbl 1
+      }
+    } else {
+      # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
+      if { !$b_top_level_glbl_inst_set } {
+        set b_add_glbl 1
+      }
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $::tclapp::aldec::common::helpers::properties(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
+      # TODO: revisit this for pure vhdl, causing failures
+      set b_add_glbl 1
+    }
+  }
+
+  # force compile glbl
+  if { !$b_add_glbl } {
+    if { $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  # force no compile glbl
+  if { $b_add_glbl && $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
+  }
+  
+  if { $b_add_glbl } {
+    set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
+    if { [ ::tclapp::aldec::common::helpers::isGlblByUser ] == 1 } {
+      lappend opts "unisims_ver.glbl"
+    } else {
+      lappend opts "${top_lib}.glbl"
+    }	
+  }
 }
 
 proc usf_aldec_get_simulation_cmdline {} {
@@ -1505,15 +1638,9 @@ proc usf_aldec_get_simulation_cmdline {} {
 	set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
 	lappend argumentsList "${top_lib}.${top}"
 
-	#set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
-	if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ] } {	
-		if { [ ::tclapp::aldec::common::helpers::isGlblByUser ] == 1 } {
-			lappend argumentsList "unisims_ver.glbl"
-		} else {
-			lappend argumentsList "${top_lib}.glbl"
-		}
-	}
-
+	set top_level_inst_names {}
+	usf_add_glbl_top_instance argumentsList $top_level_inst_names
+	
 	return [ join $argumentsList " " ]
 }
 
@@ -1854,7 +1981,7 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.30 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.31 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
@@ -1876,7 +2003,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "#"
 		puts $_file "# Filename    : $_fileName"
 		puts $_file "# Simulator   : $simulatorName Simulator"
-		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.30"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.31"
 		puts $_file "# Created on  : $timestamp"
 		puts $_file "#"
 		puts $_file "# usage: $_fileName"
@@ -1888,7 +2015,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "REM"
 		puts $_file "REM Filename    : $_fileName"
 		puts $_file "REM Simulator   : $simulatorName Simulator"
-		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.30"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.31"
 		puts $_file "REM Created on  : $timestamp"
 		puts $_file "REM"
 		puts $_file "REM usage: $_fileName"

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Support for non-precompile flow - SystemC/C/C++</revision_history>
+      <revision_history>SPT81328 - Xilinx RAMB36E5 entity missing in unisim library, BKO1681 - Support for int_compile_glbl switch in launch_simulation command</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

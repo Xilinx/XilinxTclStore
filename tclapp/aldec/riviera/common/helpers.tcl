@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.30
+package provide ::tclapp::aldec::common::helpers 1.31
 
 namespace eval ::tclapp::aldec::common {
 
@@ -837,6 +837,7 @@ proc usf_init_vars {} {
   set properties(s_simlib_dir)              {}
   set properties(b_int_export_source_files) 0
   set properties(s_gcc_bin_path)            {}
+  set properties(b_int_compile_glbl)  0
   
   # launch_simulation tcl task args
   set properties(simset)           [current_fileset -simset]
@@ -866,9 +867,11 @@ proc usf_init_vars {} {
 #      set properties(b_int_en_vitis_hw_emu_mode) 1
 #    }
 
-  set properties(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
-  set properties(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
-  set properties(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set properties(dynamic_repo_dir)        [get_property ip.user_files_dir [current_project]]
+  set properties(ipstatic_dir)            [get_property sim.ipstatic.source_dir [current_project]]
+  set properties(b_use_static_lib)        [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  
+  set properties(b_force_no_compile_glbl) [get_property "force_no_compile_glbl" [get_filesets $properties(simset)]] 
 
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
   set properties(ip_repository_path) [file normalize [file join $data_dir "ip/xilinx"]]
@@ -943,6 +946,8 @@ proc usf_init_vars {} {
 
   # netlist file
   set properties(s_netlist_file)            {}
+  
+  xcs_set_common_param_vars
 }
 
 proc usf_create_options { simulator opts } {
@@ -1506,6 +1511,12 @@ proc usf_contains_verilog { design_files } {
     }
   }
 
+  if { [usf_glbl_dependency_for_xpm] } {
+    if { !$b_verilog_srcs } {
+      set b_verilog_srcs 1
+    }
+  }
+
   if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_verilog_srcs) } {
     set extn [file extension $properties(s_netlist_file)]
     if { {.v} == $extn } {
@@ -1514,6 +1525,21 @@ proc usf_contains_verilog { design_files } {
   }
 
   return $b_verilog_srcs
+}
+
+proc usf_glbl_dependency_for_xpm {} {
+
+  foreach library [ getXpmLibraries ] {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set filebase [file root [file tail $file]]
+      # xpm_cdc core has depedency on glbl
+      if { {xpm_cdc} == $filebase } {
+        return 1
+      }
+    }
+  }
+
+  return 0
 }
 
 proc usf_is_fileset { tcl_obj } {
@@ -1589,14 +1615,44 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   set fileset_object      [get_filesets $properties(simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $properties(s_simulation_flow)
-  if { [usf_contains_verilog $design_files] } {
-    return 1
+
+  if { [ usf_contains_verilog $design_files ] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
+  } elseif { [ usf_glbl_dependency_for_xpm ] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
   }
+
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
   if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
     return 1
   }
+  
+  
+  if { $properties(b_int_compile_glbl) } {
+    return 1
+  }
+
   return 0
+}
+
+proc xcs_set_common_param_vars { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable properties
+
+  set properties(b_force_compile_glbl) [get_param "project.forceCompileGlblForSimulation"]
+
+  if { !$properties(b_force_compile_glbl) } {
+    set properties(b_force_compile_glbl) [ get_property "force_compile_glbl" [get_filesets $properties(simset)] ]
+  }
 }
 
 proc usf_copy_glbl_file {} {
