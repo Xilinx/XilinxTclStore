@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>script cleanup</revision_history>
+      <revision_history>helpers for define, generic</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
