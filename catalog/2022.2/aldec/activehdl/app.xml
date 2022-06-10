@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Support for non-precompile flow - SystemC/C/C++</revision_history>
+      <revision_history>SPT81328, SPT81050, BKO1681</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

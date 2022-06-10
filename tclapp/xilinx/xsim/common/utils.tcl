@@ -5836,6 +5836,19 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
           }
         }
       }
+      "xrun" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          set str "-xmvlogargs \"-define $str\""
+          lappend args "$str"
+        }
+      }
     }
   }
 }
@@ -5878,6 +5891,19 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
           }
         }
         lappend args $str
+      }
+      "xrun" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name=>"
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          set str "-xmelabargs \"-generic $str\""
+          lappend args "$str"
+        }
       }
     }
   }
