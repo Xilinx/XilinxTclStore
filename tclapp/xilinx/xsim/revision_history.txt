@@ -1,3 +1,4 @@
+2.440 support for toggle coverage type
 2.439 helpers for define, generic
 2.438 script cleanup
 2.437 helpers for define and generic
