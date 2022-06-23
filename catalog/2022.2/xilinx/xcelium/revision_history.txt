@@ -1,3 +1,4 @@
+11.122 detect AIE config type
 11.121 helpers for define, generic
 11.120 script cleanup
 11.119 helpers for define and generic

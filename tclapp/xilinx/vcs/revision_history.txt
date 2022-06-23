@@ -1,4 +1,4 @@
-10.0 helpers for define, generic
+10.1 detect AIE config type
 9.99 script cleanup
 9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2
