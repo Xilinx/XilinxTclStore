@@ -5660,11 +5660,10 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set tp "$cpt_dir/$sm_cpt_dir"
 
     # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-    set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
-    if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
-      set model_ver "aie2" 
-    }
-    append ld_path ":$tp/$model_ver"
+    #set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
+    set model_ver [rdi::get_aie_config_type]
+    set aie_lib "${model_ver}_cluster_v1_0_0"
+    append ld_path ":$tp/$aie_lib"
 
     set xilinx_vitis     {}
     set cardano_api_path {}
