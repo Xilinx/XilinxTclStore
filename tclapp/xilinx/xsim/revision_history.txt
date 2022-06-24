@@ -1,3 +1,4 @@
+2.442 support for discrete coverage type values
 2.441 detect AIE config type
 2.440 support for toggle coverage type
 2.439 helpers for define, generic
