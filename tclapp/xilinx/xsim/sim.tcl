@@ -2095,7 +2095,21 @@ proc usf_xsim_get_xelab_cmdline_args {} {
                       if { ([lsearch -exact $values "c"] == -1) } { lappend values "c" }
                       if { ([lsearch -exact $values "t"] == -1) } { lappend values "t" }
                     }
-        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] }
+        default     { 
+          set other_type $type 
+          # could be 'sb' (without space?)
+          foreach id [split $other_type {}] {
+            switch $id {
+              {s} -
+              {b} -
+              {c} -
+              {t} { if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+              default {
+                [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] 
+              }
+            }
+          }
+        }
       }
     }
     set cc_value [join $values {}]
