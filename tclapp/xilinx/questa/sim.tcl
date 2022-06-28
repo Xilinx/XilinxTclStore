@@ -2015,8 +2015,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
             # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             set model_ver [rdi::get_aie_config_type]
-            set lib_name "${model_ver}_cluster_v1_0_0"
-            lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_name"
+            set lib_dir $model_ver
+            if { {aie} == $model_ver } {
+              set lib_dir "${model_ver}_cluster_v1_0_0"
+            }
+            lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
           }
 
           variable a_shared_library_path_coln
@@ -2364,7 +2367,11 @@ proc usf_questa_get_sccom_cmd_args {} {
         #set lib_name [xcs_get_sim_model_ver "aie_cluster_v"]
         set model_ver [rdi::get_aie_config_type]
         set lib_name "${model_ver}_cluster_v1_0_0"
-        lappend args "-L$data_dir/$cpt_dir/$lib_name"
+        if { {aie} == $model_ver } {
+          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+        } else {
+          lappend args "-L$data_dir/$cpt_dir/$model_ver"
+        }
         lappend args "-l$lib_name"
       }
     }
