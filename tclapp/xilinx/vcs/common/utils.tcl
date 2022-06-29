@@ -5838,6 +5838,24 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
           }
         }
       }
+      "activehdl" -
+      "riviera" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "+define+$name="
+          # escape '
+          if { [regexp {'} $val] } {
+            regsub -all {'} $val {\\'} val
+          }
+ 
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+            lappend args " $str"
+          }
+        }
+      }
       "xrun" {
         foreach element $v_defines {
           set key_val_pair [split $element "="]
@@ -5903,6 +5921,19 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
             if { [get_param "project.enable2StepFlowForModelSim"] } {
               set str $str\"\"
             }
+          }
+        }
+        lappend args $str
+      }
+      "riviera" -
+      "activehdl" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "-g$name="
+          if { [string length $val] > 0 } {
+            set str $str$val
           }
         }
         lappend args $str
