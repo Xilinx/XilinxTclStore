@@ -1,3 +1,4 @@
+2.272 support for defines and generics for export flow
 2.271 fixed aie directory path
 2.270 detect AIE config type
 2.269 helpers for define, generic
