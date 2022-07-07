@@ -2005,15 +2005,10 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           # get data dir from $XILINX_VIVADO/data/simmodels/questa (will return $XILINX_VIVADO/data)
           set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
 
-          # design contains AIE? bind protected cluster library
-          # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*/libaie_cluster_v*.so)
           set aie_ip_obj [xcs_find_ip "ai_engine"]
           if { {} != $aie_ip_obj } {
             # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
             set cpt_dir [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
-            #set model [xcs_get_sim_model_ver "aie_cluster_v"]
-            # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
-            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
             set model_ver [rdi::get_aie_config_type]
             set lib_dir $model_ver
             if { {aie} == $model_ver } {
@@ -2357,14 +2352,11 @@ proc usf_questa_get_sccom_cmd_args {} {
       lappend args "-l$lib_name"
     }
 
-    # cr:1079408 - bind aie_cluster 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
-        # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
         set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
         set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
-        #set lib_name [xcs_get_sim_model_ver "aie_cluster_v"]
         set model_ver [rdi::get_aie_config_type]
         set lib_name "${model_ver}_cluster_v1_0_0"
         if { {aie} == $model_ver } {
