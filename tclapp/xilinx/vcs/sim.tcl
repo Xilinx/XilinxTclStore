@@ -1483,6 +1483,7 @@ proc usf_vcs_write_elaborate_script {} {
             } else {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             }
+            set arg_list [linsert $arg_list end "-L$lib_dir"]
             set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
@@ -1519,7 +1520,7 @@ proc usf_vcs_write_elaborate_script {} {
           if { [xcs_is_sc_library $shared_lib_name] } {
             set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
-          } else { 
+          } else {
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
         }
