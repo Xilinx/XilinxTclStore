@@ -34,6 +34,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(sp_hbm_ip_obj)              {}
 
   set a_sim_vars(b_scripts_only)             0
+  set a_sim_vars(b_gui)                      0
   set a_sim_vars(b_absolute_path)            0
   set a_sim_vars(b_batch)                    0
   set a_sim_vars(b_netlist_sim)              0
