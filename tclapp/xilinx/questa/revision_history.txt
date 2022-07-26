@@ -1,3 +1,4 @@
+2.274 option for invoking simulator gui in scripts mode
 2.273 code cleanup for aie_cluster binding
 2.272 support for defines and generics for export flow
 2.271 fixed aie directory path

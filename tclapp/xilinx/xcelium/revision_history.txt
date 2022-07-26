@@ -1,3 +1,4 @@
+11.126 option for invoking simulator gui in scripts mode
 11.125 code cleanup for aie_cluster binding
 11.124 support for defines and generics for export flow
 11.123 fixed aie directory path
