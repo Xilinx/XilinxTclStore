@@ -1,4 +1,4 @@
-10.6 option for invoking simulator gui in scripts mode
+10.7 launch target simulator for scripts only
 9.99 script cleanup
 9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2

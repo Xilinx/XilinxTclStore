@@ -1,3 +1,4 @@
+11.127 launch target simulator for scripts only
 11.126 option for invoking simulator gui in scripts mode
 11.125 code cleanup for aie_cluster binding
 11.124 support for defines and generics for export flow
