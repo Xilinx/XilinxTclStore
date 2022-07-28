@@ -1944,6 +1944,11 @@ proc usf_vcs_write_simulate_script {} {
     # no gui
     if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
       set arg_list [linsert $arg_list end "\$mode"]
+    } else {
+      # for scripts_only mode, set script for simulator gui mode (pass -gui)
+      if { $a_sim_vars(b_gui) } {
+        set arg_list [linsert $arg_list end "-gui"]
+      }
     }
   } else {
     # launch_simulation - if called from vivado in gui mode only

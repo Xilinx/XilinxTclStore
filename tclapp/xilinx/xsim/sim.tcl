@@ -2501,6 +2501,10 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
   lappend args_list "-tclbatch"
   if { $b_batch } {
     lappend args_list "$cmd_file" 
+    # for scripts_only mode, set script for simulator gui mode (pass -gui)
+    if { $a_sim_vars(b_scripts_only) && $a_sim_vars(b_gui) } {
+      lappend args_list "-gui"
+    }
   } else {
     lappend args_list "\{$cmd_file\}" 
   }
@@ -2775,7 +2779,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   } else {
     if { $a_sim_vars(b_scripts_only) } {
       set b_no_quit [get_property "xsim.simulate.no_quit" $a_sim_vars(fs_obj)]
-      if { $b_no_quit } {
+      if { $b_no_quit || $a_sim_vars(b_gui) } {
         # do not quit simulation
       } else {
         # quit simulation

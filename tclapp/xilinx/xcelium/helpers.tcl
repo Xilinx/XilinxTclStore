@@ -327,7 +327,11 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "\}"
   } else {
     if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$a_sim_vars(b_int_is_gui_mode)) } {
-      puts $fh_do "exit"
+      if { $a_sim_vars(b_scripts_only) && $a_sim_vars(b_gui) } {
+        # for scripts_only mode, set script for simulator gui mode (don't exit)
+      } else {
+        puts $fh_do "exit"
+      }
     }
   }
   close $fh_do

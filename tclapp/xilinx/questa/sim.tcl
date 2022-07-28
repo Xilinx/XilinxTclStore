@@ -1902,8 +1902,13 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     if { $a_sim_vars(b_batch) } {
       puts $fh "\nquit -force"
     } elseif { $a_sim_vars(b_scripts_only) } {
-      if { [get_param "simulator.quitOnSimulationComplete"] } {
-        puts $fh "\nquit -force"
+      # for scripts_only mode, set script for simulator gui mode (do not quit)
+      if { $a_sim_vars(b_gui) } {
+        # run simulation
+      } else {
+        if { [get_param "simulator.quitOnSimulationComplete"] } {
+          puts $fh "\nquit -force"
+        }
       }
     } else {
       # launch_simulation - if called from vivado in batch or Tcl mode, quit
@@ -1964,6 +1969,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       if { !$a_sim_vars(b_int_is_gui_mode) } {
         set batch_sw {-c}
       } else {
+        set batch_sw {}
+      }
+    }
+
+    # for scripts_only mode, set script for simulator gui mode (don't pass -c)
+    if { {} != $batch_sw } {
+      if { $a_sim_vars(b_gui) } {
         set batch_sw {}
       }
     }
