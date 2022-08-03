@@ -649,6 +649,7 @@ proc usf_xsim_setup_args { args } {
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
   # [-scripts_only]: Only generate scripts
+  # [-gui]: Invoke simulator in GUI mode for scripts only
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
@@ -697,6 +698,7 @@ proc usf_xsim_setup_args { args } {
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
+      "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
       "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
@@ -2070,9 +2072,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
  
   set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = line branch condition all
   #
-  # 1. convert line/branch/condition to s/b/c and append to values list
+  # 1. convert line/branch/condition/toggle to s/b/c/t and append to values list
   # 2. throw error for invalid cc type
-  # 3. either line (s)/branch (b)/condition (c) or all (sbc) allowed else error
+  # 3. either line (s)/branch (b)/condition (c)/toggle (t)  or all (sbct) allowed else error
   #
   if { {} != $cc_types } {
     set values [list]
@@ -2086,13 +2088,30 @@ proc usf_xsim_get_xelab_cmdline_args {} {
         {b}         { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {condition} -
         {c}         { set id "c";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {toggle}    -
+        {t}         { set id "t";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {all}       -
-        {sbc}      {
+        {sbct}      {
                       if { ([lsearch -exact $values "s"] == -1) } { lappend values "s" }
                       if { ([lsearch -exact $values "b"] == -1) } { lappend values "b" }
                       if { ([lsearch -exact $values "c"] == -1) } { lappend values "c" }
+                      if { ([lsearch -exact $values "t"] == -1) } { lappend values "t" }
                     }
-        default     { [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) or all (or sbc))\n"} err] }
+        default     { 
+          set other_type $type 
+          # could be 'sb' (without space?)
+          foreach id [split $other_type {}] {
+            switch $id {
+              {s} -
+              {b} -
+              {c} -
+              {t} { if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+              default {
+                [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] 
+              }
+            }
+          }
+        }
       }
     }
     set cc_value [join $values {}]
@@ -2482,6 +2501,10 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
   lappend args_list "-tclbatch"
   if { $b_batch } {
     lappend args_list "$cmd_file" 
+    # for scripts_only mode, set script for simulator gui mode (pass -gui)
+    if { $a_sim_vars(b_scripts_only) && $a_sim_vars(b_gui) } {
+      lappend args_list "-gui"
+    }
   } else {
     lappend args_list "\{$cmd_file\}" 
   }
@@ -2756,7 +2779,7 @@ proc usf_xsim_write_cmd_file { cmd_filename b_add_wave } {
   } else {
     if { $a_sim_vars(b_scripts_only) } {
       set b_no_quit [get_property "xsim.simulate.no_quit" $a_sim_vars(fs_obj)]
-      if { $b_no_quit } {
+      if { $b_no_quit || $a_sim_vars(b_gui) } {
         # do not quit simulation
       } else {
         # quit simulation

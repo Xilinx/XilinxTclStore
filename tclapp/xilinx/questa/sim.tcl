@@ -267,6 +267,7 @@ proc usf_questa_setup_args { args } {
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
   # [-scripts_only]: Only generate scripts
+  # [-gui]: Invoke simulator in GUI mode for scripts only
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
@@ -317,6 +318,7 @@ proc usf_questa_setup_args { args } {
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
+      "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
       "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
@@ -1900,8 +1902,13 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
     if { $a_sim_vars(b_batch) } {
       puts $fh "\nquit -force"
     } elseif { $a_sim_vars(b_scripts_only) } {
-      if { [get_param "simulator.quitOnSimulationComplete"] } {
-        puts $fh "\nquit -force"
+      # for scripts_only mode, set script for simulator gui mode (do not quit)
+      if { $a_sim_vars(b_gui) } {
+        # run simulation
+      } else {
+        if { [get_param "simulator.quitOnSimulationComplete"] } {
+          puts $fh "\nquit -force"
+        }
       }
     } else {
       # launch_simulation - if called from vivado in batch or Tcl mode, quit
@@ -1965,6 +1972,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         set batch_sw {}
       }
     }
+
+    # for scripts_only mode, set script for simulator gui mode (don't pass -c)
+    if { {} != $batch_sw } {
+      if { $a_sim_vars(b_gui) } {
+        set batch_sw {}
+      }
+    }
   }
 
   set s_64bit {}
@@ -2005,20 +2019,16 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           # get data dir from $XILINX_VIVADO/data/simmodels/questa (will return $XILINX_VIVADO/data)
           set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
 
-          # design contains AIE? bind protected cluster library
-          # ($XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*/libaie_cluster_v*.so)
           set aie_ip_obj [xcs_find_ip "ai_engine"]
           if { {} != $aie_ip_obj } {
             # get protected sub-dir (simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected)
             set cpt_dir [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
-            set model [xcs_get_sim_model_ver "aie_cluster_v"]
-            # $XILINX_VIVADO/data/simmodels/questa/2019.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
-            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-            # TODO: find way to make this data-driven
-            if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
-              set model "aie2"
+            set model_ver [rdi::get_aie_config_type]
+            set lib_dir $model_ver
+            if { {aie} == $model_ver } {
+              set lib_dir "${model_ver}_cluster_v1_0_0"
             }
-            lappend shared_ip_libs "$data_dir/$cpt_dir/$model"
+            lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
           }
 
           variable a_shared_library_path_coln
@@ -2356,21 +2366,19 @@ proc usf_questa_get_sccom_cmd_args {} {
       lappend args "-l$lib_name"
     }
 
-    # cr:1079408 - bind aie_cluster 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
-        # $XILINX_VIVADO/data/simmodels/questa/2020.4/lnx64/5.3.0/systemc/protected/aie_cluster_v*
         set cpt_dir  [xcs_get_simmodel_dir "questa" $a_sim_vars(s_gcc_version) "cpt"]
         set data_dir [rdi::get_data_dir -quiet -datafile "simmodels/questa"]
-        set lib_name [xcs_get_sim_model_ver "aie_cluster_v"]
-        if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
-          lappend args "-L$data_dir/$cpt_dir/aie2"
-          lappend args "-laie2_cluster_v1_0_0"
-        } else {
+        set model_ver [rdi::get_aie_config_type]
+        set lib_name "${model_ver}_cluster_v1_0_0"
+        if { {aie} == $model_ver } {
           lappend args "-L$data_dir/$cpt_dir/$lib_name"
-          lappend args "-l$lib_name"
+        } else {
+          lappend args "-L$data_dir/$cpt_dir/$model_ver"
         }
+        lappend args "-l$lib_name"
       }
     }
 

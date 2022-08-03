@@ -1,15 +1,11 @@
 ####################################################################################
 #
-# utils.tcl
+# Filename: utils.tcl
+# Purpose : Simulation helper utilities
 #
 # Script created on 11/17/2015 by Nik Cimino (Xilinx, Inc.)
 #
 ####################################################################################
-
-# These procedures are not designed to be part of the global namespace, but should 
-# be sourced inside of a simulation app's namespace. This is done to prevent 
-# collisions of these functions if they all belonged to the same namespace, i.e.
-# multiple utils.tcl files loaded with the same namespace.
 
 variable _xcs_defined 1
 
@@ -38,6 +34,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(sp_hbm_ip_obj)              {}
 
   set a_sim_vars(b_scripts_only)             0
+  set a_sim_vars(b_gui)                      0
   set a_sim_vars(b_absolute_path)            0
   set a_sim_vars(b_batch)                    0
   set a_sim_vars(b_netlist_sim)              0
@@ -5663,12 +5660,12 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
 
     set tp "$cpt_dir/$sm_cpt_dir"
 
-    # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-    set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
-    if { ([info exists ::env(VITIS_AIE_ML_SIM)]) && $::env(VITIS_AIE_ML_SIM) } {
-      set model_ver "aie2" 
+    set model_ver [rdi::get_aie_config_type]
+    set aie_lib_dir $model_ver
+    if { {aie} == $model_ver } {
+      set aie_lib_dir "${model_ver}_cluster_v1_0_0"
     }
-    append ld_path ":$tp/$model_ver"
+    append ld_path ":$tp/$aie_lib_dir"
 
     set xilinx_vitis     {}
     set cardano_api_path {}
@@ -5794,4 +5791,178 @@ proc xcs_get_sim_model_ver { model {b_exact false}} {
     send_msg_id SIM-utils-077 WARNING "Failed to find the simulation model version for '$model'!\n"
   }
   return $version
+}
+
+proc xcs_get_verilog_defines { simulator fs args_list } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args_list args
+  
+  set v_defines [get_property "verilog_define" $fs]
+  if { [llength $v_defines] > 0 } {
+    switch $simulator {
+      "xsim" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          lappend args "-d \"$str\""
+        }
+      }
+      "modelsim" -
+      "questa" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "+define+$name="
+          # escape '
+          if { [regexp {'} $val] } {
+            regsub -all {'} $val {\\'} val
+          }
+ 
+          if { [string length $val] > 0 } {
+            if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+              set str "$str$val"
+            } else {
+              set str "$str\"$val\""
+            }
+            lappend args " $str"
+          }
+        }
+      }
+      "activehdl" -
+      "riviera" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "+define+$name="
+          # escape '
+          if { [regexp {'} $val] } {
+            regsub -all {'} $val {\\'} val
+          }
+ 
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+            lappend args " $str"
+          }
+        }
+      }
+      "xrun" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          set str "-xmvlogargs \"-define $str\""
+          lappend args "$str"
+        }
+      }
+      "vcs" {
+        foreach element $v_defines {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str\"$val\""
+          }
+          set str "+define+$str"
+          lappend args "$str"
+        }
+      }
+    }
+  }
+}
+
+proc xcs_get_vhdl_generics { simulator fs args_list } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args_list args
+
+  set v_generics [get_property "generic" $fs]
+  if { [llength $v_generics] > 0 } {
+    switch $simulator {
+      "xsim" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          lappend args "-generic_top \"$str\""
+        }
+      }
+      "modelsim" -
+      "questa" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "-g$name="
+          if { [string length $val] > 0 } {
+            set str $str$val
+          } else {
+            if { [get_param "project.enable2StepFlowForModelSim"] } {
+              set str $str\"\"
+            }
+          }
+        }
+        lappend args $str
+      }
+      "riviera" -
+      "activehdl" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "-g$name="
+          if { [string length $val] > 0 } {
+            set str $str$val
+          }
+        }
+        lappend args $str
+      }
+      "xrun" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name=>"
+          if { [string length $val] > 0 } {
+            set str "$str$val"
+          }
+          set str "-xmelabargs \"-generic $str\""
+          lappend args "$str"
+        }
+      }
+      "vcs" {
+        foreach element $v_generics {
+          set key_val_pair [split $element "="]
+          set name [lindex $key_val_pair 0]
+          set val  [lindex $key_val_pair 1]
+          set str "$name="
+          if { [string length $val] > 0 } {
+            set str "$str\"$val\""
+          }
+          set str "-gv $str"
+          lappend args "$str"
+        }
+      }
+    }
+  }
 }

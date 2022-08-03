@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.28
+package require ::tclapp::aldec::common::helpers 1.31
 
-package provide ::tclapp::aldec::common::sim 1.28
+package provide ::tclapp::aldec::common::sim 1.31
 
 namespace eval ::tclapp::aldec::common {
 
@@ -164,6 +164,7 @@ proc usf_aldec_setup_simulation { args } {
   variable properties
 
   ::tclapp::aldec::common::helpers::usf_aldec_set_simulator_path
+  ::tclapp::aldec::common::helpers::usf_aldec_set_gcc_path
 
   # set the simulation flow
   ::tclapp::aldec::common::helpers::usf_set_simulation_flow
@@ -171,6 +172,24 @@ proc usf_aldec_setup_simulation { args } {
   # set default object
   if { [::tclapp::aldec::common::helpers::usf_set_sim_tcl_obj] } {
     return 1
+  }
+
+  # enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
+  if { !$::tclapp::aldec::common::helpers::properties(b_use_static_lib) } {
+    set ::tclapp::aldec::common::helpers::properties(b_compile_simmodels) 1
+  }
+
+  if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+    set ::tclapp::aldec::common::helpers::properties(s_simlib_dir) \
+    "$::tclapp::aldec::common::helpers::properties(launch_directory)/simlibs"
+
+    if { ![ file exists $::tclapp::aldec::common::helpers::properties(s_simlib_dir) ] } {
+      if { [catch { file mkdir $::tclapp::aldec::common::helpers::properties(s_simlib_dir) } error_msg] } {
+        send_msg_id USF-[usf_aldec_getSimulatorName]-013 ERROR \
+        "Failed to create the directory ($::tclapp::aldec::common::helpers::properties(s_simlib_dir)): $error_msg\n"
+        return 1
+      }
+    }
   }
 
   # write functional/timing netlist for post-* simulation
@@ -273,6 +292,9 @@ proc usf_setup_args { args } {
       "-int_sm_lib_ref_debug"   { set ::tclapp::aldec::common::helpers::properties(b_int_sm_lib_ref_debug) 1                   }
 	  "-int_csim_compile_order" { set ::tclapp::aldec::common::helpers::properties(b_int_csim_compile_order) 1                 }
 	  "-int_en_vitis_hw_emu_mode" { set ::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) 1				}
+      "-int_export_source_files"  { set ::tclapp::aldec::common::helpers::properties(b_int_export_source_files)  1                 }
+      "-int_gcc_bin_path"         { incr i;set ::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)      [lindex $args $i] }
+      "-int_compile_glbl"         { set ::tclapp::aldec::common::helpers::properties(b_int_compile_glbl)         1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -522,6 +544,14 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
   set design_libs [::tclapp::aldec::common::helpers::getDesignLibraries $::tclapp::aldec::common::helpers::properties(designFiles)]
 
+  if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+    set ::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) [xcs_get_simmodel_compile_order]
+
+    foreach lib $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {
+	  puts $fh "vlib [getLibraryDir]/$lib"
+    }
+  }
+
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
   # Vice verse, if DesignFiles contains Verilog files, but simulation language is set to VHDL
@@ -561,6 +591,17 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
 	puts $fh ""
 
+    if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+      foreach lib $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {
+        if { $use_absolute_paths } {
+          set dir $::tclapp::aldec::common::helpers::properties(launch_directory)
+          puts $fh "vmap $lib $dir/$lib"
+        } else {
+          puts $fh "vmap $lib [getLibraryDir]/$lib"
+        }
+      }
+    }
+
 	if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       # no op
     } else {
@@ -587,6 +628,10 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   puts $fh ""
+
+  if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+    usf_compile_simmodel_sources $fh
+  }
 
   set prev_lib  {}
   set prev_file_type {}
@@ -665,8 +710,52 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   }
 
   # compile glbl file
-  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]]
-  if { $b_load_glbl } {
+  set sim_flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+  set b_load_glbl [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL ] [ get_filesets $::tclapp::aldec::common::helpers::properties(simset) ] ]
+  set simulator [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+
+  set glblWasAdded 0
+  if { {behav_sim} == $sim_flow } {
+    if { [ ::tclapp::aldec::common::helpers::usf_compile_glbl_file $simulator $b_load_glbl $design_files ] || $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        set glblWasAdded 1
+        ::tclapp::aldec::common::helpers::usf_copy_glbl_file
+        set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
+        set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
+        puts $fh "\n# compile glbl module\nvlog $file_str"
+      }
+    }
+  } else {
+    # for post* compile glbl if design contain verilog and netlist is vhdl
+    set targetLang  [get_property "TARGET_LANGUAGE" [current_project]]
+
+    if { \
+         ([::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] && ({VHDL} == $targetLang)) \
+      || ($::tclapp::aldec::common::helpers::properties(b_int_compile_glbl)) \
+      || ($::tclapp::aldec::common::helpers::properties(b_force_compile_glbl)) \
+    } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip glbl compile if force no compile set
+      } else {
+        if { ({timing} == $::tclapp::aldec::common::helpers::properties(s_type)) } {
+          # This is not supported, netlist will be verilog always
+        } else {
+          set glblWasAdded 1
+          ::tclapp::aldec::common::helpers::usf_copy_glbl_file
+          set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
+          set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
+          puts $fh "\n# compile glbl module\nvlog $file_str"
+        }
+      }
+    }
+  }
+
+  if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+  
+  } elseif { $glblWasAdded == 0 && $b_load_glbl } {
     ::tclapp::aldec::common::helpers::usf_copy_glbl_file
     set top_lib [::tclapp::aldec::common::helpers::usf_get_top_library]
     set file_str "-work $top_lib \"[usf_aldec_getGlblPath]\""
@@ -677,6 +766,600 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 
   close $fh
 }
+
+proc usf_compile_simmodel_sources { fh } {
+
+  set platform "lin"
+  if {$::tcl_platform(platform) == "windows"} {
+    set platform "win"
+  }
+
+  set b_dbg 0
+  if { $::tclapp::aldec::common::helpers::properties(s_int_debug_mode) == "1" } {
+    set b_dbg 1
+  }
+
+  set simulator [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  set data_dir [ rdi::get_data_dir -quiet -datafile "systemc/simlibs" ]
+  set cpt_dir  [ ::tclapp::aldec::common::helpers::usf_get_simmodel_dir $simulator "cpt" ]
+  set boostPath [ ::tclapp::aldec::common::helpers::usf_get_boost_library_path ]
+
+  # is pure-rtl sources for system simulation (selected_sim_model = rtl), don't need to compile the systemC/CPP/C sim-models
+  if { [ llength $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) ] == 0 } {
+    if { [file exists $::tclapp::aldec::common::helpers::properties(s_simlib_dir)] } {
+      # delete <run-dir>/simlibs dir (not required)
+      [catch {file delete -force $::tclapp::aldec::common::helpers::properties(s_simlib_dir)} error_msg]
+    }
+    return
+  }
+
+  # find simmodel info from dat file and update do file
+  foreach lib_name $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {
+
+    set lib_path [xcs_find_lib_path_for_simmodel $lib_name]
+    set fh_dat 0
+    set dat_file "$lib_path/.cxl.sim_info.dat"
+
+    if {[catch {open $dat_file r} fh_dat]} {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-77 WARNING "Failed to open file to read ($dat_file)\n"
+      continue
+    }
+
+    set data [split [read $fh_dat] "\n"]
+    close $fh_dat
+
+    # is current platform supported?
+    set simulator_platform {}
+    set simmodel_name      {}
+    set library_name       {}
+    set b_process          0
+
+    foreach line $data {
+      set line [ string trim $line ]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag   [lindex $line_info 0]
+      set value [lindex $line_info 1]
+      if { "<SIMMODEL_NAME>"              == $tag } { set simmodel_name $value }
+      if { "<LIBRARY_NAME>"               == $tag } { set library_name $value  }
+      if { "<SIMULATOR_PLATFORM>" == $tag } {
+        if { ("all" == $value) || (("linux" == $value) && ("lin" == $platform)) || (("windows" == $vlue) && ("win" == $platform)) } {
+          # supported
+          set b_process 1
+        } else {
+          continue
+        }
+      }
+    }
+
+    # not supported, work on next simmodel
+    if { !$b_process } { continue }
+
+    #send_msg_id USF-[usf_aldec_getSimulatorName]-107 STATUS "Generating compilation commands for '$lib_name'\n"
+
+    # create local lib dir
+    set simlib_dir "$::tclapp::aldec::common::helpers::properties(s_simlib_dir)/$lib_name"
+    if { ![file exists $simlib_dir] } {
+      if { [catch {file mkdir $simlib_dir} error_msg] } {
+        send_msg_id USF-[usf_aldec_getSimulatorName]-013 ERROR "Failed to create the directory ($simlib_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    # copy simmodel sources locally
+    if { $::tclapp::aldec::common::helpers::properties(b_int_export_source_files) } {
+      if { {} == $simmodel_name } { send_msg_id USF-[usf_aldec_getSimulatorName]-107 WARNING "Empty tag '$simmodel_name'!\n" }
+      if { {} == $library_name  } { send_msg_id USF-[usf_aldec_getSimulatorName]-107 WARNING "Empty tag '$library_name'!\n"  }
+
+      set src_sim_model_dir "$data_dir/systemc/simlibs/$simmodel_name/$library_name/src"
+      set dst_dir "$::tclapp::aldec::common::helpers::properties(launch_directory)/simlibs/$library_name"
+      if { [file exists $src_sim_model_dir] } {
+        [catch {file delete -force $dst_dir/src} error_msg]
+        if { [catch {file copy -force $src_sim_model_dir $dst_dir} error_msg] } {
+          [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-108 ERROR "Failed to copy file '$src_sim_model_dir' to '$dst_dir': $error_msg\n"} err]
+        } else {
+          #puts "copied '$src_sim_model_dir' to run dir:'$a_sim_vars(s_launch_dir)/simlibs'\n"
+        }
+      } else {
+        [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-108 ERROR "File '$src_sim_model_dir' does not exist\n"} err]
+      }
+    }
+
+    # copy include dir
+    set simlib_incl_dir "$lib_path/include"
+    set target_dir      "$::tclapp::aldec::common::helpers::properties(s_simlib_dir)/$lib_name"
+    set target_incl_dir "$target_dir/include"
+
+    if { ![file exists $target_incl_dir] } {
+      if { [catch {file copy -force $simlib_incl_dir $target_dir} error_msg] } {
+        [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-010 ERROR "Failed to copy file '$simlib_incl_dir' to '$target_dir': $error_msg\n"} err]
+      }
+    }
+
+    # simmodel file_info.dat data
+    set library_type            {}
+    set output_format           {}
+    set gplus_compile_flags     [list]
+    set gplus_compile_opt_flags [list]
+    set gplus_compile_dbg_flags [list]
+    set gcc_compile_flags       [list]
+    set gcc_compile_opt_flags   [list]
+    set gcc_compile_dbg_flags   [list]
+    set ldflags                 [list]
+    set gplus_ldflags_option    {}
+    set gcc_ldflags_option      {}
+    set ldflags_lin64           [list]
+    set ldflags_win64           [list]
+    set ldlibs                  [list]
+    set ldlibs_lin64            [list]
+    set ldlibs_win64            [list]
+    set gplus_ldlibs_option     {}
+    set gcc_ldlibs_option       {}
+    set sysc_dep_libs           {}
+    set cpp_dep_libs            {}
+    set c_dep_libs              {}
+    set sccom_compile_flags     {}
+    set more_xsc_options        [list]
+    set simulator_platform      {}
+    set systemc_compile_option  {}
+    set cpp_compile_option      {}
+    set c_compile_option        {}
+    set shared_lib              {}
+    set systemc_incl_dirs       [list]
+    set cpp_incl_dirs           [list]
+    set osci_incl_dirs          [list]
+    set c_incl_dirs             [list]
+
+    set sysc_files              [list]
+    set cpp_files               [list]
+    set c_files                 [list]
+
+    # process simmodel data from .dat file
+    foreach line $data {
+      set line [string trim $line]
+      if { {} == $line } { continue }
+      set line_info [split $line {:}]
+      set tag       [lindex $line_info 0]
+      set value     [lindex $line_info 1]
+
+      # collect sources
+      if { ("<SYSTEMC_SOURCES>" == $tag) || ("<CPP_SOURCES>" == $tag) || ("<C_SOURCES>" == $tag) } {
+        set file_path "$data_dir/$value"
+
+        # local file path where sources will be copied for export option
+        if { $::tclapp::aldec::common::helpers::properties(b_int_export_source_files) } {
+          set dirs [split $value "/"]
+          set value [join [lrange $dirs 3 end] "/"]
+          set file_path "simlibs/$value"
+        }
+
+        if { ("<SYSTEMC_SOURCES>" == $tag) } { lappend sysc_files $file_path }
+        if { ("<CPP_SOURCES>"     == $tag) } { lappend cpp_files  $file_path }
+        if { ("<C_SOURCES>"       == $tag) } { lappend c_files    $file_path }
+      }
+
+      # get simmodel info
+      if { "<LIBRARY_TYPE>"               == $tag } { set library_type            $value             }
+      if { "<OUTPUT_FORMAT>"              == $tag } { set output_format           $value             }
+      if { "<SYSTEMC_INCLUDE_DIRS>"       == $tag } { set systemc_incl_dirs       [split $value {,}] }
+      if { "<CPP_INCLUDE_DIRS>"           == $tag } { set cpp_incl_dirs           [split $value {,}] }
+      if { "<C_INCLUDE_DIRS>"             == $tag } { set c_incl_dirs             [split $value {,}] }
+      if { "<OSCI_INCLUDE_DIRS>"          == $tag } { set osci_incl_dirs          [split $value {,}] }
+      if { "<G++_COMPILE_FLAGS>"          == $tag } { set gplus_compile_flags     [split $value {,}] }
+      if { "<G++_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gplus_compile_opt_flags [split $value {,}] }
+      if { "<G++_COMPILE_DEBUG_FLAGS>"    == $tag } { set gplus_compile_dbg_flags [split $value {,}] }
+      if { "<GCC_COMPILE_FLAGS>"          == $tag } { set gcc_compile_flags       [split $value {,}] }
+      if { "<GCC_COMPILE_OPTIMIZE_FLAGS>" == $tag } { set gcc_compile_opt_flags   [split $value {,}] }
+      if { "<GCC_COMPILE_DEBUG_FLAGS>"    == $tag } { set gcc_compile_dbg_flags   [split $value {,}] }
+      if { "<LDFLAGS>"                    == $tag } { set ldflags                 [split $value {,}] }
+      if { "<LDFLAGS_LNX64>"              == $tag } { set ldflags_lin64           [split $value {,}] }
+      if { "<LDFLAGS_WIN64>"              == $tag } { set ldflags_win64           [split $value {,}] }
+      if { "<G++_LDFLAGS_OPTION>"         == $tag } { set gplus_ldflags_option    $value             }
+      if { "<GCC_LDFLAGS_OPTION>"         == $tag } { set gcc_ldflags_option      $value             }
+      if { "<LDLIBS>"                     == $tag } { set ldlibs                  [split $value {,}] }
+      if { "<LDLIBS_LNX64>"               == $tag } { set ldlibs_lin64            [split $value {,}] }
+      if { "<LDLIBS_WIN64>"               == $tag } { set ldlibs_win64            [split $value {,}] }
+      if { "<G++_LDLIBS_OPTION>"          == $tag } { set gplus_ldlibs_option     $value             }
+      if { "<GCC_LDLIBS_OPTION>"          == $tag } { set gcc_ldlibs_option       $value             }
+      if { "<SYSTEMC_DEPENDENT_LIBS>"     == $tag } { set sysc_dep_libs           $value             }
+      if { "<CPP_DEPENDENT_LIBS>"         == $tag } { set cpp_dep_libs            $value             }
+      if { "<C_DEPENDENT_LIBS>"           == $tag } { set c_dep_libs              $value             }
+      if { "<SCCOM_COMPILE_FLAGS>"        == $tag } { set sccom_compile_flags     $value             }
+      if { "<MORE_XSC_OPTIONS>"           == $tag } { set more_xsc_options        [split $value {,}] }
+      if { "<SIMULATOR_PLATFORM>"         == $tag } { set simulator_platform      $value             }
+      if { "<SYSTEMC_COMPILE_OPTION>"     == $tag } { set systemc_compile_option  $value             }
+      if { "<CPP_COMPILE_OPTION>"         == $tag } { set cpp_compile_option      $value             }
+      if { "<C_COMPILE_OPTION>"           == $tag } { set c_compile_option        $value             }
+      if { "<SHARED_LIBRARY>"             == $tag } { set shared_lib              $value             }
+    }
+
+    # set obj_dir "$::tclapp::aldec::common::helpers::properties(launch_directory)/questa_lib/$lib_name"
+    # if { ![file exists $obj_dir] } {
+      # if { [catch {file mkdir $obj_dir} error_msg] } {
+        # send_msg_id USF-[usf_aldec_getSimulatorName]-013 ERROR "Failed to create the directory ($obj_dir): $error_msg\n"
+        # return 1
+      # }
+    # }
+
+    # write systemC/CPP/C command line
+
+    if { [llength $sysc_files] > 0 } {
+
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "ccomp"
+
+      # COMPILE (ccomp)
+
+      set args [list]
+      # lappend args "-64"
+      # lappend args "-cpppath $::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/g++"
+
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } { lappend args $systemc_compile_option }
+
+      # <SCCOM_COMPILE_FLAGS>
+      lappend args "$sccom_compile_flags"
+  
+      # <SYSTEMC_INCLUDE_DIRS> 
+      if { [llength $systemc_incl_dirs] > 0 } { 
+        foreach incl_dir $systemc_incl_dirs {
+          if { [regexp {^\$xv_cpt_lib_path} $incl_dir] } {
+            set str_to_replace "xv_cpt_lib_path"
+            set str_replace_with "$cpt_dir"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+            set incl_dir "$data_dir/$incl_dir"
+          }
+          if { [regexp {^\$xv_ext_lib_path} $incl_dir] } {
+            set str_to_replace "xv_ext_lib_path"
+            set str_replace_with "$::tclapp::aldec::common::helpers::properties(sp_ext_dir)"
+            regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+            set incl_dir [string trimleft $incl_dir {\$}]
+          }
+
+          if { [ regexp -nocase "^/tps/boost.*" $incl_dir ] } {
+            lappend args "-I $boostPath"
+          } else {
+            lappend args "-I $incl_dir"
+          }
+        }
+      }
+
+      # <CPP_COMPILE_OPTION> 
+      lappend args $cpp_compile_option
+
+      # <G++_COMPILE_FLAGS>
+      foreach opt $gplus_compile_flags { lappend args $opt }
+
+      # <G++_COMPILE_OPTIMIZE_FLAGS>
+      foreach opt $gplus_compile_opt_flags { lappend args $opt }
+
+      # config simmodel options
+      set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend args "$cfg_val"
+      }
+
+      # global simmodel option (if any)
+      set cfg_opt "${simulator}.compile.${compiler}.global"
+      set cfg_val ""
+      [catch {set cfg_val [get_param $cfg_opt]} err]
+      if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+        lappend args "$cfg_val"
+      }
+
+      set cmd_str [ join $args " " ]
+
+      foreach sysc_file $sysc_files { 
+        set file_name [file root [file tail $sysc_file]]
+        set obj_file "${file_name}.o"
+
+        puts $fh "$compiler $cmd_str $sysc_file -o [getLibraryDir]/$lib_name/${obj_file}\n"
+      }
+
+      # LINK (ccomp)
+
+      set args [list]
+      # lappend args "-64"
+      # lappend args "-cpppath $::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/g++"
+
+      # <SYSTEMC_COMPILE_OPTION>
+      if { {} != $systemc_compile_option } {
+        set compileOption ""
+
+        foreach piece [ split $systemc_compile_option " " ] {
+          if { $piece == "-c" } {
+            continue
+          }
+
+          append compileOption " $piece"
+        }
+
+        lappend args $compileOption
+      }
+      
+      lappend args "-shared"
+      # lappend args "-lib $lib_name"
+ 
+      # <LDFLAGS>
+      if { [llength $ldflags] > 0 } { foreach opt $ldflags { lappend args $opt } }
+
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldflags_win64] > 0 } { foreach opt $ldflags_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldflags_lin64] > 0 } { foreach opt $ldflags_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldflags 
+      if { {} != $gplus_ldflags_option } { lappend args $gplus_ldflags_option }
+   
+      # <LDLIBS>
+      if { [llength $ldlibs] > 0 } {
+        foreach opt $ldlibs {
+          if { [regexp {\$xv_cpt_lib_path} $opt] } {
+            set cpt_dir_path "$data_dir/$cpt_dir"
+            set str_to_replace {\$xv_cpt_lib_path}
+            set str_replace_with "$cpt_dir_path"
+            regsub -all $str_to_replace $opt $str_replace_with opt 
+          }
+          lappend args $opt
+        }
+      }
+
+      foreach src_file $sysc_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "[getLibraryDir]/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+
+      set fileName "[getLibraryDir]/$lib_name/lib${lib_name}.so"
+
+      lappend args "-o"
+      lappend args "$fileName"
+
+      if {$::tcl_platform(platform) == "windows"} {
+        if { [llength $ldlibs_win64] > 0 } { foreach opt $ldlibs_win64 { lappend args $opt } }
+      } else {
+        if { [llength $ldlibs_lin64] > 0 } { foreach opt $ldlibs_lin64 { lappend args $opt } }
+      }
+    
+      # acd ldlibs
+      if { {} != $gplus_ldlibs_option } { lappend args "$gplus_ldlibs_option" }
+    
+      # lappend args "-work $lib_name"
+      set cmd_str [join $args " "]
+      puts $fh "$compiler $cmd_str\n"
+
+    } elseif { [llength $cpp_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "g++"
+
+      # COMPILE (g++)
+
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct g++ compile command line
+        set args [list]
+        lappend args "-c"
+
+        # <CPP_INCLUDE_DIRS>
+        if { [llength $cpp_incl_dirs] > 0 } {
+          foreach incl_dir $cpp_incl_dirs {
+            if { [regexp {^\$xv_ext_lib_path} $incl_dir] } {
+              set str_to_replace "xv_ext_lib_path"
+              set str_replace_with "$::tclapp::aldec::common::helpers::properties(sp_ext_dir)"
+              regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
+              set incl_dir [string trimleft $incl_dir {\$}]
+            }
+
+            if { [ regexp -nocase "^/tps/boost.*" $incl_dir ] } {
+              lappend args "-I $boostPath"
+            } else {
+              lappend args "-I $incl_dir"
+            }
+          }
+        }
+
+        # <CPP_COMPILE_OPTION>
+        lappend args $cpp_compile_option
+
+        # <G++_COMPILE_FLAGS>
+        if { [llength $gplus_compile_flags] > 0 } { foreach opt $gplus_compile_flags { lappend args $opt } }
+
+        # <G++_COMPILE_OPTIMIZE_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gplus_compile_dbg_flags] > 0 } { foreach opt $gplus_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gplus_compile_opt_flags] > 0 } { foreach opt $gplus_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "[getLibraryDir]/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/$compiler $cmd_str\n"
+      }
+
+      # LINK (g++)
+
+      set args [list]
+      foreach src_file $cpp_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "[getLibraryDir]/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "[getLibraryDir]/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/$compiler $cmd_str\n"
+
+    } elseif { [llength $c_files] > 0 } {
+      puts $fh "# compile '$lib_name' model sources"
+      set compiler "gcc"
+
+      # COMPILE (gcc)
+
+      foreach src_file $c_files {
+        set file_name [file root [file tail $src_file]]
+        set obj_file "${file_name}.o"
+
+        # construct gcc compile command line
+        set args [list]
+        lappend args "-c"
+
+        # <C_INCLUDE_DIRS>
+        if { [llength $c_incl_dirs] > 0 } { 
+          foreach incl_dir $c_incl_dirs {
+            if { [ regexp -nocase "^/tps/boost.*" $incl_dir ] } {
+              lappend args "-I $boostPath"
+            } else {
+              lappend args "-I $incl_dir"
+            }
+          }
+        }
+
+        # <C_COMPILE_OPTION>
+        lappend args $c_compile_option
+
+        lappend args "-fPIC"
+
+        # <GCC_COMPILE_FLAGS>
+        if { [llength $gcc_compile_flags] > 0 } { foreach opt $gcc_compile_flags { lappend args $opt } }
+
+        # <GCC_COMPILE_OPTIMIZE_FLAGS>
+        if { $b_dbg } {
+          if { [llength $gcc_compile_dbg_flags] > 0 } { foreach opt $gcc_compile_dbg_flags { lappend args $opt } }
+        } else {
+          if { [llength $gcc_compile_opt_flags] > 0 } { foreach opt $gcc_compile_opt_flags { lappend args $opt } }
+        }
+
+        # config simmodel options
+        set cfg_opt "${simulator}.compile.${compiler}.${library_name}"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+      
+        # global simmodel option (if any)
+        set cfg_opt "${simulator}.compile.${compiler}.global"
+        set cfg_val ""
+        [catch {set cfg_val [get_param $cfg_opt]} err]
+        if { ({<empty>} != $cfg_val) && ({} != $cfg_val) } {
+          lappend args "$cfg_val"
+        }
+
+        lappend args $src_file
+        lappend args "-o"
+        lappend args "[getLibraryDir]/$lib_name/${obj_file}"
+
+        set cmd_str [join $args " "]
+        puts $fh "$::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/$compiler $cmd_str\n"
+      }
+
+      # LINK (gcc)
+
+      set args [list]
+      foreach src_file $c_files { 
+        set file_name [file root [file tail $src_file]]
+        set obj_file "[getLibraryDir]/$lib_name/${file_name}.o"
+        lappend args $obj_file
+      }
+
+      lappend args "-shared"
+      lappend args "-o"
+      lappend args "[getLibraryDir]/$lib_name/lib${lib_name}.so"
+      
+      set cmd_str [join $args " "]
+      puts $fh "$::tclapp::aldec::common::helpers::properties(s_gcc_bin_path)/$compiler $cmd_str\n"
+
+    }
+  }
+}
+
+proc getLibraryDir { } {
+  set libraryDir [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  append libraryDir "_lib"
+  
+  return $libraryDir
+}
+
+proc xcs_find_lib_path_for_simmodel { simmodel } {
+
+  set lib_path {}
+  foreach {key value} [array get ::tclapp::aldec::common::helpers::a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    if { $simmodel == $lib_name } {
+      set lib_path $value
+      return $lib_path
+    }
+  }
+}
+
+proc xcs_get_simmodel_compile_order { } { 
+  set sm_order [list]
+
+  # get simmodel list referenced in the design
+  set lib_names [list]
+  foreach {key value} [array get ::tclapp::aldec::common::helpers::a_shared_library_path_coln] {
+    set shared_lib_name $key
+    set lib_name [file root $shared_lib_name]
+    set lib_name [string trimleft $lib_name {lib}]
+    lappend lib_names $lib_name
+  }
+
+  # find compile order and construct order for the simmodels referenced in the design
+  set compile_order_file [::tclapp::aldec::common::helpers::usf_get_path_from_data "systemc/simlibs/compile_order.dat"]
+  set fh 0
+  if { [catch {open $compile_order_file r} fh] } {
+    send_msg_id SIM-[usf_aldec_getSimulatorName]-068 WARNING "Failed to open file for read! '$compile_order_file'\n"
+    return $sm_order
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } { continue; }
+    if { [regexp {^#} $line] } { continue; }
+    set lib_name $line
+    if { {xtlm} == $lib_name } {
+      set index [lsearch -exact $lib_names $lib_name]
+    } else {
+      set index [lsearch -regexp $lib_names $lib_name]
+    }
+    if { {-1} != $index } {
+      set sm_lib [lindex $lib_names $index]
+      lappend sm_order $sm_lib
+    }
+  }
+  return $sm_order
+} 
 
 proc convertToUnifiedSimulation { _command _vlogOptions _vcomOptions } {
 
@@ -760,31 +1443,127 @@ proc usf_aldec_get_elaboration_cmdline {} {
     set arg_list [linsert $arg_list end "-L" "unimacro_ver"]
   }
 
+  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ]
+  if { $::tclapp::aldec::common::helpers::properties(b_int_compile_glbl) || $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) || $b_load_glbl } {
+    if { ([lsearch -exact $arg_list "unisims_ver"] == -1) } {
+      if { $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+        # skip unisims_ver
+      } else {
+        set arg_list [linsert $arg_list end "-L" "unisims_ver"]
+      }
+    }
+  }
+
   # add secureip
   set arg_list [linsert $arg_list end "-L" "secureip"]
 
-	# add design libraries
-	set design_libs [ ::tclapp::aldec::common::helpers::getDesignLibraries $design_files ]
-	set xilinxVipWasAdded 0
-	foreach lib $design_libs {
-		if {[string length $lib] == 0} { continue; }
-		lappend arg_list "-L"
-		lappend arg_list "$lib"
+  # add design libraries
+  set design_libs [ ::tclapp::aldec::common::helpers::getDesignLibraries $design_files ]
+  set xilinxVipWasAdded 0
+  foreach lib $design_libs {
+    if {[string length $lib] == 0} { continue; }
+    lappend arg_list "-L"
+    lappend arg_list "$lib"
 
-		if { $lib == "xilinx_vip" } {
-			set xilinxVipWasAdded 1
-		}
-	}
+    if { $lib == "xilinx_vip" } {
+      set xilinxVipWasAdded 1
+    }
+  }
 
-    if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
-		lappend arg_list "-L" "xilinx_vip"
-	}
-  
+  # if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+    # foreach lib $::tclapp::aldec::common::helpers::properties(l_simmodel_compile_order) {
+      # if {[string length $lib] == 0} { continue; }
+      # lappend arg_list "-L"
+      # lappend arg_list "$lib"
+    # }
+  # }
+
+  if { $xilinxVipWasAdded == 0 && [ get_param "project.usePreCompiledXilinxVIPLibForSim" ] && [ ::tclapp::aldec::common::helpers::is_vip_ip_required ] } {
+    lappend arg_list "-L" "xilinx_vip"
+  }
+
   set d_libs [join $arg_list " "]  
   set arg_list [list $t_opts]
   lappend arg_list "$d_libs"
   set cmd_str [join $arg_list " "]
   return $cmd_str
+}
+
+proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $opts_arg opts
+
+  set flow $::tclapp::aldec::common::helpers::properties(s_simulation_flow)
+  set target_lang [ get_property "TARGET_LANGUAGE" [ current_project ] ]
+
+  set b_verilog_sim_netlist 0
+  if { ({post_synth_sim} == $flow) || ({post_impl_sim} == $flow) } {
+    if { {Verilog} == $target_lang } {
+      set b_verilog_sim_netlist 1
+    }
+  }
+
+  set b_add_glbl 0
+  set b_top_level_glbl_inst_set 0
+
+  # is glbl specified explicitly?
+  if { ([lsearch ${top_level_inst_names} {glbl}] != -1) } {
+    set b_top_level_glbl_inst_set 1
+  }
+
+  set fs_obj [ get_filesets $::tclapp::aldec::common::helpers::properties(simset) ]
+  set b_load_glbl [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ]
+  set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
+
+  if { [ ::tclapp::aldec::common::helpers::usf_contains_verilog $design_files ] || $b_verilog_sim_netlist } {
+    if { {behav_sim} == $flow } {
+      if { (!$b_top_level_glbl_inst_set) && $b_load_glbl } {
+        set b_add_glbl 1
+      }
+    } else {
+      # for post* sim flow add glbl top if design contains verilog sources or verilog netlist add glbl top if not set earlier
+      if { !$b_top_level_glbl_inst_set } {
+        set b_add_glbl 1
+      }
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $::tclapp::aldec::common::helpers::properties(b_int_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  if { !$b_add_glbl } {
+    if { $b_load_glbl } {
+      # TODO: revisit this for pure vhdl, causing failures
+      set b_add_glbl 1
+    }
+  }
+
+  # force compile glbl
+  if { !$b_add_glbl } {
+    if { $::tclapp::aldec::common::helpers::properties(b_force_compile_glbl) } {
+      set b_add_glbl 1
+    }
+  }
+
+  # force no compile glbl
+  if { $b_add_glbl && $::tclapp::aldec::common::helpers::properties(b_force_no_compile_glbl) } {
+    set b_add_glbl 0
+  }
+  
+  if { $b_add_glbl } {
+    set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
+    if { [ ::tclapp::aldec::common::helpers::isGlblByUser ] == 1 } {
+      lappend opts "unisims_ver.glbl"
+    } else {
+      lappend opts "${top_lib}.glbl"
+    }	
+  }
 }
 
 proc usf_aldec_get_simulation_cmdline {} {
@@ -859,15 +1638,9 @@ proc usf_aldec_get_simulation_cmdline {} {
 	set top_lib [ ::tclapp::aldec::common::helpers::usf_get_top_library ]
 	lappend argumentsList "${top_lib}.${top}"
 
-	#set design_files $::tclapp::aldec::common::helpers::properties(designFiles)
-	if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName COMPILE.LOAD_GLBL] $fs_obj ] } {	
-		if { [ ::tclapp::aldec::common::helpers::isGlblByUser ] == 1 } {
-			lappend argumentsList "unisims_ver.glbl"
-		} else {
-			lappend argumentsList "${top_lib}.glbl"
-		}
-	}
-
+	set top_level_inst_names {}
+	usf_add_glbl_top_instance argumentsList $top_level_inst_names
+	
 	return [ join $argumentsList " " ]
 }
 
@@ -1208,7 +1981,7 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.28 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.31 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
@@ -1230,7 +2003,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "#"
 		puts $_file "# Filename    : $_fileName"
 		puts $_file "# Simulator   : $simulatorName Simulator"
-		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.28"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.31"
 		puts $_file "# Created on  : $timestamp"
 		puts $_file "#"
 		puts $_file "# usage: $_fileName"
@@ -1242,7 +2015,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "REM"
 		puts $_file "REM Filename    : $_fileName"
 		puts $_file "REM Simulator   : $simulatorName Simulator"
-		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.28"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.31"
 		puts $_file "REM Created on  : $timestamp"
 		puts $_file "REM"
 		puts $_file "REM usage: $_fileName"
@@ -1340,6 +2113,17 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
 	set xilinxPath $::env(XILINX_VIVADO)
 	set simulatorVersion [get_param "simulator.${simulator}.version"]
 	set gccVersion [get_param "simulator.${simulator}.gcc.version"]
+	
+	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
+		if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+			set xv_cxl_lib_path_dir "simlibs"
+		} else {
+			set xv_cxl_lib_path_dir [ ::tclapp::aldec::common::helpers::getCompiledLibraryLocation ]
+		}
+
+		puts $scriptFileHandle "export xv_cxl_lib_path=\"$xv_cxl_lib_path_dir\""   
+		puts $scriptFileHandle "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
+	}
 
 	set xvCptLibPath [ file join $xilinxPath "data" "simmodels" "riviera" $simulatorVersion "lnx64" $gccVersion "systemc" "protected" ]
 	if { [ file exists $xvCptLibPath ] && [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] } {
@@ -1356,7 +2140,17 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
             set sc_lib   $key
             set lib_path $value
             set lib_dir "$lib_path"
-			
+
+            if { $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
+              set lib_name [file tail $lib_path]
+              set lib_type [file tail [file dirname $lib_path]]
+              if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+                # skip
+              } else {
+                set lib_dir "[getLibraryDir]/$lib_name"
+              }
+            }
+
             lappend shared_ip_libs $lib_dir
           }
  

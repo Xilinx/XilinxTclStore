@@ -210,6 +210,7 @@ proc usf_modelsim_setup_args { args } {
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
   # [-scripts_only]: Only generate scripts
+  # [-gui]: Invoke simulator in GUI mode for scripts only
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
@@ -237,6 +238,7 @@ proc usf_modelsim_setup_args { args } {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-scripts_only"           { set a_sim_vars(b_scripts_only)           1 }
+      "-gui"                    { set a_sim_vars(b_gui)                    1 }
       "-absolute_path"          { set a_sim_vars(b_absolute_path)          1 }
       "-batch"                  { set a_sim_vars(b_batch)                  1 }
       "-int_ide_gui"            { set a_sim_vars(b_int_is_gui_mode)        1 }
@@ -1303,8 +1305,13 @@ proc usf_modelsim_create_do_file_for_simulation { do_file } {
   if { $a_sim_vars(b_batch) } {
     puts $fh "\nquit -force"
   } elseif { $a_sim_vars(b_scripts_only) } {
-    if { [get_param "simulator.quitOnSimulationComplete"] } {
-      puts $fh "\nquit -force"
+    # for scripts_only mode, set script for simulator gui mode (do not quit)
+    if { $a_sim_vars(b_gui) } {
+      # run simulation
+    } else {
+      if { [get_param "simulator.quitOnSimulationComplete"] } {
+        puts $fh "\nquit -force"
+      }
     }
   } else {
     # launch_simulation - if called from vivado in batch or Tcl mode, quit
@@ -1367,8 +1374,14 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
         set batch_sw {}
       }
     }
-  }
 
+    # for scripts_only mode, set script for simulator gui mode (don't pass -c)
+    if { {} != $batch_sw } {
+      if { $a_sim_vars(b_gui) } {
+        set batch_sw {}
+      }
+    }
+  }
 
   set s_64bit {}
   if {$::tcl_platform(platform) == "unix"} {
