@@ -1,0 +1,10 @@
+  Description: 
+
+    Command to set min/max output delay
+
+  Example:
+
+    set_osdzu3_output_delay <COMMAND_LINE_FOR_SET_OUTPUT_DELAY>
+    set_osdzu3_output_delay -min -clock clk 0.1 [get_ports out*]
+    set_osdzu3_output_delay -max -clock clk 0.4 [get_ports out*]
+
