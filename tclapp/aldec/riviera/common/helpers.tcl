@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.28
+package provide ::tclapp::aldec::common::helpers 1.32
 
 namespace eval ::tclapp::aldec::common {
 
@@ -832,6 +832,13 @@ proc usf_init_vars {} {
   set properties(s_sim_top)        [get_property "TOP" [current_fileset -simset]]
   set properties(associatedLibrary) [get_property "DEFAULT_LIB" $project]
   
+  set properties(b_compile_simmodels)       0
+  set properties(l_simmodel_compile_order)  [list]
+  set properties(s_simlib_dir)              {}
+  set properties(b_int_export_source_files) 0
+  set properties(s_gcc_bin_path)            {}
+  set properties(b_int_compile_glbl)  0
+  
   # launch_simulation tcl task args
   set properties(simset)           [current_fileset -simset]
   set properties(mode)             "behavioral"
@@ -860,9 +867,11 @@ proc usf_init_vars {} {
 #      set properties(b_int_en_vitis_hw_emu_mode) 1
 #    }
 
-  set properties(dynamic_repo_dir)   [get_property ip.user_files_dir [current_project]]
-  set properties(ipstatic_dir)       [get_property sim.ipstatic.source_dir [current_project]]
-  set properties(b_use_static_lib)   [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  set properties(dynamic_repo_dir)        [get_property ip.user_files_dir [current_project]]
+  set properties(ipstatic_dir)            [get_property sim.ipstatic.source_dir [current_project]]
+  set properties(b_use_static_lib)        [get_property sim.ipstatic.use_precompiled_libs [current_project]]
+  
+  set properties(b_force_no_compile_glbl) [get_property "force_no_compile_glbl" [get_filesets $properties(simset)]] 
 
   set data_dir [rdi::get_data_dir -quiet -datafile "ip/xilinx"]
   set properties(ip_repository_path) [file normalize [file join $data_dir "ip/xilinx"]]
@@ -937,6 +946,8 @@ proc usf_init_vars {} {
 
   # netlist file
   set properties(s_netlist_file)            {}
+  
+  xcs_set_common_param_vars
 }
 
 proc usf_create_options { simulator opts } {
@@ -1500,6 +1511,12 @@ proc usf_contains_verilog { design_files } {
     }
   }
 
+  if { [usf_glbl_dependency_for_xpm] } {
+    if { !$b_verilog_srcs } {
+      set b_verilog_srcs 1
+    }
+  }
+
   if { (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && (!$b_verilog_srcs) } {
     set extn [file extension $properties(s_netlist_file)]
     if { {.v} == $extn } {
@@ -1508,6 +1525,21 @@ proc usf_contains_verilog { design_files } {
   }
 
   return $b_verilog_srcs
+}
+
+proc usf_glbl_dependency_for_xpm {} {
+
+  foreach library [ getXpmLibraries ] {
+    foreach file [rdi::get_xpm_files -library_name $library] {
+      set filebase [file root [file tail $file]]
+      # xpm_cdc core has depedency on glbl
+      if { {xpm_cdc} == $filebase } {
+        return 1
+      }
+    }
+  }
+
+  return 0
 }
 
 proc usf_is_fileset { tcl_obj } {
@@ -1583,14 +1615,44 @@ proc usf_compile_glbl_file { simulator b_load_glbl design_files } {
   set fileset_object      [get_filesets $properties(simset)]
   set target_lang [get_property "TARGET_LANGUAGE" [current_project]]
   set flow        $properties(s_simulation_flow)
-  if { [usf_contains_verilog $design_files] } {
-    return 1
+
+  if { [ usf_contains_verilog $design_files ] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
+  } elseif { [ usf_glbl_dependency_for_xpm ] } {
+    if { $b_load_glbl } {
+      return 1
+    }
+    return 0
   }
+
   # target lang is vhdl and glbl is added as top for post-implementation and post-synthesis and load glbl set (default)
   if { ((({VHDL} == $target_lang) || ({VHDL 2008} == $target_lang)) && (({post_synth_sim} == $flow) || ({post_impl_sim} == $flow)) && $b_load_glbl) } {
     return 1
   }
+  
+  
+  if { $properties(b_int_compile_glbl) } {
+    return 1
+  }
+
   return 0
+}
+
+proc xcs_set_common_param_vars { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable properties
+
+  set properties(b_force_compile_glbl) [get_param "project.forceCompileGlblForSimulation"]
+
+  if { !$properties(b_force_compile_glbl) } {
+    set properties(b_force_compile_glbl) [ get_property "force_compile_glbl" [get_filesets $properties(simset)] ]
+  }
 }
 
 proc usf_copy_glbl_file {} {
@@ -1829,6 +1891,36 @@ proc usf_aldec_set_simulator_path {} {
   }
 }
 
+
+proc usf_aldec_set_gcc_path {} {
+  variable properties
+
+  if { $properties(s_gcc_bin_path) != "" && [ file exists $properties(s_gcc_bin_path) ] } {
+    return
+  }
+
+  set directoryPath [ file dirname $properties(s_tool_bin_path)]
+
+  switch -- [get_property target_simulator [current_project]] {
+    Riviera {
+      if {$::tcl_platform(platform) == "unix"} {
+
+        set gccPath [ file join $directoryPath "gcc_Linux" ]
+        if { ![ file exists $gccPath ] } {
+          set gccPath [ file join $directoryPath "gcc_Linux64" ]
+        }
+        set properties(s_gcc_bin_path) [ file join $gccPath "bin" ]
+      } else {
+
+        set properties(s_gcc_bin_path) [ file join $directoryPath "mingw" "bin" ]
+      }
+    }
+    ActiveHDL {
+      set properties(s_gcc_bin_path) [ file join $directoryPath "mingw" "bin" ]
+    }
+  }
+}
+
 proc usf_get_files_for_compilation { global_files_str_arg } {
   # Summary:
   # Argument Usage:
@@ -1874,12 +1966,85 @@ proc getVersalCipsLibrary {} {
 	return ""
 }
 
+
+proc getLibraryVersion { _ipdef } {
+  set ip_name [ lindex [ split $_ipdef ":" ] 2 ]
+  set ip_version [ lindex [ split $_ipdef ":" ] 3 ]
+
+  set ipNameVersion $ip_name  
+  append ipNameVersion "_v"
+  append ipNameVersion [ string map {. "_"} $ip_version ]
+
+  return $ipNameVersion
+}
+
+proc findLibraryFile { _libarayName } {
+  set libraryLocation [ getCompiledLibraryLocation ]
+
+  foreach libraryDirectory [ glob -nocomplain -directory $libraryLocation * ] {
+    if { ![ file isdirectory $libraryDirectory ] } {
+      continue
+    }
+
+    set libraryName [ file tail $libraryDirectory ]
+    if { [ string first $_libarayName $libraryName ] == -1 } {
+      continue
+    }
+
+    foreach file [ glob -nocomplain -directory $libraryDirectory * ] {
+      set fileExtension [ file extension $file ]
+      if { {.o} == $fileExtension } {
+        return $file
+      }
+    }
+  }
+
+  return ""
+}
+
+proc getZynqUltraLibrary {} {
+
+  set libraryLocation [ getCompiledLibraryLocation ]
+
+  set ip_objs [get_ips -all -quiet]
+  foreach ip_obj $ip_objs {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [ lindex [ split $ipdef ":" ] 2 ] 	
+	set ipNameVersion [ getLibraryVersion $ipdef ]
+
+	if { [ regexp "^zynq_ultra_ps_e.*" $ipNameVersion ] } {
+	  set libraryFile [ findLibraryFile $ipNameVersion ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+
+	  set libraryFile [ findLibraryFile $ip_name ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+	} elseif { [ regexp "^zynq_ultra_ps_e_vip_.*" $ipNameVersion ] } {
+	  set libraryFile [ findLibraryFile $ipNameVersion ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+
+	  set libraryFile [ findLibraryFile $ip_name ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+	}
+  }
+
+  return ""
+}
+
 proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable versalCips
+  variable zynqUltra
   variable properties
   variable compiledLibraries
   variable systemVerilogPackageLibraries	
@@ -1954,21 +2119,42 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         foreach {key value} [array get a_shared_library_path_coln] {
           set shared_lib_name $key
           set lib_path        $value
-	
+
           set incl_dir "$lib_path/include"
-          if { [file exists $incl_dir] } {
-            if { !$properties(use_absolute_paths) } {
-              # get relative file path for the compiled library
-              set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
+          if { $properties(b_compile_simmodels) } {
+            set lib_name [ file tail $lib_path ]
+            set lib_type [ file tail [ file dirname $lib_path ] ]
+
+            if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
+              lappend l_C_incl_dirs_opts "-I \"$lib_path/include\""
+              
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
+            } else {
+              set incl_dir "simlibs/$lib_name/include"
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+
+              set lib_path [ file join [ getLibraryDir ] $lib_name ]
+
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
+            }  
+
+          } else {
+            if { [file exists $incl_dir] } {
+              if { !$properties(use_absolute_paths) } {
+                # get relative file path for the compiled library
+                set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
+              }
+              #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+              lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+
+              set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
+              set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
             }
-            #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
-            lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
-			
-			set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
-			set ststemCLibraryNames "$ststemCLibraryNames -l[file tail $lib_path]"
           }
         }
-    
+
         foreach incl_dir [get_property "SYSTEMC_INCLUDE_DIRS" $fs_obj] {
           if { !$properties(use_absolute_paths) } {
             set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
@@ -1984,8 +2170,16 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 			set versalCipsLibrary [ getVersalCipsLibrary ]
 			if { $versalCipsLibrary != "" } {
 				set ststemCLibraryNames "$ststemCLibraryNames $versalCipsLibrary"
-			}	
+			}
 		}
+
+		if { $zynqUltra == 1 } {
+		  set zynqUltraLibrary [ getZynqUltraLibrary ]
+		  if { $zynqUltraLibrary != "" } {
+			set ststemCLibraryNames "$ststemCLibraryNames $zynqUltraLibrary"
+		  }
+		}
+
       }
     }
   }
@@ -2260,6 +2454,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   }
   
   return $files
+}
+
+proc getLibraryDir { } {
+  set libraryDir [ string tolower [ get_property target_simulator [ current_project ] ] ]
+  append libraryDir "_lib"
+  
+  return $libraryDir
 }
 
 proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
@@ -4991,7 +5192,7 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
             }
           }
         }
-        if { [file exists $sh_file_path] } {
+        if { [file exists $sh_file_path] || $::tclapp::aldec::common::helpers::properties(b_compile_simmodels) } {
           if { ![info exists a_shared_library_path_coln($shared_libname)] } {
             set a_shared_library_path_coln($shared_libname) $lib_dir
             set lib_path_dir [file dirname $lib_dir]
@@ -5137,6 +5338,7 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
 
 proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   variable versalCips
+  variable zynqUltra
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5144,6 +5346,7 @@ proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
   set versalCips 0
+  set zynqUltra 0
   set ref_libs            [list]
   set uniq_ref_libs       [list]
   set v_ip_names          [list]
@@ -5169,6 +5372,8 @@ proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
 
 	  if { $ip_def == "versal_cips" } {
 		set versalCips 1
+	  } elseif { $ip_def == "zynq_ultra_ps_e" } {
+	    set zynqUltra 1
 	  }
 
       if { [string equal -nocase $tlm_type "tlm"] == 1 } { 
