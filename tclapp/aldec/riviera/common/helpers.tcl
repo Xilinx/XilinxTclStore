@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.31
+package provide ::tclapp::aldec::common::helpers 1.32
 
 namespace eval ::tclapp::aldec::common {
 
@@ -1966,12 +1966,85 @@ proc getVersalCipsLibrary {} {
 	return ""
 }
 
+
+proc getLibraryVersion { _ipdef } {
+  set ip_name [ lindex [ split $_ipdef ":" ] 2 ]
+  set ip_version [ lindex [ split $_ipdef ":" ] 3 ]
+
+  set ipNameVersion $ip_name  
+  append ipNameVersion "_v"
+  append ipNameVersion [ string map {. "_"} $ip_version ]
+
+  return $ipNameVersion
+}
+
+proc findLibraryFile { _libarayName } {
+  set libraryLocation [ getCompiledLibraryLocation ]
+
+  foreach libraryDirectory [ glob -nocomplain -directory $libraryLocation * ] {
+    if { ![ file isdirectory $libraryDirectory ] } {
+      continue
+    }
+
+    set libraryName [ file tail $libraryDirectory ]
+    if { [ string first $_libarayName $libraryName ] == -1 } {
+      continue
+    }
+
+    foreach file [ glob -nocomplain -directory $libraryDirectory * ] {
+      set fileExtension [ file extension $file ]
+      if { {.o} == $fileExtension } {
+        return $file
+      }
+    }
+  }
+
+  return ""
+}
+
+proc getZynqUltraLibrary {} {
+
+  set libraryLocation [ getCompiledLibraryLocation ]
+
+  set ip_objs [get_ips -all -quiet]
+  foreach ip_obj $ip_objs {
+    set ipdef [get_property -quiet IPDEF $ip_obj]
+    set ip_name [ lindex [ split $ipdef ":" ] 2 ] 	
+	set ipNameVersion [ getLibraryVersion $ipdef ]
+
+	if { [ regexp "^zynq_ultra_ps_e.*" $ipNameVersion ] } {
+	  set libraryFile [ findLibraryFile $ipNameVersion ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+
+	  set libraryFile [ findLibraryFile $ip_name ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+	} elseif { [ regexp "^zynq_ultra_ps_e_vip_.*" $ipNameVersion ] } {
+	  set libraryFile [ findLibraryFile $ipNameVersion ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+
+	  set libraryFile [ findLibraryFile $ip_name ]
+	  if { $libraryFile != "" } {
+        return $libraryFile
+	  }
+	}
+  }
+
+  return ""
+}
+
 proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # Summary:
   # Argument Usage:
   # Return Value:
 
   variable versalCips
+  variable zynqUltra
   variable properties
   variable compiledLibraries
   variable systemVerilogPackageLibraries	
@@ -2097,8 +2170,16 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 			set versalCipsLibrary [ getVersalCipsLibrary ]
 			if { $versalCipsLibrary != "" } {
 				set ststemCLibraryNames "$ststemCLibraryNames $versalCipsLibrary"
-			}	
+			}
 		}
+
+		if { $zynqUltra == 1 } {
+		  set zynqUltraLibrary [ getZynqUltraLibrary ]
+		  if { $zynqUltraLibrary != "" } {
+			set ststemCLibraryNames "$ststemCLibraryNames $zynqUltraLibrary"
+		  }
+		}
+
       }
     }
   }
@@ -5257,6 +5338,7 @@ proc usf_find_shared_lib_paths { simulator clibs_dir custom_sm_lib_dir b_int_sm_
 
 proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   variable versalCips
+  variable zynqUltra
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5264,6 +5346,7 @@ proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
   set versalCips 0
+  set zynqUltra 0
   set ref_libs            [list]
   set uniq_ref_libs       [list]
   set v_ip_names          [list]
@@ -5289,6 +5372,8 @@ proc usf_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
 
 	  if { $ip_def == "versal_cips" } {
 		set versalCips 1
+	  } elseif { $ip_def == "zynq_ultra_ps_e" } {
+	    set zynqUltra 1
 	  }
 
       if { [string equal -nocase $tlm_type "tlm"] == 1 } { 
