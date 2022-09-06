@@ -1,3 +1,4 @@
+3.532 Ignore cluster_configuration property on run if it is invalid
 3.531 delete obsolete help file
 3.530 deleted utils not required for projutils
 3.529 move export simulation to native
