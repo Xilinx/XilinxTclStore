@@ -218,8 +218,15 @@ proc copy_run_ {} {
 
   # these should all be read-only == false (that's all we set)
   set ignore_properties     { ADD_STEP CONSTRSET DESCRIPTION FLOW NAME NEEDS_REFRESH PARENT PART SRCSET STRATEGY }
+  set runToCopyClusterConf  [get_property CLUSTER_CONFIGURATION $m_cpr_options(run_to_copy) -quiet]
+  if { $runToCopyClusterConf != {} } {
+    if { [get_cluster_configurations -quiet $runToCopyClusterConf] == {} } {
+      lappend ignore_properties "CLUSTER_CONFIGURATION"
+    }
+  }
 
   if { $m_cpr_options(verbose) } { 
+    send_msg_id Vivado-projutils-416 INFO "Ignoring properties: ${ignore_properties}\n"
     send_msg_id Vivado-projutils-409 INFO "Copying properties: ${all_property_names}\n"
   }
 
