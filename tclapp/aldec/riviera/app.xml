@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2022.2 to 2023.1</revision_history>
+      <revision_history>SPT81535 - addsc: symbol lookup error: Zynq ultra scale RFSoC through SystemC TLM Flow</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
