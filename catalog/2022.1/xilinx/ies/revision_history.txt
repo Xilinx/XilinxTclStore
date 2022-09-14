@@ -1,6 +1,7 @@
+4.79 check for leaf dir name wrt library name for linked library
 4.78 Extract IP file name from core-container to determine SV package libraries
 4.77 add simprims_ver mapping to resolve duplicate bindings
-4.76 bind noc_na for netlist simulation
+4.76 merged 2021.1-dev to 2021.2-dev
 4.75 set optional arg for simulate step
 4.74 find available boost library from RDI_DATA_DIR
 4.73 check for file before inspecting core container property
