@@ -1,0 +1,10 @@
+  Description: 
+
+    Command to set Octave Osdzu3 SiP package pin location
+
+  Example:
+
+    set_osdzu3_package_pin <OSDZU3_SiP_Package_Pin> <topLevelPort>
+    set_osdzu3_package_pin AD21 myport
+
+
