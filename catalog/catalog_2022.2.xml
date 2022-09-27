@@ -73,6 +73,12 @@
       <revision>2.15</revision>
     </app>
     <app>
+      <name>osdzu3</name>
+      <company>octavo</company>
+      <commit_id>f75994abe8b630e53ead9e2e8f878f2d1fec8c72</commit_id>
+      <revision>1.0</revision>
+    </app>
+    <app>
       <name>pcbutils</name>
       <company>xilinx</company>
       <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
