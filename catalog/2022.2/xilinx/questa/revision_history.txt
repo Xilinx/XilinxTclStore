@@ -1,3 +1,31 @@
+2.275 launch target simulator for scripts only
+2.274 option for invoking simulator gui in scripts mode
+2.273 code cleanup for aie_cluster binding
+2.272 support for defines and generics for export flow
+2.271 fixed aie directory path
+2.270 detect AIE config type
+2.269 helpers for define, generic
+2.268 script cleanup
+2.267 helpers for define and generic
+2.266 check for aie ml env and bind aie2
+2.265 suppress 10016 warning for vopt missing library option set for vlog
+2.264 merged 2022.1-dev to 2022.2-dev
+2.263 find simulation model directory paths from rdi datadir env values
+2.262 get and fix library path for VCS
+2.261 set ip repository directory name based on property
+2.260 helper proc to call execute_script task for linux
+2.259 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+2.258 disable binding of versal_cips when param is set
+2.257 throw error message in catch
+2.256 support for asm file compilation
+2.255 hide debug message under var
+2.254 helper to detect gcc version mismatch
+2.253 refactored gcc path and version detection
+2.252 helper proc to fetch simulation model version
+2.251 debug proc to print static file info
+2.250 fixed options for non-precompile mode
+2.249 fixed library search order to pass launch dir
+2.248 support for local VCS compiled simmodel library path for non-precompile flow
 2.247 source vitis_params for setting region path variables
 2.246 donot initialize variables for step flow
 2.245 support for configuration options for sim models

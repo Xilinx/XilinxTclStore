@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>donot prepend xv_ref_path and use full simmodel library path for non-precompile mode</revision_history>
+      <revision_history>launch target simulator for scripts only</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

@@ -1,6 +1,16 @@
-2.437 donot prepend xv_ref_path and use full simmodel library path for non-precompile mode
-2.436 check for aie ml env and bind aie2
-2.435 revert support for toggle coverage type
+2.447 launch target simulator for scripts only
+2.446 option for invoking simulator gui in scripts mode
+2.445 code cleanup for aie_cluster binding
+2.444 support for defines and generics for export flow
+2.443 fixed aie directory path
+2.442 support for discrete coverage type values
+2.441 detect AIE config type
+2.440 support for toggle coverage type
+2.439 helpers for define, generic
+2.438 script cleanup
+2.437 helpers for define and generic
+2.436 donot prepend xv_ref_path and use full simmodel library path for non-precompile mode
+2.435 check for aie ml env and bind aie2
 2.434 support for toggle coverage type
 2.433 delete src dir for non-precompile export flow
 2.432 remove gcc version for conditional decoupling

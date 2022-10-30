@@ -1,5 +1,45 @@
-3.489 updated help for export_simulation
-3.488 fixed system design detection check
+3.533 generate_target for bd with block containers when needed
+3.532 Ignore cluster_configuration property on run if it is invalid
+3.531 delete obsolete help file
+3.530 deleted utils not required for projutils
+3.529 move export simulation to native
+3.528 auto generate switch network
+3.527 check for gui mode in order to update compile order
+3.526 auto generate IP and export files
+3.525 donot print warnings for non-existent compiled library dir
+3.524 helpers for define and generic
+3.523 fixed summary description for apps
+3.522 fixed summary description
+3.521 remove setup_ip_static_library and export_ip_user_files
+3.520 refactor setup_ip_static_library to native task
+3.519 refactor export_ip_user_files to native task
+3.517 revert refactor export_ip_user_files to native task
+3.515 resolve verilog header source file paths for export absolute nonprecompile mode
+3.514 merged 2022.1-dev to 2022.2-dev
+3.511 get and fix library path for VCS
+3.512 write_project_tcl quiet issue
+3.511 write_project_tcl and copy_run support for different DFX modes
+3.510 additonal fix for absolute remote path
+3.509 support for absolute remote path
+3.508 set ip repository directory name based on property
+3.507 helper proc to call execute_script task for linux
+3.506 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+3.505 disable binding of versal_cips when param is set
+3.504 throw error message in catch
+3.502 support for asm file compilation
+3.501 helper to detect gcc version mismatch
+3.500 refactored gcc path and version detection
+3.499 enable systemC support var to true
+3.498 set protobuf binding param
+3.497 filter simulator version properties
+3.496 helper proc to fetch simulation model version
+3.495 debug proc to print static file info
+3.494 pass more options for xrun
+3.493 fixed library search order to pass launch dir
+3.492 fixed source file path for export_source_files switch
+3.491 updated message for NoC status
+3.490 check for NoC and switch network generation status
+3.488 updated help for export_simulation
 3.487 updated comment for cache vars
 3.485 bind user specified systemc/C/C++ libraries during elaboration
 3.484 refactored library search order proc to utils
@@ -12,7 +52,7 @@
 3.477 IDR run support
 3.476 Removed create_rqs_run command
 3.475 Extract IP file name from core-container to determine SV package libraries
-3.474 merged 2021.1-dev to 2021.2-dev
+3.474 Write project tcl exclude properties is now based on class name rather than object name
 3.473 Fix for write_project_tcl not adding generate_target for rm files.
 3.472 pass vlog -mfsu to treat all sources as single compilation unit
 3.471 Use relative path in checkRequiredFiles proc

@@ -290,6 +290,7 @@ proc usf_vcs_setup_args { args } {
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
   # [-scripts_only]: Only generate scripts
+  # [-gui]: Invoke simulator in GUI mode for scripts only
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
@@ -339,6 +340,7 @@ proc usf_vcs_setup_args { args } {
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
+      "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
       "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
@@ -1476,12 +1478,15 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
-            set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
-            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-            # TODO: find way to make this data-driven
+            set model_ver [rdi::get_aie_config_type]
+            set lib_name "${model_ver}_cluster_v1_0_0"
+            if { {aie} == $model_ver } {
+              set lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
+            } else {
+              set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
+            }
             set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-l$model_ver"]
+            set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
 
@@ -1504,17 +1509,20 @@ proc usf_vcs_write_elaborate_script {} {
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-            set model_ver [xcs_get_sim_model_ver "aie_cluster_v"]
-            set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
-            # 1080663 - bind with aie_xtlm_v1_0_0 during compile time
-            # TODO: find way to make this data-driven
+            set model_ver [rdi::get_aie_config_type]
+            set lib_name "${model_ver}_cluster_v1_0_0"
+            if { {aie} == $model_ver } {
+              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
+            } else {
+              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
+            }
             set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           }
           if { [xcs_is_sc_library $shared_lib_name] } {
             set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
-          } else { 
+          } else {
             set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
           }
         }
@@ -1936,6 +1944,11 @@ proc usf_vcs_write_simulate_script {} {
     # no gui
     if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
       set arg_list [linsert $arg_list end "\$mode"]
+    } else {
+      # for scripts_only mode, set script for simulator gui mode (pass -gui)
+      if { $a_sim_vars(b_gui) } {
+        set arg_list [linsert $arg_list end "-gui"]
+      }
     }
   } else {
     # launch_simulation - if called from vivado in gui mode only

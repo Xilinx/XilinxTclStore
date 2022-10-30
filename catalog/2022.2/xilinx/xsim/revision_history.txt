@@ -1,3 +1,37 @@
+2.447 launch target simulator for scripts only
+2.446 option for invoking simulator gui in scripts mode
+2.445 code cleanup for aie_cluster binding
+2.444 support for defines and generics for export flow
+2.443 fixed aie directory path
+2.442 support for discrete coverage type values
+2.441 detect AIE config type
+2.440 support for toggle coverage type
+2.439 helpers for define, generic
+2.438 script cleanup
+2.437 helpers for define and generic
+2.436 donot prepend xv_ref_path and use full simmodel library path for non-precompile mode
+2.435 check for aie ml env and bind aie2
+2.434 support for toggle coverage type
+2.433 merged 2022.1-dev to 2022.2-dev
+2.432 remove gcc version for conditional decoupling
+2.431 pass gcc version for conditional decoupling
+2.430 find simulation model directory paths from rdi datadir env values
+2.429 pass gcc version to xsc
+2.428 get and fix library path for VCS
+2.427 set ip repository directory name based on property
+2.426 helper proc to call execute_script task for linux
+2.425 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+2.424 disable binding of versal_cips when param is set
+2.423 throw error message in catch
+2.422 support for asm file compilation
+2.421 hide debug message under var
+2.420 helper to detect gcc version mismatch
+2.419 refactored gcc path and version detection
+2.418 escape double quotes with back-slash for echo
+2.417 helper proc to fetch simulation model version
+2.416 debug proc to print static file info
+2.415 fixed library search order to pass launch dir
+2.414 support for local VCS compiled simmodel library path for non-precompile flow
 2.413 source vitis_params for setting region path variables
 2.412 donot initialize variables for step flow
 2.411 added sbc as short form values for coverage type

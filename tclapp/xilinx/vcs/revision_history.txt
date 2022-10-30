@@ -1,3 +1,6 @@
+10.7 launch target simulator for scripts only
+9.99 script cleanup
+9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2
 9.96 pass g++ switches
 9.95 pass object files for library creation

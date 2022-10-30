@@ -370,8 +370,8 @@ proc write_project_tcl_script {} {
   wr_prflow $proj_dir $proj_name
   if { !$a_global_vars(b_arg_use_bd_files) } {
     wr_bd
-    wr_bd_bc_specific
   }
+  wr_bd_bc_specific
 
   # write BC and RM filesets to handle extra files(ELF, XDC) added
   if { [llength $l_bc_filesets] > 0 } {
@@ -928,15 +928,19 @@ proc wr_bd_bc_specific {} {
     set partitionDefs [get_partition_defs -filter "IS_BLOCK_CONTAINER_MANAGED == 1"]
 		set pDefs_size [llength $partitionDefs]
   }
+
+  if { $bc_filesets_size !=0 && $pDefs_size == 0} {
+    return
+  }
+  
   foreach bd_file $bd_files {
-    set refs [ get_files -quiet -references -of_objects [ get_files $bd_file ] ]
     # If BD has references and project has BC filesets, then 
     # we are assuming it as it is top level BD with BCs
     # TODO - Need to check whether this assumption works for all cases
-    set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
-    set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
-    set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
-    if { [llength $refs] != 0 && $is_generated == 1 && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
+
+    set has_block_container [get_property has_block_container [get_files $bd_file]]
+
+    if { $has_block_container && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
       set filename [file tail $bd_file]
       lappend l_script_data "generate_target all \[get_files $filename\]\n"
     }
@@ -1511,6 +1515,19 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
     set prop_type "unknown"
     if { [string equal $type "run"] } {
+
+      set ignore_properties {}
+      set clusterConf  [get_property CLUSTER_CONFIGURATION $tcl_obj -quiet]
+      if { $clusterConf != {} } {
+        if { [get_cluster_configurations -quiet $clusterConf] == {} } {
+          lappend ignore_properties "CLUSTER_CONFIGURATION"
+        }
+      }
+
+      if { [ lsearch -nocase $ignore_properties $prop ] != -1 } {
+        continue; # property is in ignore list, skipping
+      }
+
       # skip steps.<step_name>.reports dynamic read only property (to be populated by creation of reports)
       if { [regexp -nocase "STEPS\..*\.REPORTS" $prop] || [string equal -nocase "REPORT_STRATEGY" $prop] } {
         continue;
