@@ -1,3 +1,4 @@
+10.8 print debug message for local IP compilation
 10.7 merged 2022.2 to 2023.1
 9.99 script cleanup
 9.98 helpers for define and generic

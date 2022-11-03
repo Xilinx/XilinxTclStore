@@ -1,3 +1,4 @@
+11.128 print debug message for local IP compilation
 11.127 merged 2022.2 to 2023.1
 11.126 option for invoking simulator gui in scripts mode
 11.125 code cleanup for aie_cluster binding
