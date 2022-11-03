@@ -242,8 +242,12 @@ proc usf_xcelium_setup_simulation { args } {
   }
 
   # fetch design files
+  variable l_local_design_libraries
   set global_files_str {}
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [usf_get_files_for_compilation global_files_str]]
+
+  # print IPs that were not found from clibs
+  xcs_print_local_IP_compilation_msg $a_sim_vars(b_int_sm_lib_ref_debug) $l_local_design_libraries $a_sim_vars(compiled_library_dir)
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -392,8 +396,8 @@ proc usf_xcelium_verify_compiled_lib {} {
   }
   # return if found, else warning
   if { {} != $compiled_lib_dir } {
-   set a_sim_vars(s_compiled_lib_dir) $compiled_lib_dir
    send_msg_id USF-Xcelium-007 INFO "Using cds.lib from '$compiled_lib_dir/cds.lib'\n"
+   set a_sim_vars(compiled_library_dir) $compiled_lib_dir
    return $compiled_lib_dir
   }
   if { $a_sim_vars(b_scripts_only) } {
@@ -429,7 +433,7 @@ proc usf_xcelium_write_setup_files {} {
     send_msg_id USF-Xcelium-010 ERROR "Failed to open file to write ($file)\n"
     return 1
   }
-  set lib_map_path $a_sim_vars(s_compiled_lib_dir)
+  set lib_map_path $a_sim_vars(compiled_library_dir)
   if { {} == $lib_map_path } {
     set lib_map_path "?"
   }
@@ -1345,7 +1349,7 @@ proc usf_add_simmodel_mappings { } {
     send_msg_id USF-Xcelium-011 ERROR "Failed to open file to write ($cds_file)\n"
     return
   }
-  put $fh "INCLUDE $a_sim_vars(s_compiled_lib_dir)/cds.lib"
+  put $fh "INCLUDE $a_sim_vars(compiled_library_dir)/cds.lib"
   foreach line $l_current_mappings { puts $fh $line }
   foreach line $l_new_mappings     { puts $fh $line }
   close $fh
@@ -2042,7 +2046,7 @@ proc usf_xcelium_create_setup_script {} {
   puts $fh_scr ""
   puts $fh_scr "  touch \$file"
 
-  set compiled_lib_dir $a_sim_vars(s_compiled_lib_dir)
+  set compiled_lib_dir $a_sim_vars(compiled_library_dir)
   if { ![file exists $compiled_lib_dir] } {
     puts $fh_scr "  lib_map_path=\"<SPECIFY_COMPILED_LIB_PATH>\""
   } else {

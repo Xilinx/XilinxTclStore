@@ -29,7 +29,7 @@ proc usf_init_vars {} {
   xcs_set_common_vars a_sim_vars a_sim_mode_types
   xcs_set_common_sysc_vars a_sim_vars
 
-  set a_sim_vars(s_compiled_lib_dir)         {}
+  set a_sim_vars(compiled_library_dir)       {}
   set a_sim_vars(s_sys_link_path)            {}
 
   set a_sim_vars(b_exec_step)                0

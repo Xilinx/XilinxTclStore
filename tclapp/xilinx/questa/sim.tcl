@@ -244,8 +244,12 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # fetch design files
+  variable l_local_design_libraries
   set global_files_str {}
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [usf_get_files_for_compilation global_files_str]]
+
+  # print IPs that were not found from clibs
+  xcs_print_local_IP_compilation_msg $a_sim_vars(b_int_sm_lib_ref_debug) $l_local_design_libraries $a_sim_vars(compiled_library_dir)
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -426,6 +430,9 @@ proc usf_questa_verify_compiled_lib {} {
         send_msg_id USF_Questa-011 INFO "File '$ini_file_path' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
       }
     }
+  }
+  if { ({} != $compiled_lib_dir) && ([file exists $compiled_lib_dir]) } {
+   set a_sim_vars(compiled_library_dir) $compiled_lib_dir
   }
   return $compiled_lib_dir
 }

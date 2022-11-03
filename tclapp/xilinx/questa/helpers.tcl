@@ -30,6 +30,7 @@ proc usf_init_vars {} {
   xcs_set_common_sysc_vars a_sim_vars
 
   set a_sim_vars(s_simlib_dir)               {}
+  set a_sim_vars(compiled_library_dir)       {}
   set a_sim_vars(sp_xlnoc_bd_obj)            {}
    
   set a_sim_vars(b_exec_step)                0

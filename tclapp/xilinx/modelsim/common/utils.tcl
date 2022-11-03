@@ -4760,6 +4760,25 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
   }
 }
 
+proc xcs_print_local_IP_compilation_msg { b_print l_local_libs clibs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { $b_print && ([llength $l_local_libs] > 0) } {
+    puts "-----------------------------------------------------------------------------------------------------------"
+    puts "List of IP library version not found in clibs, these IP sources will be compiled locally with the design"
+    if { {} != $clibs } {
+      puts "(CLIBS:$clibs)"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
+    foreach lib $l_local_libs {
+      puts "$lib"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
+  }
+}
+
 proc xcs_get_simmodel_compile_order { } {
   # Summary:
   # Argument Usage:

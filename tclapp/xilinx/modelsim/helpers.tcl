@@ -29,6 +29,7 @@ proc usf_init_vars {} {
   xcs_set_common_vars a_sim_vars a_sim_mode_types
 
   set a_sim_vars(b_int_csim_compile_order)   0
+  set a_sim_vars(compiled_library_dir)       {}
 
   ###################
   # unitialize arrays
