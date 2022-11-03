@@ -3384,8 +3384,18 @@ proc add_reconfigmodule_subdesign_files { reconfigModule } {
 
   variable l_script_data
 
+  lappend l_script_data "set obj \[get_reconfig_modules $reconfigModule\]"
+
   foreach rmSubdesignFileset [get_property subdesign_filesets $reconfigModule] {
     foreach fileObj [get_files -quiet -norecurse -of_objects [get_filesets $rmSubdesignFileset]] {
+      set parentCompFile ""
+      set prop [list_property $fileObj PARENT_COMPOSITE_FILE]
+      if { $prop != "" } {
+        set parentCompFile [get_property PARENT_COMPOSITE_FILE $fileObj]
+      }
+      if { $parentCompFile != "" } {
+        continue;
+      }
       set path_dirs [split [string trim [file normalize [string map {\\ /} $fileObj ]]] "/"]
       set path [join [lrange $path_dirs end-1 end] "/"]
       set path [string trimleft $path "/"]
