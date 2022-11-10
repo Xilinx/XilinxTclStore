@@ -53,6 +53,7 @@ proc register_options { simulator } {
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}
     {{simulate.tcl.post}            {string} {}        {Specify post-simulate step TCL hook}}
     {{simulate.runtime}             {string} {1000ns}  {Specify simulation run time}}
+    {{simulate.add_wave}            {bool}   {1}       {Add objects to waveform}}
     {{simulate.log_all_signals}     {bool}   {0}       {Log all signals}}
     {{simulate.saif_scope}          {string} {}        {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}                {string} {}        {SAIF filename}}

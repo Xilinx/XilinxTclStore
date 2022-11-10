@@ -225,12 +225,24 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "power -enable"
   }
 
+  set b_add_wave 1
   if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$a_sim_vars(b_int_is_gui_mode)) } {
     # no op in batch mode
     if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-      puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
+      # add wave for hw_emu
+    } else {
+      # disable for batch/script/non-gui mode
+      set b_add_wave 0
     }
-  } else {
+  }
+
+  set b_add_wave_prop [get_property -quiet "vcs.simulate.add_wave" $a_sim_vars(fs_obj)]
+  # if request to disable?
+  if { $b_add_wave && !$b_add_wave_prop } {
+    set b_add_wave 0
+  }
+
+  if { $b_add_wave } {
     puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
   }
   
