@@ -1606,6 +1606,11 @@ proc usf_questa_get_simulation_cmdline {} {
     lappend arg_list "+pulse_int_r/$int_delay"
   }
 
+  set b_async_update [get_property -quiet "questa.simulate.sc_async_update" $a_sim_vars(fs_obj)]
+  if { $b_async_update } {
+    set arg_list [linsert $arg_list end "-scasyncupdate"]
+  }
+
   set more_sim_options [string trim [get_property "questa.simulate.vsim.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_sim_options } {
     set arg_list [linsert $arg_list end "$more_sim_options"]
