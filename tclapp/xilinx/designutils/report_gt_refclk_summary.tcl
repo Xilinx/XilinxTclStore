@@ -390,9 +390,14 @@ set bd_dk [current_bd_design]
         puts $outfilek "          1) Remove the Utility Buffer instantiation and associated external port connected to <gt_quad_base_j>_GTREFCLK1, <gt_quad_base_k>_GTREFCLK2"
         puts $outfilek "          2) Short the required gt_quad_base reference clocks (<gt_quad_base_i>_GTREFCLK0,<gt_quad_base_j>_GTREFCLK1,<gt_quad_base_k>_GTREFCLK2) at the Quad instance level."
         puts $outfilek ""
+        if {$gt_t == "GTM"} {
+        puts $outfilek "Imp Note: While optimizing please ensure Quads are placed adjacently and follow below rules(please refer AM017-Chapter2 Section:Reference clock selection and distribution)."
+        puts $outfilek "For Versal devices, sourcing of the reference clock is limited to two Quads above and below for duals operating at line rates from 9.5 Gb/s to 29 Gb/s (NRZ) and 19 Gb/s to 56.42 Gb/s (PAM4).Channels should source a local reference clock (from within its own Quad) for highest performance."
+        } else {
         puts $outfilek "Imp Note: While optimizing please ensure Quads are placed adjacently and follow below rules(please refer AM002-Chapter2 Section:Reference clock selection and distribution)."
         puts $outfilek " "
         puts $outfilek "          For Versal devices, sourcing of the reference clock is limited to two Quads above and below."
+        }
         puts $outfilek " "
         puts $outfilek " "
         puts $outfilek " =============================== Command to generate GT_REFCLOCK Summary in gt_quad_base IP based designs ==============================="
