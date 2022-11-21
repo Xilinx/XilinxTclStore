@@ -971,9 +971,19 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
 
   set tool "vsim"
   set arg_list [list]
+
+  set vopt_args [list]
   if { [get_property "modelsim.elaborate.acc" $a_sim_vars(fs_obj)] } {
-    set vopt_args "-voptargs=\"+acc\""
-    lappend arg_list $vopt_args
+    lappend vopt_args "+acc"
+  }
+  set more_vopt_options [string trim [get_property "modelsim.elaborate.vopt.more_options" $a_sim_vars(fs_obj)]]
+  if { {} != $more_vopt_options } {
+    lappend vopt_args $more_vopt_options
+  }
+
+  if { [llength $vopt_args] > 0 } {
+    set vopt_str [join $vopt_args " "]
+    lappend arg_list "-voptargs=\"$vopt_str\""
   }
 
   set path_delay 0
