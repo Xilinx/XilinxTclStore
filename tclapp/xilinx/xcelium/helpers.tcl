@@ -1634,11 +1634,19 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
 
-    set b_process_file 1
+    set b_process_static_file 1
+    #**************************************************************************************************************
+    # precompile flow set? find if this static ip file library is in CLIBS,
+    #   - if yes, then do not process/add this file in prj/do file (library will be referenced from clibs)
+    #   - if no, then add the library of this file in the collection for setting it to local area in indexing file.
+    #**************************************************************************************************************
     if { $a_sim_vars(b_use_static_lib) } {
-      # use pre-compiled lib
+      #
+      # use pre-compiled version from CLIBS, if the associated library for this static file is found 
+      #
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
-        set b_process_file 0
+        # FOUND in CLIBS (do not process)
+        set b_process_static_file 0
         set b_is_static 1
 
         #################################################################
@@ -1653,14 +1661,17 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         }
 
       } else {
-        # add this library to have the new library linkage in mapping file
+        # NOT-FOUND in CLIBS (add this library to have the new library linkage in mapping file and process this static file)
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
         }
       }
     }
 
-    if { $b_process_file } {
+    #**************************************************************************************************************
+    # non-precompile/locked/local repo? compile it locally with the design
+    #**************************************************************************************************************
+    if { $b_process_static_file } {
       if { $b_is_bd_ip } {
         set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(ipstatic_dir)]
       } else {
