@@ -27,8 +27,8 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>508219b46a4a7b4d518671392a07b738184c6e28</commit_id>
-      <revision>1.56</revision>
+      <commit_id>a91e1d8a9bde0690cfa757d2875ef9ca0516951f</commit_id>
+      <revision>1.57</revision>
     </app>
     <app>
       <name>diff</name>
@@ -87,8 +87,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>5ab95382ffdc25fca2f731dad8bc821d0fa5f98f</commit_id>
-      <revision>3.532</revision>
+      <commit_id>ee6d7458f5b8fac9acb6a037b93a96ce3c8953f8</commit_id>
+      <revision>3.533</revision>
     </app>
     <app>
       <name>protoip</name>

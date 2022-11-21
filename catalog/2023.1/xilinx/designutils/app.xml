@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed gtye5 to gt in help/comment</revision_history>
+      <revision_history>Various enhancements (report_gt_refclk_summary, prettyTable)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
