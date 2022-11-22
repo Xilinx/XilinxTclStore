@@ -723,6 +723,13 @@ proc usf_xsim_setup_args { args } {
     }
   }
 
+  #
+  # TEMP-FIX: set gcc flag
+  #
+  if { "9.3.0" == $a_sim_vars(s_gcc_version) } {
+    set a_sim_vars(b_gcc_version) 1
+  } 
+
   ###################
   # logic var setting
   ###################
@@ -1802,6 +1809,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   set args_list [list]
 
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    if { $a_sim_vars(b_gcc_version) } {
+      lappend args_list "--gcc_version gcc-$a_sim_vars(s_gcc_version)"
+    }
+  }
+
   set id [get_property "id" $a_sim_vars(curr_proj)]
   if { {} != $id } {
     #lappend args_list "-wto $id"
@@ -2289,6 +2302,13 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
   variable a_sim_vars
 
   set args_list [list]
+
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    if { $a_sim_vars(b_gcc_version) } {
+      lappend args_list "--gcc_version gcc-$a_sim_vars(s_gcc_version)"
+    }
+  }
+
   set lib_extn ".dll"
   if {$::tcl_platform(platform) == "unix"} {
     set lib_extn ".so"
@@ -3618,6 +3638,13 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     # 1. compile sources
     # 
     set xsc_arg_list [list]
+
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      if { $a_sim_vars(b_gcc_version) } {
+        lappend xsc_arg_list "--gcc_version gcc-$a_sim_vars(s_gcc_version)"
+      }
+    }
+
     lappend xsc_arg_list "-c"
     if { $b_dbg } { lappend xsc_arg_list "-dbg" }
   
@@ -3698,6 +3725,13 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
     if {$::tcl_platform(platform) == "windows"} { set switch_name "--shared_systemc" }
     if { {static} == $output_format } { switch_name "--static" }
     lappend xsc_arg_list $switch_name 
+
+    if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      if { $a_sim_vars(b_gcc_version) } {
+        lappend xsc_arg_list "--gcc_version gcc-$a_sim_vars(s_gcc_version)"
+      }
+    }
+
     # <LDFLAGS>
     if { [llength $ldflags] > 0 } { foreach ld_flag $ldflags { lappend xsc_arg_list "--gcc_link_options \"$ld_flag\"" } }
     if {$::tcl_platform(platform) == "windows"} {
@@ -3874,6 +3908,13 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
       close $fh_sc
 
       set xsc_arg_list [list]
+
+      if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+        if { $a_sim_vars(b_gcc_version) } {
+          lappend xsc_arg_list "--gcc_version gcc-$a_sim_vars(s_gcc_version)"
+        }
+      }
+ 
       lappend xsc_arg_list "-c"
       # revisit this once we switch to higher version (1.66 will support this by default)
       lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
