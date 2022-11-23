@@ -52,6 +52,8 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_simulate)          [list simulate.log]
   set a_sim_vars(run_logs)                   [concat $a_sim_vars(run_logs_compile) $a_sim_vars(run_logs_elaborate) $a_sim_vars(run_logs_simulate)]
 
+  set a_sim_vars(b_gcc_version)              0
+
   ###################
   # initialize arrays
   ###################
