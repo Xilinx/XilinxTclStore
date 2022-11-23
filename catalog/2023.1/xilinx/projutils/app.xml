@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Add Reconstruct message rule CR-131662.</revision_history>
+      <revision_history>Add Reconstruct message rule CR-131662</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
