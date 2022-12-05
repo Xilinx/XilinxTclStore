@@ -91,7 +91,7 @@ proc write_project_tcl {args} {
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
       "-validate"             { set a_global_vars(b_validate) 1 }
-      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 1}
+      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 0 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
