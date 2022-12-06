@@ -237,7 +237,7 @@ proc reset_global_vars {} {
   set a_global_vars(b_absolute_path)            0
   set a_global_vars(b_internal)                 0
   set a_global_vars(b_validate)                 0
-  set a_global_vars(b_ignore_msg_ctrl_rule)     1
+  set a_global_vars(b_ignore_msg_ctrl_rule)     0
   set a_global_vars(b_arg_all_props)            0
   set a_global_vars(b_arg_dump_proj_info)       0
   set a_global_vars(b_local_sources)            0
