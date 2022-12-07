@@ -44,6 +44,7 @@ proc write_project_tcl {args} {
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
   # [-internal]: Print basic header information in the generated tcl script
   # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
+  # [-ignore_msg_control_rules]: Do not imports message control rules in tcl script
   # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
@@ -90,6 +91,7 @@ proc write_project_tcl {args} {
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
       "-validate"             { set a_global_vars(b_validate) 1 }
+      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 0 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
@@ -235,6 +237,7 @@ proc reset_global_vars {} {
   set a_global_vars(b_absolute_path)            0
   set a_global_vars(b_internal)                 0
   set a_global_vars(b_validate)                 0
+  set a_global_vars(b_ignore_msg_ctrl_rule)     0
   set a_global_vars(b_arg_all_props)            0
   set a_global_vars(b_arg_dump_proj_info)       0
   set a_global_vars(b_local_sources)            0
@@ -427,7 +430,7 @@ proc write_project_tcl_script {} {
         path that was specified with this switch. The 'origin_dir' variable is set to '$a_global_vars(s_origin_dir_override)' in the generated script."
       }
     } else {
-      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wth respect to the 'origin_dir' variable in the\n\
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set with respect to the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced with respect to this 'origin_dir' path value.\n\
       In case this script was later moved to a different directory, the 'origin_dir' value must be set manually in the script with the path\n\
       relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
@@ -546,6 +549,19 @@ proc wr_validate_files {} {
   lappend l_script_validate "  return \$status"
   lappend l_script_validate "\}"
   return $l_script_validate  
+}
+
+proc add_msg_rules {} {
+  variable l_script_data
+  lappend l_script_data "# Reconstruct message rules"
+
+  set msg_control_rules [ debug::get_msg_control_rules -as_tcl ]
+  if { [string length $msg_control_rules] > 0 } {
+    lappend l_script_data "${msg_control_rules}"
+  } else {
+    lappend l_script_data "# None"
+  }
+  lappend l_script_data ""
 }
 
 proc wr_create_project { proj_dir name part_name } {
@@ -691,6 +707,9 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "set proj_dir \[get_property directory \[current_project\]\]"
 
   lappend l_script_data ""
+  if { !$a_global_vars(b_ignore_msg_ctrl_rule) } {
+    add_msg_rules
+  }
 }
 
 proc wr_project_properties { proj_dir proj_name } {

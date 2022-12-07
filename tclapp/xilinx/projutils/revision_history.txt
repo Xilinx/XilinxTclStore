@@ -1,3 +1,6 @@
+3.536 Set- default value to 0 for ignore_msg_control_rules
+3.535 Set- default value to 0 for ignore_msg_control_rules
+3.534 Add Reconstruct message rule CR-131662
 3.533 Add Reconstruct message rule CR-131662.
 3.531 Move Files of RM subdesign to RM fileset
 3.530 deleted utils not required for projutils
