@@ -227,23 +227,16 @@ proc usf_create_do_file { simulator do_filename } {
 
   set b_add_wave 1
   if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$a_sim_vars(b_int_is_gui_mode)) } {
-    # no op in batch mode
-    if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
-      # add wave for hw_emu
-    } else {
-      # disable for batch/script/non-gui mode
-      set b_add_wave 0
-    }
-  }
-
-  set b_add_wave_prop [get_property -quiet "vcs.simulate.add_wave" $a_sim_vars(fs_obj)]
-  # if request to disable?
-  if { $b_add_wave && !$b_add_wave_prop } {
+    # disable for batch/script/non-gui mode
     set b_add_wave 0
   }
 
   if { $b_add_wave } {
-    puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
+    if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+      # add below for GUI context
+    } else {
+      puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
+    }
   }
   
   if { [get_property "vcs.simulate.log_all_signals" $a_sim_vars(fs_obj)] } {
@@ -289,6 +282,7 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
     puts $fh_do "puts \"\""
     puts $fh_do "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_do "  add_wave /$a_sim_vars(s_sim_top)/*"
     puts $fh_do "  run 1ns"
     puts $fh_do "\} else \{"
     if { {} == $rt } {
