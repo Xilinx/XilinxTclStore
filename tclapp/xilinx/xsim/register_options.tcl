@@ -45,6 +45,7 @@ proc register_options { simulator } {
     {{compile.xvlog.nosort}          {bool}        {1}                                                  {Do not sort Verilog files}}
     {{compile.xvlog.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
     {{compile.xvhdl.relax}           {bool}        {1}                                                  {Relax strict HDL language checking rules}}
+    {{compile.xsc.mt_level}          {enum}        {{auto} {auto} {{auto} {off} {2} {4} {8} {16} {32}}} {Specify number of sub-compilation jobs to run in parallel}}
     {{compile.xsc.more_options}      {string}      {}                                                   {More XSC compilation options}}
     {{compile.xvlog.more_options}    {string}      {}                                                   {More XVLOG compilation options}}
     {{compile.xvhdl.more_options}    {string}      {}                                                   {More XVHDL compilation options}}
