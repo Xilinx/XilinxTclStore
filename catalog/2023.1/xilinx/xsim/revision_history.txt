@@ -1,3 +1,4 @@
+2.450 pass --mt for XSC compilation jobs
 2.449 pass gcc version switch
 2.448 print debug message for local IP compilation
 2.447 merged 2022.2 to 2023.1
