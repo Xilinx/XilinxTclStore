@@ -1,3 +1,4 @@
+3.537 BD(using BDC within) wrapper RTL as RM: write_project_tcl creation fails
 3.536 Set- default value to 0 for ignore_msg_control_rules
 3.535 Set- default value to 0 for ignore_msg_control_rules
 3.534 Add Reconstruct message rule CR-131662

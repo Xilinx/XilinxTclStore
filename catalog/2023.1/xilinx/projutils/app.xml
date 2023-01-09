@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Set- default value to 0 for ignore_msg_control_rules</revision_history>
+      <revision_history>BD(using BDC within) wrapper RTL as RM: write_project_tcl creation fails</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
