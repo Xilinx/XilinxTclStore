@@ -3116,37 +3116,47 @@ proc wr_reconfigModules { proj_dir proj_name } {
     }
   }
 
+  set done_rms [list]
   set done_bds [list]
   foreach rm $reconfigModules {
-    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
     # get the dependent bd for a rm and process it first, this is required for 2RP support
-    set rm_bd_dep [lindex [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd] 0]
-    if {[llength $rm_bd_dep] == 1} {
-      if {$rm_bd ni $done_bds} {
+    set rm_bds_dep [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    # collect rms for dependent bds and write rms once dependent bds are done
+    set rms_todo [list]
+    foreach rm_bd_dep $rm_bds_dep {
+      if {$rm_bd_dep ni $done_bds} {
         if { !$a_global_vars(b_arg_use_bd_files) } {
           write_bd_as_proc $rm_bd_dep
         }
-        set rm1 [dict get $bd_rm_map $rm_bd_dep]
-        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        if {[dict exist $bd_rm_map $rm_bd_dep] == 1} {
+          set rm1 [dict get $bd_rm_map $rm_bd_dep]
+          lappend rms_todo $rm1
+        }
         lappend done_bds $rm_bd_dep
       }
     }
 
+    foreach rm_todo $rms_todo {
+      if {$rm_todo ni $done_rms} {
+        write_specified_reconfig_module $proj_dir $proj_name $rm_todo
+        lappend done_rms $rm_todo
+      }
+    }
+
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
     foreach rm_bd $rm_bds {
       # process bd only if it has not already been processed
       if {$rm_bd ni $done_bds} {
         if { !$a_global_vars(b_arg_use_bd_files) } {
           write_bd_as_proc $rm_bd
         }
-        set rm1 [dict get $bd_rm_map $rm_bd]
-        write_specified_reconfig_module $proj_dir $proj_name $rm1
         lappend done_bds $rm_bd
       }
     }
 
-    # when no RM BDs are present
-    if {[llength $rm_bds] == 0} {
+    if {$rm ni $done_rms} {
       write_specified_reconfig_module $proj_dir $proj_name $rm
+      lappend done_rms $rm
     }
   }
 }
