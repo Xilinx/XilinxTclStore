@@ -819,6 +819,15 @@ proc usf_xsim_verify_compiled_lib {} {
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       puts "(DEBUG) - property currently set to '$dir'"
     }
+    # if pointing to local clibs, donot resolve $RDI_DATADIR (use xsim.ini asis)
+    set local_clibs_dir $dir
+    set local_clibs_dir [regsub -all {[\[\]]} $local_clibs_dir {/}]
+    if { [regexp {prep/rdi/vivado/data/clibs/xsim} $local_clibs_dir] } {
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "(DEBUG) - using local clibs '$local_clibs_dir'"
+      }
+      set b_resolve_rdi_datadir_env false
+    }
   }
   set file [file normalize [file join $dir $filename]]
   if { [file exists $file] } {
