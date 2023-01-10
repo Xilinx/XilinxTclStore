@@ -1,3 +1,4 @@
+2.451 donot update xsim.ini if using local clibs
 2.450 pass --mt for XSC compilation jobs
 2.449 pass gcc version switch
 2.448 print debug message for local IP compilation
