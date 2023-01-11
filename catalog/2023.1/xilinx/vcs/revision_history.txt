@@ -1,3 +1,4 @@
+11.1 include obj file in archive during link
 11.0 add_wave for vitis context only
 10.7 merged 2022.2 to 2023.1
 9.99 script cleanup
