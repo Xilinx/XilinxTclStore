@@ -1590,6 +1590,11 @@ proc usf_vcs_write_elaborate_script {} {
         if { $a_sim_vars(b_optimizeForRuntime) } {
           set arg_list [linsert $arg_list end $a_sim_vars(syscan_libname)]
         }
+  
+        set aie_ip_obj [xcs_find_ip "ai_engine"]
+        if { {} != $aie_ip_obj } {
+          lappend arg_list "-LDFLAGS -Wl,-undefined=_ZN7sc_core14sc_event_queueC1ENS_14sc_module_nameE"
+        }
       }
     }
   }

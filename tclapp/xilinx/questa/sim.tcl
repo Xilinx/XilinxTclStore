@@ -2338,6 +2338,7 @@ proc usf_questa_get_sccom_cmd_args {} {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
         lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
       }
     }
 
