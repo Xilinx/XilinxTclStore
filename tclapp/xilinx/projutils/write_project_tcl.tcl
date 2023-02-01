@@ -1534,6 +1534,14 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
     set prop_type "unknown"
     if { [string equal $type "run"] } {
+
+      set ignore_properties {}
+      lappend ignore_properties "CLUSTER_CONFIGURATION"
+
+      if { [ lsearch -nocase $ignore_properties $prop ] != -1 } {
+        continue; # property is in ignore list, skipping
+      }
+
       # skip steps.<step_name>.reports dynamic read only property (to be populated by creation of reports)
       if { [regexp -nocase "STEPS\..*\.REPORTS" $prop] || [string equal -nocase "REPORT_STRATEGY" $prop] } {
         continue;
