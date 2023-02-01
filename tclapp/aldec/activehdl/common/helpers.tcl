@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.32
+package provide ::tclapp::aldec::common::helpers 1.33
 
 namespace eval ::tclapp::aldec::common {
 
@@ -291,6 +291,34 @@ proc isBatchMode { } {
 	set onlyGenerateScripts $properties(only_generate_scripts)
 
 	if { $batchModeEnabled || $onlyGenerateScripts } {
+		return 1
+	}
+
+	return 0
+}
+
+proc isGuiMode { } {
+	variable properties
+
+	if { $properties(batch_mode_enabled) } {
+		return 0
+	}
+	
+	if { $properties(b_gui) } {
+		return 1
+	}
+	
+	if { $properties(only_generate_scripts) } {
+		return 0
+	}
+
+	return 1
+}
+
+proc isOnlyGenerateScripts { } {
+	variable properties
+
+	if { $properties(only_generate_scripts) && !$properties(b_gui) } {
 		return 1
 	}
 
@@ -844,6 +872,7 @@ proc usf_init_vars {} {
   set properties(mode)             "behavioral"
   set properties(s_type)                {}
   set properties(only_generate_scripts) 0
+  set properties(b_gui) 0
   set properties(s_comp_file)           {}
   set properties(use_absolute_paths)    0
   set properties(s_install_path)        {}
