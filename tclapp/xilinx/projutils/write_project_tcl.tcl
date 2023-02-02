@@ -42,6 +42,7 @@ proc write_project_tcl {args} {
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
+  # [-no_bd_xlnoc]: Do not create BD xlnoc cell
   # [-internal]: Print basic header information in the generated tcl script
   # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
   # [-ignore_msg_control_rules]: Do not imports message control rules in tcl script
@@ -89,6 +90,7 @@ proc write_project_tcl {args} {
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
+      "-no_bd_xlnoc"          { set a_global_vars(b_arg_no_bd_xlnoc) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
       "-validate"             { set a_global_vars(b_validate) 1 }
       "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 0 }
@@ -254,6 +256,7 @@ proc reset_global_vars {} {
     set a_global_vars(b_arg_use_bd_files) 1
   }
 
+  set a_global_vars(b_arg_no_bd_xlnoc)        0
   set a_global_vars(excludePropDict)      [dict create]
 
   set l_script_data                       [list]
@@ -3698,17 +3701,18 @@ proc is_switch_network_source { file } {
   # Argument Usage: 
   # Return Value:
 
-  # TODO: wrap the below code under param
-  return false
+  variable a_global_vars
 
-  #
-  # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
-  #
-  set rtl_top [get_property top -quiet [current_fileset]]
-  set wrapper "${rtl_top}_sim_wrapper.v"
-  set file_name [string trim [file tail $file] {\"}]
-  if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
-    return true
+  if { $a_global_vars(b_arg_no_bd_xlnoc) } {
+    #
+    # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
+    #
+    set rtl_top [get_property top -quiet [current_fileset]]
+    set wrapper "${rtl_top}_sim_wrapper.v"
+    set file_name [string trim [file tail $file] {\"}]
+    if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
+      return true
+    }
   }
   return false
 }
