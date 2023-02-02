@@ -1,3 +1,4 @@
+2.280 skip xlnoc for synth from simulation fileset
 2.279 include obj file in archive during link
 2.278 support for sc_async_update property
 2.277 print debug message for local IP compilation
