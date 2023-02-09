@@ -29,7 +29,7 @@ proc usf_init_vars {} {
   xcs_set_common_vars a_sim_vars a_sim_mode_types
   xcs_set_common_sysc_vars a_sim_vars
 
-  set a_sim_vars(s_compiled_lib_dir)         {}
+  set a_sim_vars(compiled_library_dir)       {}
   set a_sim_vars(s_sys_link_path)            {}
 
   set a_sim_vars(b_exec_step)                0
@@ -225,13 +225,18 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "power -enable"
   }
 
+  set b_add_wave 1
   if { $a_sim_vars(b_batch) || $a_sim_vars(b_scripts_only) || (!$a_sim_vars(b_int_is_gui_mode)) } {
-    # no op in batch mode
+    # disable for batch/script/non-gui mode
+    set b_add_wave 0
+  }
+
+  if { $b_add_wave } {
     if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
+      # add below for GUI context
+    } else {
       puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
     }
-  } else {
-    puts $fh_do "add_wave /$a_sim_vars(s_sim_top)/*"
   }
   
   if { [get_property "vcs.simulate.log_all_signals" $a_sim_vars(fs_obj)] } {
@@ -277,6 +282,7 @@ proc usf_create_do_file { simulator do_filename } {
     puts $fh_do "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
     puts $fh_do "puts \"\""
     puts $fh_do "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
+    puts $fh_do "  add_wave /$a_sim_vars(s_sim_top)/*"
     puts $fh_do "  run 1ns"
     puts $fh_do "\} else \{"
     if { {} == $rt } {
@@ -705,6 +711,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # add additional files from simulation fileset
       send_msg_id USF-VCS-104 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+        if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "is_auto_disabled" $file]} { continue }

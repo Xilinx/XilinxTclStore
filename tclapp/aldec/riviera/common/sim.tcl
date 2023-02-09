@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.32
+package require ::tclapp::aldec::common::helpers 1.33
 
-package provide ::tclapp::aldec::common::sim 1.32
+package provide ::tclapp::aldec::common::sim 1.33
 
 namespace eval ::tclapp::aldec::common {
 
@@ -55,7 +55,7 @@ proc compile { args } {
     ::tclapp::aldec::common::helpers::usf_launch_script $step
   }
 
-  	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+  	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] == 1 && [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		createLibraryCfg
 	}
 }
@@ -249,6 +249,7 @@ proc usf_setup_args { args } {
   # [-mode <arg>]: Simulation mode. Values: behavioral, post-synthesis, post-implementation
   # [-type <arg>]: Netlist type. Values: functional, timing. This is only applicable when mode is set to post-synthesis or post-implementation
   # [-scripts_only]: (obsolete) Only generate scripts
+  # [-gui]: Invoke simulator in GUI mode for scripts only
   # [-generate_scripts_only]: (internal) Only generate scripts
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
@@ -279,6 +280,7 @@ proc usf_setup_args { args } {
       "-mode"           { incr i;set ::tclapp::aldec::common::helpers::properties(mode) [lindex $args $i] }
       "-type"           { incr i;set ::tclapp::aldec::common::helpers::properties(s_type) [lindex $args $i] }
       "-scripts_only|-generate_scripts_only"   { set ::tclapp::aldec::common::helpers::properties(only_generate_scripts) 1 }
+	  "-gui"            { set ::tclapp::aldec::common::helpers::properties(b_gui) 1 }
       "-of_objects"     { incr i;set ::tclapp::aldec::common::helpers::properties(s_comp_file) [lindex $args $i]}
       "-absolute_path"  { set ::tclapp::aldec::common::helpers::properties(use_absolute_paths) 1 }
       "-lib_map_path"   { incr i;set ::tclapp::aldec::common::helpers::properties(s_lib_map_path) [lindex $args $i] }
@@ -1582,7 +1584,7 @@ proc usf_aldec_get_simulation_cmdline {} {
 	if { [ get_property target_simulator [ current_project ] ] == "ActiveHDL" } {
 		lappend argumentsList "-asdb"
 		
-		if { [ ::tclapp::aldec::common::helpers::isBatchMode ] == 1 } {
+		if { [ ::tclapp::aldec::common::helpers::isGuiMode ] != 1 } {
 			lappend argumentsList [usf_aldec_getDefaultDatasetName]
 		}
 	}
@@ -1669,7 +1671,6 @@ proc getExistingLibraryMappingsNames { } {
 }
 
 proc usf_aldec_writeSimulationPrerequisites { out } {
-
 	set designName [current_project]
 	set designLibraryName $designName
 	set targetDirectory $::tclapp::aldec::common::helpers::properties(launch_directory)
@@ -1678,11 +1679,11 @@ proc usf_aldec_writeSimulationPrerequisites { out } {
 	set batch_mode_enabled $::tclapp::aldec::common::helpers::properties(batch_mode_enabled)
 	set only_generate_scripts $::tclapp::aldec::common::helpers::properties(only_generate_scripts)
 	set noQuitOnError [get_param "simulator.activehdlNoQuitOnError"]
-	if { $noQuitOnError && !$batch_mode_enabled && !$only_generate_scripts } {
+	if { $noQuitOnError && [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		puts $out "transcript on"
 	}
 
-	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+	if { [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		puts $out "quiet on"
 		puts $out "createdesign \{$designName\} \{$targetDirectory\}"
 		puts $out "opendesign \{${targetDirectory}/${designName}/${designName}.adf\}"
@@ -1696,7 +1697,7 @@ proc usf_aldec_writeSimulationPrerequisites { out } {
 		set designLibraryName [ join $designLibraryName _ ]
 	}
 
-	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+	if { [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		puts $out "set worklib $designLibraryName"
 	}
 
@@ -1707,7 +1708,7 @@ proc usf_aldec_writeSimulationPrerequisites { out } {
 	}
 
 	
-	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] != 1 || [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+	if { [ ::tclapp::aldec::common::helpers::isGenerateLaibraryMode ] != 1 || [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		mapLibraryCfg $out 1
 
 		set libraryPrefix [ ::tclapp::aldec::common::helpers::usf_aldec_getLibraryPrefix ]
@@ -1731,7 +1732,7 @@ proc usf_aldec_writeSimulationPrerequisites { out } {
 		}
 	}
 	
-	if { [ ::tclapp::aldec::common::helpers::isBatchMode ] != 1 } {
+	if { [ ::tclapp::aldec::common::helpers::isGuiMode ] == 1 } {
 		puts $out "quiet off"
 	}
 }
@@ -1843,7 +1844,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
     }
   }
 
-	if { [ get_param "project.writeNativeScriptForUnifiedSimulation" ] && (!$::tclapp::aldec::common::helpers::properties(only_generate_scripts)) } {
+	if { [ get_param "project.writeNativeScriptForUnifiedSimulation" ] && [ ::tclapp::aldec::common::helpers::isOnlyGenerateScripts ] == 0 } {
 		if { !$::tclapp::aldec::common::helpers::properties(batch_mode_enabled) } {
 			puts $fh "wave *"
 		} elseif { !$b_log_all_signals } {
@@ -1946,7 +1947,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   } 
 
   if { \
-	   $::tclapp::aldec::common::helpers::properties(only_generate_scripts) \
+	   [ ::tclapp::aldec::common::helpers::isOnlyGenerateScripts ] == 1 \
 	|| $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) \
   } {
     puts $fh "if { \[batch_mode\] } {"
@@ -1981,7 +1982,7 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.32 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.33 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
@@ -2003,7 +2004,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "#"
 		puts $_file "# Filename    : $_fileName"
 		puts $_file "# Simulator   : $simulatorName Simulator"
-		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.32"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.33"
 		puts $_file "# Created on  : $timestamp"
 		puts $_file "#"
 		puts $_file "# usage: $_fileName"
@@ -2015,7 +2016,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "REM"
 		puts $_file "REM Filename    : $_fileName"
 		puts $_file "REM Simulator   : $simulatorName Simulator"
-		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.32"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.33"
 		puts $_file "REM Created on  : $timestamp"
 		puts $_file "REM"
 		puts $_file "REM usage: $_fileName"
@@ -2101,8 +2102,16 @@ proc usf_aldec_write_driver_shell_script { do_filename step } {
   aldecHeader $scriptFileHandle $scriptFileName $headerStep
   
   set batch_sw {-c}
-  if { ({simulate} == $step) && (!$batch_mode_enabled) && (!$only_generate_scripts) } {
-    set batch_sw {}
+  if { ({simulate} == $step) } {
+    # launch_simulation
+	if { (!$batch_mode_enabled) && (!$only_generate_scripts) } {
+      set batch_sw {}
+	}
+	
+	# for scripts_only mode, set script for simulator gui mode (don't pass -c)
+    if { $::tclapp::aldec::common::helpers::properties(b_gui) } {
+      set batch_sw {}
+    }  
   }
   
   set log_filename "${step}.log"
@@ -2267,7 +2276,7 @@ proc usf_aldec_add_quit_on_error { fh step } {
   if { ({compile} == $step) || ({elaborate} == $step) } {
     usf_aldec_writeOnBreakOnErrorCommands $fh
   } elseif { ({simulate} == $step) } {
-    if { !$noQuitOnError || $batch_mode_enabled || $only_generate_scripts } {
+    if { !$noQuitOnError || [ ::tclapp::aldec::common::helpers::isGuiMode ] == 0 } {
       usf_aldec_writeOnBreakOnErrorCommands $fh
     } 
   }

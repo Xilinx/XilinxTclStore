@@ -244,8 +244,12 @@ proc usf_questa_setup_simulation { args } {
   }
 
   # fetch design files
+  variable l_local_design_libraries
   set global_files_str {}
   set a_sim_vars(l_design_files) [xcs_uniquify_cmd_str [usf_get_files_for_compilation global_files_str]]
+
+  # print IPs that were not found from clibs
+  xcs_print_local_IP_compilation_msg $a_sim_vars(b_int_sm_lib_ref_debug) $l_local_design_libraries $a_sim_vars(compiled_library_dir)
 
   # is system design?
   if { $a_sim_vars(b_contain_systemc_sources) || $a_sim_vars(b_contain_cpp_sources) || $a_sim_vars(b_contain_c_sources) } {
@@ -426,6 +430,9 @@ proc usf_questa_verify_compiled_lib {} {
         send_msg_id USF_Questa-011 INFO "File '$ini_file_path' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
       }
     }
+  }
+  if { ({} != $compiled_lib_dir) && ([file exists $compiled_lib_dir]) } {
+   set a_sim_vars(compiled_library_dir) $compiled_lib_dir
   }
   return $compiled_lib_dir
 }
@@ -1314,7 +1321,7 @@ proc usf_compile_simmodel_sources { fh } {
       # LINK (gcc)
       #
       set args [list]
-      foreach src_file $cpp_files {
+      foreach src_file $c_files {
         set file_name [file root [file tail $src_file]]
         set obj_file "questa_lib/$lib_name/${file_name}.o"
         lappend args $obj_file
@@ -1597,6 +1604,11 @@ proc usf_questa_get_simulation_cmdline {} {
     lappend arg_list "+pulse_int_e/$int_delay"
     lappend arg_list "+pulse_r/$path_delay"
     lappend arg_list "+pulse_int_r/$int_delay"
+  }
+
+  set b_async_update [get_property -quiet "questa.simulate.sc_async_update" $a_sim_vars(fs_obj)]
+  if { $b_async_update } {
+    set arg_list [linsert $arg_list end "-scasyncupdate"]
   }
 
   set more_sim_options [string trim [get_property "questa.simulate.vsim.more_options" $a_sim_vars(fs_obj)]]
@@ -2326,6 +2338,7 @@ proc usf_questa_get_sccom_cmd_args {} {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
         lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
       }
     }
 

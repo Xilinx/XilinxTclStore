@@ -52,6 +52,8 @@ proc usf_init_vars {} {
   set a_sim_vars(run_logs_simulate)          [list simulate.log]
   set a_sim_vars(run_logs)                   [concat $a_sim_vars(run_logs_compile) $a_sim_vars(run_logs_elaborate) $a_sim_vars(run_logs_simulate)]
 
+  set a_sim_vars(b_gcc_version)              0
+
   ###################
   # initialize arrays
   ###################
@@ -448,6 +450,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # add additional files from simulation fileset
       send_msg_id USF-XSim-101 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+        if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "is_auto_disabled" $file]} { continue }

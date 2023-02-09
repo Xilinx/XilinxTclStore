@@ -1,6 +1,12 @@
-3.533 generate_target for bd with block containers when needed
-3.532 Ignore cluster_configuration property on run if it is invalid
-3.531 delete obsolete help file
+3.540 do not write xlnoc BD cell if -no_bd_xlnoc specified
+3.539 Do not write cluster configuration in write_project_tcl generated script
+3.538 generate_target for bd with block containers when needed
+3.537 BD(using BDC within) wrapper RTL as RM: write_project_tcl creation fails
+3.536 Set- default value to 0 for ignore_msg_control_rules
+3.535 Set- default value to 0 for ignore_msg_control_rules
+3.534 Add Reconstruct message rule CR-131662
+3.533 Add Reconstruct message rule CR-131662.
+3.531 Move Files of RM subdesign to RM fileset
 3.530 deleted utils not required for projutils
 3.529 move export simulation to native
 3.528 auto generate switch network
@@ -13,7 +19,6 @@
 3.521 remove setup_ip_static_library and export_ip_user_files
 3.520 refactor setup_ip_static_library to native task
 3.519 refactor export_ip_user_files to native task
-3.518 Revert bdc dfx issue fix
 3.517 revert refactor export_ip_user_files to native task
 3.515 resolve verilog header source file paths for export absolute nonprecompile mode
 3.511 get and fix library path for VCS

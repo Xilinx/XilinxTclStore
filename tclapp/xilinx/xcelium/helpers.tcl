@@ -31,7 +31,7 @@ proc usf_init_vars {} {
   xcs_set_common_vars a_sim_vars a_sim_mode_types
   xcs_set_common_sysc_vars a_sim_vars
 
-  set a_sim_vars(s_compiled_lib_dir)         {}
+  set a_sim_vars(compiled_library_dir)       {}
 
   set a_sim_vars(b_exec_step)                0
   set a_sim_vars(b_int_setup_sim_vars)       0
@@ -693,6 +693,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # add additional files from simulation fileset
       send_msg_id USF-Xcelium-106 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+        if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "is_auto_disabled" $file]} { continue }
@@ -1634,11 +1635,19 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
     set b_is_dynamic 0
     set dst_cip_file $ip_static_file
 
-    set b_process_file 1
+    set b_process_static_file 1
+    #**************************************************************************************************************
+    # precompile flow set? find if this static ip file library is in CLIBS,
+    #   - if yes, then do not process/add this file in prj/do file (library will be referenced from clibs)
+    #   - if no, then add the library of this file in the collection for setting it to local area in indexing file.
+    #**************************************************************************************************************
     if { $a_sim_vars(b_use_static_lib) } {
-      # use pre-compiled lib
+      #
+      # use pre-compiled version from CLIBS, if the associated library for this static file is found 
+      #
       if { [lsearch -exact $l_compiled_libraries $library] != -1 } {
-        set b_process_file 0
+        # FOUND in CLIBS (do not process)
+        set b_process_static_file 0
         set b_is_static 1
 
         #################################################################
@@ -1653,14 +1662,17 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         }
 
       } else {
-        # add this library to have the new library linkage in mapping file
+        # NOT-FOUND in CLIBS (add this library to have the new library linkage in mapping file and process this static file)
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
         }
       }
     }
 
-    if { $b_process_file } {
+    #**************************************************************************************************************
+    # non-precompile/locked/local repo? compile it locally with the design
+    #**************************************************************************************************************
+    if { $b_process_static_file } {
       if { $b_is_bd_ip } {
         set dst_cip_file [xcs_fetch_ipi_static_file $full_src_file_obj $ip_static_file $a_sim_vars(ipstatic_dir)]
       } else {

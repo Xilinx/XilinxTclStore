@@ -42,8 +42,10 @@ proc write_project_tcl {args} {
   # [-absolute_path]: Make all file paths absolute wrt the original project directory
   # [-dump_project_info]: Write object values
   # [-use_bd_files ]: Use BD sources directly instead of writing out procs to create them
+  # [-no_bd_xlnoc]: Do not create BD xlnoc cell
   # [-internal]: Print basic header information in the generated tcl script
   # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
+  # [-ignore_msg_control_rules]: Do not imports message control rules in tcl script
   # [-quiet]: Execute the command quietly, returning no messages from the command.
   # file: Name of the tcl script file to generate
 
@@ -88,8 +90,10 @@ proc write_project_tcl {args} {
       "-absolute_path"        { set a_global_vars(b_absolute_path) 1 }
       "-dump_project_info"    { set a_global_vars(b_arg_dump_proj_info) 1 }
       "-use_bd_files"         { set a_global_vars(b_arg_use_bd_files) 1 }
+      "-no_bd_xlnoc"          { set a_global_vars(b_arg_no_bd_xlnoc) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
       "-validate"             { set a_global_vars(b_validate) 1 }
+      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 0 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
@@ -235,6 +239,7 @@ proc reset_global_vars {} {
   set a_global_vars(b_absolute_path)            0
   set a_global_vars(b_internal)                 0
   set a_global_vars(b_validate)                 0
+  set a_global_vars(b_ignore_msg_ctrl_rule)     0
   set a_global_vars(b_arg_all_props)            0
   set a_global_vars(b_arg_dump_proj_info)       0
   set a_global_vars(b_local_sources)            0
@@ -251,6 +256,7 @@ proc reset_global_vars {} {
     set a_global_vars(b_arg_use_bd_files) 1
   }
 
+  set a_global_vars(b_arg_no_bd_xlnoc)        0
   set a_global_vars(excludePropDict)      [dict create]
 
   set l_script_data                       [list]
@@ -427,7 +433,7 @@ proc write_project_tcl_script {} {
         path that was specified with this switch. The 'origin_dir' variable is set to '$a_global_vars(s_origin_dir_override)' in the generated script."
       }
     } else {
-      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set wth respect to the 'origin_dir' variable in the\n\
+      send_msg_id Vivado-projutils-015 INFO "Please note that by default, the file path for the project source files were set with respect to the 'origin_dir' variable in the\n\
       generated script. When this script is executed from the output directory, these source files will be referenced with respect to this 'origin_dir' path value.\n\
       In case this script was later moved to a different directory, the 'origin_dir' value must be set manually in the script with the path\n\
       relative to the new output directory to make sure that the source files are referenced correctly from the original project. You can also set the\n\
@@ -546,6 +552,19 @@ proc wr_validate_files {} {
   lappend l_script_validate "  return \$status"
   lappend l_script_validate "\}"
   return $l_script_validate  
+}
+
+proc add_msg_rules {} {
+  variable l_script_data
+  lappend l_script_data "# Reconstruct message rules"
+
+  set msg_control_rules [ debug::get_msg_control_rules -as_tcl ]
+  if { [string length $msg_control_rules] > 0 } {
+    lappend l_script_data "${msg_control_rules}"
+  } else {
+    lappend l_script_data "# None"
+  }
+  lappend l_script_data ""
 }
 
 proc wr_create_project { proj_dir name part_name } {
@@ -691,6 +710,9 @@ proc wr_create_project { proj_dir name part_name } {
   lappend l_script_data "set proj_dir \[get_property directory \[current_project\]\]"
 
   lappend l_script_data ""
+  if { !$a_global_vars(b_ignore_msg_ctrl_rule) } {
+    add_msg_rules
+  }
 }
 
 proc wr_project_properties { proj_dir proj_name } {
@@ -1517,12 +1539,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
     if { [string equal $type "run"] } {
 
       set ignore_properties {}
-      set clusterConf  [get_property CLUSTER_CONFIGURATION $tcl_obj -quiet]
-      if { $clusterConf != {} } {
-        if { [get_cluster_configurations -quiet $clusterConf] == {} } {
-          lappend ignore_properties "CLUSTER_CONFIGURATION"
-        }
-      }
+      lappend ignore_properties "CLUSTER_CONFIGURATION"
 
       if { [ lsearch -nocase $ignore_properties $prop ] != -1 } {
         continue; # property is in ignore list, skipping
@@ -3114,37 +3131,47 @@ proc wr_reconfigModules { proj_dir proj_name } {
     }
   }
 
+  set done_rms [list]
   set done_bds [list]
   foreach rm $reconfigModules {
-    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
     # get the dependent bd for a rm and process it first, this is required for 2RP support
-    set rm_bd_dep [lindex [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd] 0]
-    if {[llength $rm_bd_dep] == 1} {
-      if {$rm_bd ni $done_bds} {
+    set rm_bds_dep [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    # collect rms for dependent bds and write rms once dependent bds are done
+    set rms_todo [list]
+    foreach rm_bd_dep $rm_bds_dep {
+      if {$rm_bd_dep ni $done_bds} {
         if { !$a_global_vars(b_arg_use_bd_files) } {
           write_bd_as_proc $rm_bd_dep
         }
-        set rm1 [dict get $bd_rm_map $rm_bd_dep]
-        write_specified_reconfig_module $proj_dir $proj_name $rm1
+        if {[dict exist $bd_rm_map $rm_bd_dep] == 1} {
+          set rm1 [dict get $bd_rm_map $rm_bd_dep]
+          lappend rms_todo $rm1
+        }
         lappend done_bds $rm_bd_dep
       }
     }
 
+    foreach rm_todo $rms_todo {
+      if {$rm_todo ni $done_rms} {
+        write_specified_reconfig_module $proj_dir $proj_name $rm_todo
+        lappend done_rms $rm_todo
+      }
+    }
+
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
     foreach rm_bd $rm_bds {
       # process bd only if it has not already been processed
       if {$rm_bd ni $done_bds} {
         if { !$a_global_vars(b_arg_use_bd_files) } {
           write_bd_as_proc $rm_bd
         }
-        set rm1 [dict get $bd_rm_map $rm_bd]
-        write_specified_reconfig_module $proj_dir $proj_name $rm1
         lappend done_bds $rm_bd
       }
     }
 
-    # when no RM BDs are present
-    if {[llength $rm_bds] == 0} {
+    if {$rm ni $done_rms} {
       write_specified_reconfig_module $proj_dir $proj_name $rm
+      lappend done_rms $rm
     }
   }
 }
@@ -3401,8 +3428,18 @@ proc add_reconfigmodule_subdesign_files { reconfigModule } {
 
   variable l_script_data
 
+  lappend l_script_data "set obj \[get_reconfig_modules $reconfigModule\]"
+
   foreach rmSubdesignFileset [get_property subdesign_filesets $reconfigModule] {
     foreach fileObj [get_files -quiet -norecurse -of_objects [get_filesets $rmSubdesignFileset]] {
+      set parentCompFile ""
+      set prop [list_property $fileObj PARENT_COMPOSITE_FILE]
+      if { $prop != "" } {
+        set parentCompFile [get_property PARENT_COMPOSITE_FILE $fileObj]
+      }
+      if { $parentCompFile != "" } {
+        continue;
+      }
       set path_dirs [split [string trim [file normalize [string map {\\ /} $fileObj ]]] "/"]
       set path [join [lrange $path_dirs end-1 end] "/"]
       set path [string trimleft $path "/"]
@@ -3664,17 +3701,18 @@ proc is_switch_network_source { file } {
   # Argument Usage: 
   # Return Value:
 
-  # TODO: wrap the below code under param
-  return false
+  variable a_global_vars
 
-  #
-  # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
-  #
-  set rtl_top [get_property top -quiet [current_fileset]]
-  set wrapper "${rtl_top}_sim_wrapper.v"
-  set file_name [string trim [file tail $file] {\"}]
-  if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
-    return true
+  if { $a_global_vars(b_arg_no_bd_xlnoc) } {
+    #
+    # filter simulation wrapper and switch network BD (these are generated files from launch_simulation)
+    #
+    set rtl_top [get_property top -quiet [current_fileset]]
+    set wrapper "${rtl_top}_sim_wrapper.v"
+    set file_name [string trim [file tail $file] {\"}]
+    if { ($file_name == $wrapper) || ($file_name == "xlnoc.bd") } {
+      return true
+    }
   }
   return false
 }

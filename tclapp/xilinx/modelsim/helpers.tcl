@@ -29,6 +29,7 @@ proc usf_init_vars {} {
   xcs_set_common_vars a_sim_vars a_sim_mode_types
 
   set a_sim_vars(b_int_csim_compile_order)   0
+  set a_sim_vars(compiled_library_dir)       {}
 
   ###################
   # unitialize arrays
@@ -399,6 +400,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       # add additional files from simulation fileset
       send_msg_id USF-ModelSim-111 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+        if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
         if { [get_property "is_auto_disabled" $file] } { continue }
