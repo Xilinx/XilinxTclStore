@@ -1,10 +1,13 @@
-10.7 launch target simulator for scripts only
+11.2 merged 2023.1 to 2023.2
+11.1 include obj file in archive during link
+11.0 add_wave for vitis context only
+10.7 merged 2022.2 to 2023.1
 9.99 script cleanup
 9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2
 9.96 pass g++ switches
 9.95 pass object files for library creation
-9.94 merged 2022.1-dev to 2022.2-dev
+9.94 delete src dir for non-precompile export flow
 9.93 find simulation model directory paths from rdi datadir env values
 9.92 get and fix library path for VCS
 9.91 set ip repository directory name based on property
@@ -42,7 +45,7 @@
 9.59 code refactoring
 9.58 check for leaf dir name wrt library name for linked library
 9.57 Extract IP file name from core-container to determine SV package libraries
-9.56 merged 2021.1-dev to 2021.2-dev
+9.56 redirect gcc compile messages to compile.log
 9.55 fixed systemc library install path detection
 9.54 fixed redirection string
 9.53 export chess library env

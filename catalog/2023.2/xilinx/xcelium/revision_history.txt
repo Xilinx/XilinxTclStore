@@ -1,4 +1,7 @@
-11.127 launch target simulator for scripts only
+11.130 merged 2023.1 to 2023.2
+11.129 comments for IP library processing logistics
+11.128 print debug message for local IP compilation
+11.127 merged 2022.2 to 2023.1
 11.126 option for invoking simulator gui in scripts mode
 11.125 code cleanup for aie_cluster binding
 11.124 support for defines and generics for export flow
@@ -10,7 +13,8 @@
 11.118 check for aie ml env and bind aie2
 11.117 pass g++ switches
 11.116 pass object files for library creation
-11.115 merged 2022.1-dev to 2022.2-dev
+11.116 add dummy simprims mapping for behavioral simulation
+11.115 delete src dir for non-precompile export flow
 11.114 find simulation model directory paths from rdi datadir env values
 11.113 get and fix library path for VCS
 11.112 set ip repository directory name based on property
@@ -54,7 +58,7 @@
 11.71 check for leaf dir name wrt library name for linked library
 11.70 Extract IP file name from core-container to determine SV package libraries
 11.69 add simprims_ver mapping to resolve duplicate bindings
-11.68 merged 2021.1-dev to 2021.2-dev
+11.68 fixed systemc library install path detection
 11.67 enable optimization and shell setting for pipefail
 11.66 export chess library env
 11.65 bind noc_na for netlist simulation
