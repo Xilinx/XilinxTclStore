@@ -726,7 +726,7 @@ proc usf_xsim_setup_args { args } {
   #
   # TEMP-FIX: set gcc flag
   #
-  if { "9.3.0" == $a_sim_vars(s_gcc_version) } {
+  if { ("6.2.0" == $a_sim_vars(s_gcc_version)) || ("9.3.0" == $a_sim_vars(s_gcc_version)) } {
     set a_sim_vars(b_gcc_version) 1
   } 
 
