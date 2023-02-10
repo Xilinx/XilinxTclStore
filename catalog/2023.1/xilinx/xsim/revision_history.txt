@@ -1,3 +1,4 @@
+2.453 pass gcc switch for 6.2.0
 2.452 skip xlnoc for synth from simulation fileset
 2.451 donot update xsim.ini if using local clibs
 2.450 pass --mt for XSC compilation jobs
