@@ -1541,6 +1541,18 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
       set ignore_properties {}
       lappend ignore_properties "CLUSTER_CONFIGURATION"
 
+      if { [lsearch [list_property [get_runs $tcl_obj]] "AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY"] != -1 } {
+        if { [get_property "AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY" [get_runs $tcl_obj]] == "" } {
+          lappend ignore_properties "AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY"
+        }
+      }
+
+      if { [lsearch [list_property [get_runs $tcl_obj]] "AUTO_RQS.DIRECTORY"] != -1 } {
+        if { [get_property "AUTO_RQS.DIRECTORY" [get_runs $tcl_obj]] == "" } {
+          lappend ignore_properties "AUTO_RQS.DIRECTORY"
+        }
+      }
+
       if { [ lsearch -nocase $ignore_properties $prop ] != -1 } {
         continue; # property is in ignore list, skipping
       }
