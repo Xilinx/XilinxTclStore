@@ -1,3 +1,4 @@
+3.541 Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty
 3.540 merged 2023.1 to 2023.2
 3.539 Do not write cluster configuration in write_project_tcl generated script
 3.538 generate_target for bd with block containers when needed

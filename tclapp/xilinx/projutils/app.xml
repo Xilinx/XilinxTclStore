@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2023.1 to 2023.2</revision_history>
+      <revision_history>Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
