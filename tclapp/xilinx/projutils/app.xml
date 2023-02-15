@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>do not write xlnoc BD cell if -no_bd_xlnoc specified</revision_history>
+      <revision_history>Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
