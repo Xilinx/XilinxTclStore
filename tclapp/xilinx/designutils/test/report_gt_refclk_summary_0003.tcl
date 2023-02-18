@@ -10,7 +10,7 @@ puts "== Unit Test name: $unit_test"
 set name [file rootname [file tail [info script]]]
 
 # Create in-memory project
-create_project project_1 project_1 -part xcvc1902-vsva2197-2MP-e-S-es1
+create_project project_1 project_1 -part xcvc1902-vsva2197-2MP-e-S
 
 create_bd_design "design_1"
 update_compile_order -fileset sources_1

@@ -17,6 +17,7 @@ set auto_index(::tclapp::xilinx::designutils::generate_runs) [list source [file 
 set auto_index(::tclapp::xilinx::designutils::get_clock_interaction) [list source [file join $dir get_clock_interaction.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_connected_ref_pins) [list source [file join $dir get_connected_ref_pins.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_data_through_pins) [list source [file join $dir get_data_through_pins.tcl]]
+set auto_index(::tclapp::xilinx::designutils::get_device_sll_nodes) [list source [file join $dir get_device_sll_nodes.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_host_platform) [list source [file join $dir get_host_platform.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_inter_slr_nets) [list source [file join $dir get_inter_slr_nets.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_leaf_cells) [list source [file join $dir get_leaf_cells.tcl]]

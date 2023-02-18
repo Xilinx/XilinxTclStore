@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various enhancements (report_gt_refclk_summary, prettyTable)</revision_history>
+      <revision_history>Added get_device_sll_nodes. Various enhancements (report_gt_refclk_summary)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -53,6 +53,10 @@
         <proc>
           <name>get_data_through_pins</name>
           <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
+          <name>get_device_sll_nodes</name>
+          <summary>Get all device SLL nodes</summary>
         </proc>
         <proc>
           <name>get_host_platform</name>
