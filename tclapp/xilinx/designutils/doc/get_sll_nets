@@ -2,7 +2,7 @@
 
   Description: 
 
-     Returns all the SLL nets. Support 7-Serie and UltraScale devices.
+     Returns all the SLL nets. Support 7-Serie, UltraScale and UltraScale+ devices.
 
      This command must be run on a routed design.
 
