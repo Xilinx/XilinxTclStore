@@ -241,6 +241,9 @@ set bd_dk [current_bd_design]
           dict lappend LANE_SEL_DICT [dict get $settings_string TX2_LANE_SEL] TX2
           dict lappend LANE_SEL_DICT [dict get $settings_string TX3_LANE_SEL] TX3
           set keys_lsk [dict keys $LANE_SEL_DICT]
+		  set idx [lsearch $keys_lsk "unconnected"]
+		  set keys_lsk_updated [lreplace $keys_lsk $idx $idx]
+
           set prot_num [llength $keys_lsk]
           set ref_clk_d [get_property CONFIG.REFCLK_STRING [get_bd_cells ${quadCell}]]
           set REFCLK_EXTERNAL_CONNECT                    [dict values $ref_clk_d]
@@ -300,6 +303,7 @@ set bd_dk [current_bd_design]
               set freq_val_with_prot_src_space [lsearch -inline -all -not -exact $new_list $freq_val]
               set prot_src_dict [dict create]
               set prot_src_dict $freq_val_with_prot_src_space
+			  set prot_src_dict_keys [dict keys $prot_src_dict] 
               set prot_src_info ""
               set snumk [expr $snumk+1]
               set list_AK0 [list $snumk]
@@ -345,6 +349,9 @@ set bd_dk [current_bd_design]
                } else {
                  set pCellName $pCellName1
                }
+			  set statement_flag 0
+		   } 
+		   if {$keys_lsk_updated == $prot_src_dict_keys} {
 			  set statement_flag 0
 		   } else { 
 			  set statement_flag 1
