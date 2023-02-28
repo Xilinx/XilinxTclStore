@@ -263,8 +263,6 @@ set bd_dk [current_bd_design]
            set multi_freq_port_name [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\PROT0_" ""} [string map {"\PROT1_" ""} [string map {"\PROT2_" ""} [string map {"\PROT3_" ""} [string map {"\PROT4_" ""} [string map {"\PROT5_" ""} [string map {"\PROT6_" ""} [string map {"\PROT7_" ""} $temp ]]]]]]]]]]]]]]]]]]
             set snumk [expr $snumk+1]
             set list_AK0 [list $snumk]
-            set statement " "
-			set statement_list [list ]
             set ref_name $quadCell\/GT_REFCLK$n
             set ref_clk_src [find_connected_core $ref_name]
 			if { $ref_clk_src eq "" } {
@@ -272,6 +270,7 @@ set bd_dk [current_bd_design]
             }
             lappend list_AK0 $ref_name
             lappend list_AK0 "multiple"
+            set pCellName ""
             set prot_val ""
               if {[string match "PROT0" $multiple_freq_prot_type]} {
                   set prot_val "PROT0"
@@ -290,12 +289,24 @@ set bd_dk [current_bd_design]
               } else {
                   set prot_val "PROT7"
               }
+			  if {[dict exists $LANE_SEL_DICT $prot_val] } { 
               set lkey [dict get $LANE_SEL_DICT $prot_val]
-               set lkeya [split $lkey " "]
+
+	  		   set lkeya [split $lkey " "]
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
+			     set statement_flag 0
+	           } else {
+                 set statement_flag 1
+			     set statement "Unable to find any valid Interface Properties for Quad $quadCell. Refclk frequencies may not be reported correctly for this quad."
+               }
                lappend list_AK0 $pCellName
+
+			   if {$statement_flag} {
+	           lappend statement_list $statement
+			   set unique_statement [lsort -unique $statement_list]
+		       }
 
            } else {
              set freq_val_with_prot_src [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} $temp ]]]]]]]]
