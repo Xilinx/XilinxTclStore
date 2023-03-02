@@ -602,7 +602,7 @@ proc usf_xcelium_write_compile_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
@@ -1381,7 +1381,7 @@ proc usf_xcelium_write_elaborate_script {} {
   }
  
   variable a_shared_library_path_coln
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
@@ -1825,7 +1825,7 @@ proc usf_xcelium_write_simulate_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
@@ -1989,7 +1989,7 @@ proc usf_xcelium_create_setup_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "xcelium"
 
   puts $fh_scr "\n# Script usage"

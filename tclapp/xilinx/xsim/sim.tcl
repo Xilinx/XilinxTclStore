@@ -726,7 +726,7 @@ proc usf_xsim_setup_args { args } {
   #
   # TEMP-FIX: set gcc flag
   #
-  if { "9.3.0" == $a_sim_vars(s_gcc_version) } {
+  if { "6.2.0" == $a_sim_vars(s_gcc_version) } {
     set a_sim_vars(b_gcc_version) 1
   } 
 
@@ -1309,7 +1309,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   }
 
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
 
     if { [get_param "project.allowSharedLibraryType"] } {
@@ -1578,7 +1578,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
 
   set b_batch 1
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "simulate" "xsim"
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
@@ -3142,7 +3142,7 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
   variable a_sim_vars
 
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_pipe_exit $fh_scr
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {

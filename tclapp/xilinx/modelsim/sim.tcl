@@ -1418,7 +1418,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "modelsim"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""

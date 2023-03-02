@@ -577,7 +577,7 @@ proc usf_vcs_write_compile_script {} {
     send_msg_id USF-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
@@ -1352,7 +1352,7 @@ proc usf_vcs_write_elaborate_script {} {
     send_msg_id USF-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
@@ -1900,7 +1900,7 @@ proc usf_vcs_write_simulate_script {} {
     return 1
   }
  
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
@@ -2049,7 +2049,7 @@ proc usf_vcs_create_setup_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "vcs"
 
   puts $fh_scr "\n# Script usage"
