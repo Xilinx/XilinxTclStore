@@ -190,6 +190,9 @@ set bd_dk [current_bd_design]
         set heading [list S.No. {GT REFCLOCK Name} Freq ParentIP {REFCLK Source} {GT Type}]
         $tbl1 header $heading
         set snumk 0
+		  set unique_statement [list ]	  
+		  set port_val_multi_uniq    [list ]
+		  set prot_val_list_uniq [list ]
         foreach quadCell $quadList {
           set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
@@ -231,6 +234,7 @@ set bd_dk [current_bd_design]
               set numq 1
               lappend norepQuad $quadCell
           } else {
+		  set prot_val_list [list ]
           set LANE_SEL_DICT ""
           set settings_string [evaluate_bd_properties {*}$txIntfcs {*}$rxIntfcs]
 		  set LANE_SEL_DICT [dict create]
@@ -245,7 +249,6 @@ set bd_dk [current_bd_design]
           set keys_lsk [dict keys $LANE_SEL_DICT]
 		  set idx [lsearch $keys_lsk "unconnected"]
 		  set keys_lsk_updated [lreplace $keys_lsk $idx $idx]
-
           set prot_num [llength $keys_lsk]
           set ref_clk_d [get_property CONFIG.REFCLK_STRING [get_bd_cells ${quadCell}]]
           set REFCLK_EXTERNAL_CONNECT                    [dict values $ref_clk_d]
@@ -258,6 +261,11 @@ set bd_dk [current_bd_design]
            set temp [lindex $REFCLK_EXTERNAL_CONNECT_UNIQUE $n]
            set freq_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"PROT0_" ""} [string map {"PROT1_" ""} [string map {"PROT2_" ""} [string map {"PROT3_" ""} [string map {"PROT4_" ""} [string map {"PROT5_" ""} [string map {"PROT6_" ""} [string map {"PROT7_" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]]]]]]]]]]
            if {[string match "*multiple*" $freq_val]} {
+		   set prot_val_multi [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"refclk_" ""} [string map {"_R0_" ""} [string map {"_R1_" ""} [string map {"_R2_" ""} [string map {"_R3_" ""} [string map {"_R4_" ""} [string map {"_R5_" ""} [string map {"ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]]]]]]]] 
+	       lappend prot_val_multi_list $prot_val_multi
+		   set prot_val_multi_newlist [::struct::list flatten -full $prot_val_multi_list]
+
+		   set port_val_multi_uniq [lsort -unique $prot_val_multi_newlist]
            set multiple_freq_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]]
            set multiple_freq_prot_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\_R0" ""} [string map {"\_R1" ""} [string map {"\_R2" ""} [string map {"\_R3" ""} [string map {"\_R4" ""} [string map {"\_R5" ""} $temp ]]]]]]]]]]]]]]]]
            set multi_freq_port_name [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\PROT0_" ""} [string map {"\PROT1_" ""} [string map {"\PROT2_" ""} [string map {"\PROT3_" ""} [string map {"\PROT4_" ""} [string map {"\PROT5_" ""} [string map {"\PROT6_" ""} [string map {"\PROT7_" ""} $temp ]]]]]]]]]]]]]]]]]]
@@ -291,24 +299,26 @@ set bd_dk [current_bd_design]
               }
 			  if {[dict exists $LANE_SEL_DICT $prot_val] } { 
               set lkey [dict get $LANE_SEL_DICT $prot_val]
-
-	  		   set lkeya [split $lkey " "]
+			  set lkeya [split $lkey " "]
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
-			     set statement_flag 0
-	           } else {
-                 set statement_flag 1
-			     set statement "Unable to find any valid Interface Properties for Quad $quadCell. Refclk frequencies may not be reported correctly for this quad."
-               }
+	           } 
                lappend list_AK0 $pCellName
-
-			   if {$statement_flag} {
-	           lappend statement_list $statement
-			   set unique_statement [lsort -unique $statement_list]
-		       }
-
+              set multi_found 1
            } else {
+		   set prot_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]] 
+		   set prot_val_space [string map {"\_" " "}  $prot_val ]
+           set prot_val_new [list ]
+           set prot_val_new $prot_val_space
+           set prot_val_space [lsearch -inline -all -not -exact $prot_val_new $freq_val]
+            
+	       lappend prot_val_list $prot_val_space
+	
+	
+	    set prot_val_newlist [::struct::list flatten -full $prot_val_list]
+			set prot_val_list_uniq [lsort -unique $prot_val_newlist] 
+
              set freq_val_with_prot_src [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} $temp ]]]]]]]]
               set freq_val_with_prot_src_space [string map {"\_" " "}  $freq_val_with_prot_src ]
               set new_list [list ]
@@ -362,35 +372,33 @@ set bd_dk [current_bd_design]
                } else {
                  set pCellName $pCellName1
                }
-			  set statement_flag 0
-		   } 
-		   if {$keys_lsk_updated == $prot_src_dict_keys} {
-			  set statement_flag 0
-		   } else { 
-			  set statement_flag 1
-			  set statement "Unable to find any valid Interface Properties for Quad $quadCell. Refclk frequencies may not be reported correctly for this quad."
-           }
+		       } 
                }
                lappend list_AK0 $pCellName
-			   if {$statement_flag} {
-	           lappend statement_list $statement
-			   set unique_statement [lsort -unique $statement_list]
-		       }
-
-
+              set multi_found 0
            }
           lappend list_AK0 $ref_clk_src
           lappend list_AK0 $gt_t
           $tbl1 addrow $list_AK0
+	 } 
+		  set prot_val_merged [concat $port_val_multi_uniq $prot_val_list_uniq]
 
-         }
+       		 if {$keys_lsk_updated == $prot_val_merged} {
+       			 set statement_flag 0
+                } else {
+       		     set statement_flag 1
+       		     set statement "Unable to find any valid Interface Properties for Quad $quadCell. Refclk frequencies may not be reported correctly for this quad."
+       			 lappend statement_list $statement
+                 set unique_statement [lsort -unique $statement_list]
+             }
         }
         }
 		puts $outfilek "The following data is generated based on the interface parameter values propagated from parent IP to Quad."
         puts $outfilek "  "
-		if {$statement_flag} {
-		foreach sentence $unique_statement {
-		puts $outfilek "  $sentence"
+		if {[llength $unique_statement]} {
+		 foreach sentence $unique_statement {
+		   puts $outfilek " $sentence"
+	     }
 	    }
         puts $outfilek "  "
 		puts $outfilek " Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties. Also please refer summary.log file for each quad in project for the reference clock information"
