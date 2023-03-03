@@ -338,6 +338,18 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
+proc xcs_get_shell_env {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set shell_env "#!/bin/bash -f"
+  if { [rdi::is_ubuntu] } {
+    set shell_env "#!/usr/bin/env bash"
+  }
+  return $shell_env
+} 
+
 proc xcs_exec_script { scr_file error_log_arg } {
   # Summary:
   # Argument Usage:

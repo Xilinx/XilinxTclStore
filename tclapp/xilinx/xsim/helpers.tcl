@@ -1365,7 +1365,7 @@ proc usf_write_run_script { simulator log_files } {
 
   # write script contents
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh "#!/bin/bash -f"
+    puts $fh "[xcs_get_shell_env]"
   } else {
     puts $fh "@echo off"
   }
