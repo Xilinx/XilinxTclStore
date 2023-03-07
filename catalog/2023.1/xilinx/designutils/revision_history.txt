@@ -1,3 +1,4 @@
+1.59 Various enhancements (report_gt_refclk_summary)
 1.58 Added get_device_sll_nodes. Various enhancements (report_gt_refclk_summary)
 1.57 Various enhancements (report_gt_refclk_summary, prettyTable)
 1.56 fixed gtye5 to gt in help/comment
