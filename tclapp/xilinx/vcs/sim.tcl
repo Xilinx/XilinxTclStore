@@ -1482,7 +1482,8 @@ proc usf_vcs_write_elaborate_script {} {
             set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            set model_ver [rdi::get_aie_config_type]
+            #set model_ver [rdi::get_aie_config_type]
+            set model_ver "aie"
             set lib_name "${model_ver}_cluster_v1_0_0"
             if { {aie} == $model_ver } {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
@@ -1513,7 +1514,8 @@ proc usf_vcs_write_elaborate_script {} {
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-            set model_ver [rdi::get_aie_config_type]
+            #set model_ver [rdi::get_aie_config_type]
+            set model_ver "aie"
             set lib_name "${model_ver}_cluster_v1_0_0"
             if { {aie} == $model_ver } {
               set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
