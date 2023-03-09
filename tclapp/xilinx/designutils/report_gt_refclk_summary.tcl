@@ -399,7 +399,6 @@ set bd_dk [current_bd_design]
 		 foreach sentence $unique_statement {
 		   puts $outfilek " $sentence"
 	     }
-	    }
         puts $outfilek "  "
 		puts $outfilek " Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties. Also please refer summary.log file for each quad in project for the reference clock information"
      	}
