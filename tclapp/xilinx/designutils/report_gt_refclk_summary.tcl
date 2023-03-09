@@ -1,7 +1,6 @@
 # tclapp/mycompany/myapp/myapp.tcl
 package require Vivado 1.2020.3
 
-
 namespace eval ::tclapp::xilinx::designutils {
   namespace export report_gt_refclk_summary
 }
