@@ -1652,7 +1652,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
         }
       }
       set sm_lib_path_str [join $cxl_dirs ":"]
-      puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
+      puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default/9.3.0:\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
       puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str:\$LD_LIBRARY_PATH\n"
     }
 
