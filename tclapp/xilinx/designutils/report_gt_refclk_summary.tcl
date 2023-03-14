@@ -195,11 +195,11 @@ set bd_dk [current_bd_design]
 		  set unique_statement [list ]	  
 		  set port_val_multi_uniq    [list ]
 		  set prot_val_list_uniq [list ]
+          set numq 0
         foreach quadCell $quadList {
           set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
           set rxIntfcs [list ]
-          set numq 0
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
           set txc 0
@@ -424,8 +424,8 @@ set bd_dk [current_bd_design]
 		   puts $outfilek " $sentence"
 	     }
         puts $outfilek "  "
-		puts $outfilek " Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties."
-	    puts $outfilek " Also please refer summary.log file for each quad in project for the reference clock information."
+		puts $outfilek "Note:      Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties."
+	    puts $outfilek "           Also please refer summary.log file for each quad in project for the reference clock information."
      	}
         puts $outfilek "  "
         puts $outfilek [$tbl1 print]
