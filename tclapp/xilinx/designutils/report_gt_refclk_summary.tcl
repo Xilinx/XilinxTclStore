@@ -606,13 +606,26 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::not_empty_int {obj
 }
 
 proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::compare_dict {dict1 dict2} {
+	# summary:
+	# proc compares two different discts which give as inputs arguments
+	
+	# Argument Usage:
+
+    # Return Value:
+	# null ("") if dicts detected as same. false (0) otherwise
+	
+    # Categories: Xilinxtclstore, projutils
+
 	set val1 [list ]
 	set val2 [list ]
+	# check if the size is same. if yes proceed else return "0"
 	if {[dict size $dict1] == [dict size $dict2]} {
 		foreach key [dict keys $dict1] {
+			#check whether key from dict1 exsist in dict2. if yes proceed else return "0"
 			if {[dict exists $dict2 $key]} {
 				set val1 [lsort [dict get $dict1 $key]]
 				set val2 [lsort [dict get $dict2 $key]]
+				#compare values for the key from both dict. if yes proceed else return "0"
 				if {$val1 != $val2} {
 					return 0
 				} 
