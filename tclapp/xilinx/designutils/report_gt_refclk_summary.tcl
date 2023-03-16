@@ -606,7 +606,7 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::not_empty_int {obj
 }
 
 proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::compare_dict {dict1 dict2} {
-	# summary:
+	# Summary:
 	# proc compares two different discts which give as inputs arguments
 	
 	# Argument Usage:
