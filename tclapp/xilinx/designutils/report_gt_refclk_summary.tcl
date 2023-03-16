@@ -195,11 +195,11 @@ set bd_dk [current_bd_design]
 		  set unique_statement [list ]	  
 		  set port_val_multi_uniq    [list ]
 		  set prot_val_list_uniq [list ]
+          set numq 0
         foreach quadCell $quadList {
           set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
           set rxIntfcs [list ]
-          set numq 0
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
           set txc 0
@@ -424,8 +424,8 @@ set bd_dk [current_bd_design]
 		   puts $outfilek " $sentence"
 	     }
         puts $outfilek "  "
-		puts $outfilek " Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties."
-	    puts $outfilek " Also please refer summary.log file for each quad in project for the reference clock information."
+		puts $outfilek "Note:      Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties."
+	    puts $outfilek "           Also please refer summary.log file for each quad in project for the reference clock information."
      	}
         puts $outfilek "  "
         puts $outfilek [$tbl1 print]
@@ -606,13 +606,26 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::not_empty_int {obj
 }
 
 proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::compare_dict {dict1 dict2} {
+	# summary:
+	# proc compares two different discts which give as inputs arguments
+	
+	# Argument Usage:
+
+    # Return Value:
+	# null ("") if dicts detected as same. false (0) otherwise
+	
+    # Categories: Xilinxtclstore, projutils
+
 	set val1 [list ]
 	set val2 [list ]
+	# check if the size is same. if yes proceed else return "0"
 	if {[dict size $dict1] == [dict size $dict2]} {
 		foreach key [dict keys $dict1] {
+			#check whether key from dict1 exsist in dict2. if yes proceed else return "0"
 			if {[dict exists $dict2 $key]} {
 				set val1 [lsort [dict get $dict1 $key]]
 				set val2 [lsort [dict get $dict2 $key]]
+				#compare values for the key from both dict. if yes proceed else return "0"
 				if {$val1 != $val2} {
 					return 0
 				} 
