@@ -1,0 +1,10 @@
+
+
+  Description: 
+
+     Returns all the SLL nodes available in device. Support all devices.
+
+  Example:
+  
+     set nodes [::xilinx::designutils::get_device_sll_nodes]
+

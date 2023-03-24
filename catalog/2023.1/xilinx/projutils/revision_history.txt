@@ -1,8 +1,27 @@
-3.518 Revert bdc dfx issue fix
-3.517 bd with stale bdc reference issue for DFX
-3.516 resolve verilog header source file paths for export absolute nonprecompile mode
-3.515 check for aie ml env and bind aie2
-3.514 find simulation model directory paths from rdi datadir env values
+3.541 Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty
+3.540 do not write xlnoc BD cell if -no_bd_xlnoc specified
+3.539 Do not write cluster configuration in write_project_tcl generated script
+3.538 generate_target for bd with block containers when needed
+3.537 BD(using BDC within) wrapper RTL as RM: write_project_tcl creation fails
+3.536 Set- default value to 0 for ignore_msg_control_rules
+3.535 Set- default value to 0 for ignore_msg_control_rules
+3.534 Add Reconstruct message rule CR-131662
+3.533 Add Reconstruct message rule CR-131662.
+3.531 Move Files of RM subdesign to RM fileset
+3.530 deleted utils not required for projutils
+3.529 move export simulation to native
+3.528 auto generate switch network
+3.527 check for gui mode in order to update compile order
+3.526 auto generate IP and export files
+3.525 donot print warnings for non-existent compiled library dir
+3.524 helpers for define and generic
+3.523 fixed summary description for apps
+3.522 fixed summary description
+3.521 remove setup_ip_static_library and export_ip_user_files
+3.520 refactor setup_ip_static_library to native task
+3.519 refactor export_ip_user_files to native task
+3.517 revert refactor export_ip_user_files to native task
+3.515 resolve verilog header source file paths for export absolute nonprecompile mode
 3.511 get and fix library path for VCS
 3.512 write_project_tcl quiet issue
 3.511 write_project_tcl and copy_run support for different DFX modes

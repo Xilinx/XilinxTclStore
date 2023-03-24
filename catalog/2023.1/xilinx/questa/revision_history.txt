@@ -1,3 +1,17 @@
+2.280 skip xlnoc for synth from simulation fileset
+2.279 include obj file in archive during link
+2.278 support for sc_async_update property
+2.277 print debug message for local IP compilation
+2.276 fixed bug with fetching c files for non-precompile mode
+2.275 merged 2022.2 to 2023.1
+2.274 option for invoking simulator gui in scripts mode
+2.273 code cleanup for aie_cluster binding
+2.272 support for defines and generics for export flow
+2.271 fixed aie directory path
+2.270 detect AIE config type
+2.269 helpers for define, generic
+2.268 script cleanup
+2.267 helpers for define and generic
 2.266 check for aie ml env and bind aie2
 2.265 suppress 10016 warning for vopt missing library option set for vlog
 2.264 delete src dir for non-precompile export flow

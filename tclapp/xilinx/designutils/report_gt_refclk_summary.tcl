@@ -1,10 +1,10 @@
 # tclapp/mycompany/myapp/myapp.tcl
 package require Vivado 1.2020.3
 
-
 namespace eval ::tclapp::xilinx::designutils {
   namespace export report_gt_refclk_summary
 }
+
 
 #######################################################################################################
 ##
@@ -21,6 +21,10 @@ namespace eval ::tclapp::xilinx::designutils {
 ##
 ##   Vivado% xilinx::designutils::report_gt_refclk_summary
 ##   2021.05.05 - Initial release
+##   2023.02.21 - updated script to report error message while parameter propagation is wrong.
+##   2023.03.08 - Updated script to populate data on information form quad. And script will compare the data from quad and interface just 
+##                to confirm whether parameter propagation is correct or wrong, and prints messages accordingly
+##
 ##
 ##########################################################################################################
 # Trick to silence the linter
@@ -188,11 +192,14 @@ set bd_dk [current_bd_design]
         set heading [list S.No. {GT REFCLOCK Name} Freq ParentIP {REFCLK Source} {GT Type}]
         $tbl1 header $heading
         set snumk 0
+		  set unique_statement [list ]	  
+		  set port_val_multi_uniq    [list ]
+		  set prot_val_list_uniq [list ]
+          set numq 0
         foreach quadCell $quadList {
           set gt_t [get_property CONFIG.GT_TYPE -quiet [get_bd_cells ${quadCell}]]
           set txIntfcs [list ]
           set rxIntfcs [list ]
-          set numq 0
           set txIntfcPIDs [list ]
           set rxIntfcPIDs [list ]
           set txc 0
@@ -229,9 +236,10 @@ set bd_dk [current_bd_design]
               set numq 1
               lappend norepQuad $quadCell
           } else {
+		  set prot_val_list [list ]
           set LANE_SEL_DICT ""
           set settings_string [evaluate_bd_properties {*}$txIntfcs {*}$rxIntfcs]
-          set LANE_SEL_DICT [dict create]
+		  set LANE_SEL_DICT [dict create]
           dict lappend LANE_SEL_DICT [dict get $settings_string RX0_LANE_SEL] RX0
           dict lappend LANE_SEL_DICT [dict get $settings_string RX1_LANE_SEL] RX1
           dict lappend LANE_SEL_DICT [dict get $settings_string RX2_LANE_SEL] RX2
@@ -241,7 +249,21 @@ set bd_dk [current_bd_design]
           dict lappend LANE_SEL_DICT [dict get $settings_string TX2_LANE_SEL] TX2
           dict lappend LANE_SEL_DICT [dict get $settings_string TX3_LANE_SEL] TX3
           set keys_lsk [dict keys $LANE_SEL_DICT]
+		  set idx [lsearch $keys_lsk "unconnected"]
+		  set keys_lsk_updated [lreplace $keys_lsk $idx $idx]
           set prot_num [llength $keys_lsk]
+
+          set LANE_SEL_DICT_QUAD ""
+		  set LANE_SEL_DICT_QUAD [dict create]
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.RX0_LANE_SEL [get_bd_cells $quadCell]] RX0
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.RX1_LANE_SEL [get_bd_cells $quadCell]] RX1
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.RX2_LANE_SEL [get_bd_cells $quadCell]] RX2
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.RX3_LANE_SEL [get_bd_cells $quadCell]] RX3
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.TX0_LANE_SEL [get_bd_cells $quadCell]] TX0
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.TX1_LANE_SEL [get_bd_cells $quadCell]] TX1
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.TX2_LANE_SEL [get_bd_cells $quadCell]] TX2
+          dict lappend LANE_SEL_DICT_QUAD [get_property CONFIG.TX3_LANE_SEL [get_bd_cells $quadCell]] TX3
+
           set ref_clk_d [get_property CONFIG.REFCLK_STRING [get_bd_cells ${quadCell}]]
           set REFCLK_EXTERNAL_CONNECT                    [dict values $ref_clk_d]
           set REFCLK_EXTERNAL_CONNECT_UNIQUE             [uniquify_list $REFCLK_EXTERNAL_CONNECT]
@@ -253,6 +275,11 @@ set bd_dk [current_bd_design]
            set temp [lindex $REFCLK_EXTERNAL_CONNECT_UNIQUE $n]
            set freq_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"PROT0_" ""} [string map {"PROT1_" ""} [string map {"PROT2_" ""} [string map {"PROT3_" ""} [string map {"PROT4_" ""} [string map {"PROT5_" ""} [string map {"PROT6_" ""} [string map {"PROT7_" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]]]]]]]]]]
            if {[string match "*multiple*" $freq_val]} {
+		   set prot_val_multi [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"refclk_" ""} [string map {"_R0_" ""} [string map {"_R1_" ""} [string map {"_R2_" ""} [string map {"_R3_" ""} [string map {"_R4_" ""} [string map {"_R5_" ""} [string map {"ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]]]]]]]] 
+	       lappend prot_val_multi_list $prot_val_multi
+		   set prot_val_multi_newlist [::struct::list flatten -full $prot_val_multi_list]
+
+		   set port_val_multi_uniq [lsort -unique $prot_val_multi_newlist]
            set multiple_freq_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} $temp ]]]]]]]]]]
            set multiple_freq_prot_type [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\_R0" ""} [string map {"\_R1" ""} [string map {"\_R2" ""} [string map {"\_R3" ""} [string map {"\_R4" ""} [string map {"\_R5" ""} $temp ]]]]]]]]]]]]]]]]
            set multi_freq_port_name [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} [string map {"\_ext_freq" ""} [string map {"multiple_" ""} [string map {"\PROT0_" ""} [string map {"\PROT1_" ""} [string map {"\PROT2_" ""} [string map {"\PROT3_" ""} [string map {"\PROT4_" ""} [string map {"\PROT5_" ""} [string map {"\PROT6_" ""} [string map {"\PROT7_" ""} $temp ]]]]]]]]]]]]]]]]]]
@@ -265,6 +292,7 @@ set bd_dk [current_bd_design]
             }
             lappend list_AK0 $ref_name
             lappend list_AK0 "multiple"
+            set pCellName ""
             set prot_val ""
               if {[string match "PROT0" $multiple_freq_prot_type]} {
                   set prot_val "PROT0"
@@ -283,14 +311,33 @@ set bd_dk [current_bd_design]
               } else {
                   set prot_val "PROT7"
               }
-              set lkey [dict get $LANE_SEL_DICT $prot_val]
-               set lkeya [split $lkey " "]
+			  if {[dict exists $LANE_SEL_DICT_QUAD $prot_val] } { 
+              set lkey [dict get $LANE_SEL_DICT_QUAD $prot_val]
+			  set lkeya [split $lkey " "]
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
-               lappend list_AK0 $pCellName
+	           } 
+		      if {$pCellName != {}} {
+                 lappend list_AK0 $pCellName
+		      } else {
+                 lappend list_AK0 ""
+			  }
 
+              set multi_found 1
            } else {
+		   set prot_val [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""} [string map {"refclk_" ""} [string map {"R0_" ""} [string map {"R1_" ""} [string map {"R2_" ""} [string map {"R3_" ""} [string map {"R4_" ""} [string map {"R5_" ""} $temp ]]]]]]]]]]]]]] 
+		   set prot_val_space [string map {"\_" " "}  $prot_val ]
+           set prot_val_new [list ]
+           set prot_val_new $prot_val_space
+           set prot_val_space [lsearch -inline -all -not -exact $prot_val_new $freq_val]
+            
+	       lappend prot_val_list $prot_val_space
+	
+	
+	    set prot_val_newlist [::struct::list flatten -full $prot_val_list]
+			set prot_val_list_uniq [lsort -unique $prot_val_newlist] 
+
              set freq_val_with_prot_src [string map {"\_unique6" ""} [string map {"\_unique5" ""} [string map {"\_unique4" ""} [string map {"\_unique3" ""} [string map {"\_unique2" ""} [string map {"\_unique1" ""} [string map {"\_MHz" ""}  [string map {"refclk_" ""} $temp ]]]]]]]]
               set freq_val_with_prot_src_space [string map {"\_" " "}  $freq_val_with_prot_src ]
               set new_list [list ]
@@ -298,6 +345,7 @@ set bd_dk [current_bd_design]
               set freq_val_with_prot_src_space [lsearch -inline -all -not -exact $new_list $freq_val]
               set prot_src_dict [dict create]
               set prot_src_dict $freq_val_with_prot_src_space
+			  set prot_src_dict_keys [dict keys $prot_src_dict] 
               set prot_src_info ""
               set snumk [expr $snumk+1]
               set list_AK0 [list $snumk]
@@ -328,35 +376,60 @@ set bd_dk [current_bd_design]
                set prot_src_info2 $ikk
                set prot_src_sp1 [split $prot_src_info2 ","]
                set prot_src_info [lindex $prot_src_sp1 0]
-               set lkey [dict get $LANE_SEL_DICT $prot_src_info]
+			   if {[dict exists $LANE_SEL_DICT_QUAD $prot_src_info]} { 
+               set lkey [dict get $LANE_SEL_DICT_QUAD $prot_src_info]
                set lkeya [split $lkey " "]
                set lkeya [lsort -unique $lkeya]
 
                set lkeya1 [lindex $lkeya 0]
                set lkeyf "$quadCell\/$lkeya1\_GT_IP_INTERFACE"
                set pCellName [find_connected_core $lkeyf]
-               lappend pCellName1 $pCellName
+               if {$pCellName != {}} {
+				   lappend pCellName1 $pCellName
+			   }
                set pCellName1 [lsort -unique $pCellName1]
                if {$num_parIP > 1} {
                  set pCellName [join $pCellName1 ","]
                } else {
                  set pCellName $pCellName1
                }
-
+		       } 
                }
                lappend list_AK0 $pCellName
-
-
+              set multi_found 0
            }
           lappend list_AK0 $ref_clk_src
           lappend list_AK0 $gt_t
           $tbl1 addrow $list_AK0
+	 } 
+		  set prot_val_merged [concat $port_val_multi_uniq $prot_val_list_uniq]
+		  set prot_val_merged_uniq [lsort -unique $prot_val_merged] 
 
-         }
+		 set dict_equal [compare_dict $LANE_SEL_DICT $LANE_SEL_DICT_QUAD] 
+
+       		 if {$dict_equal == 0} {
+				 set statement_flag 1
+       		     set statement "Unable to find any valid Interface Properties for Quad $quadCell. Refclk frequencies may not be reported correctly for this quad."
+       			 lappend statement_list $statement
+                 set unique_statement [lsort -unique $statement_list]
+                } else {
+       			 set statement_flag 0
+             }
         }
         }
-        puts $outfilek [$tbl1 print]
+		puts $outfilek "The following data is generated based on the interface parameter values propagated from parent IP to Quad."
         puts $outfilek "  "
+		if {[llength $unique_statement]} {
+		 foreach sentence $unique_statement {
+		   puts $outfilek " $sentence"
+	     }
+        puts $outfilek "  "
+		puts $outfilek "Note:      Interface Properties are propagated from Parent IP to the GT quad. Please ensure that the Parent IP or the connected Interface is packaged to host the properties."
+	    puts $outfilek "           Also please refer summary.log file for each quad in project for the reference clock information."
+     	}
+        puts $outfilek "  "
+        puts $outfilek [$tbl1 print]
+		puts $outfilek " "
         if {$numq == 1} {
          if {[llength $norepQuad] > 1} {
            puts $outfilek "Note:     Below mentioned quad IPs are unconnected, hence reference clock summary is not generated for these IPs"
@@ -390,9 +463,14 @@ set bd_dk [current_bd_design]
         puts $outfilek "          1) Remove the Utility Buffer instantiation and associated external port connected to <gt_quad_base_j>_GTREFCLK1, <gt_quad_base_k>_GTREFCLK2"
         puts $outfilek "          2) Short the required gt_quad_base reference clocks (<gt_quad_base_i>_GTREFCLK0,<gt_quad_base_j>_GTREFCLK1,<gt_quad_base_k>_GTREFCLK2) at the Quad instance level."
         puts $outfilek ""
+        if {$gt_t == "GTM"} {
+        puts $outfilek "Imp Note: While optimizing please ensure Quads are placed adjacently and follow below rules(please refer AM017-Chapter2 Section:Reference clock selection and distribution)."
+        puts $outfilek "For Versal devices, sourcing of the reference clock is limited to two Quads above and below for duals operating at line rates from 9.5 Gb/s to 29 Gb/s (NRZ) and 19 Gb/s to 56.42 Gb/s (PAM4).Channels should source a local reference clock (from within its own Quad) for highest performance."
+        } else {
         puts $outfilek "Imp Note: While optimizing please ensure Quads are placed adjacently and follow below rules(please refer AM002-Chapter2 Section:Reference clock selection and distribution)."
         puts $outfilek " "
         puts $outfilek "          For Versal devices, sourcing of the reference clock is limited to two Quads above and below."
+        }
         puts $outfilek " "
         puts $outfilek " "
         puts $outfilek " =============================== Command to generate GT_REFCLOCK Summary in gt_quad_base IP based designs ==============================="
@@ -526,6 +604,40 @@ proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::not_empty_int {obj
     return 0
   }
 }
+
+proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::compare_dict {dict1 dict2} {
+	# Summary:
+	# proc compares two different discts which give as inputs arguments
+	
+	# Argument Usage:
+
+    # Return Value:
+	# null ("") if dicts detected as same. false (0) otherwise
+	
+    # Categories: Xilinxtclstore, projutils
+
+	set val1 [list ]
+	set val2 [list ]
+	# check if the size is same. if yes proceed else return "0"
+	if {[dict size $dict1] == [dict size $dict2]} {
+		foreach key [dict keys $dict1] {
+			#check whether key from dict1 exsist in dict2. if yes proceed else return "0"
+			if {[dict exists $dict2 $key]} {
+				set val1 [lsort [dict get $dict1 $key]]
+				set val2 [lsort [dict get $dict2 $key]]
+				#compare values for the key from both dict. if yes proceed else return "0"
+				if {$val1 != $val2} {
+					return 0
+				} 
+			} else {
+				return 0
+			}
+		}
+	} else {
+		return 0
+	}
+}
+
 
 proc ::tclapp::xilinx::designutils::report_gt_refclk_summary::evaluate_bd_properties { tx0Handle tx1Handle tx2Handle tx3Handle rx0Handle rx1Handle rx2Handle rx3Handle } {
   # Summary:

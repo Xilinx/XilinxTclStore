@@ -9,7 +9,7 @@ namespace eval ::tclapp::xilinx::designutils {
 ## Company:        Xilinx, Inc.
 ## Created by:     David Pefourque
 ##
-## Version:        2020.04.03
+## Version:        2022.10.31
 ## Description:    This package provides a simple way to handle formatted tables
 ##
 ##
@@ -251,8 +251,20 @@ namespace eval ::tclapp::xilinx::designutils {
 ########################################################################################
 
 ########################################################################################
+## 2022.10.31 - Added 'cleardevice', 'getregion', 'setregion, 'incrregion' methods
+##              (template 'deviceview')
+##            - Improved support for Versal devices (template 'deviceview')
+##            - Changed some messages verbosity for -inline ('import' method)
+##            - Improved support for clock regions formatted as S*X*Y*
+## 2021.12.20 - Added support for -split_table ('print' method)
+##            - Added support for -split_table ('print_array', 'print_table')
+##            - Changed -header to be optional ('print_table', 'create_table')
+## 2021.05.14 - Added support for rows expansion ('delrows' method)
+##            - Added support for columns expansion ('delcolumns' method)
+## 2020.04.16 - Fixed an issue when a collection of objects could be truncated to 500 objects
+##              (impact all methods but most likely 'plotcells')
 ## 2020.04.03 - Updated -inline to support deleting the current row ('filter' method)
-## 2019.10.30 - Added global debug (::tclapp::xilinx::designutils::prettyTable debug 0|1)
+## 2019.10.30 - Added global debug (::tclapp::xilinx::designutils::prettyTable::debug 0|1)
 ##            - Added 'print_array' to ::tclapp::xilinx::designutils::prettyTable and to namespace ::tclapp::xilinx::designutils
 ##            - Added support for -indent/-left/-right/-classic/-lean/-compact (print_table)
 ##            - Added 'arrayget' method
@@ -391,7 +403,7 @@ eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable {
   variable params [list indent 0 title {} tableFormat {classic} cellAlignment {left} maxNumRows -1 maxNumRowsToDisplay -1 columnsToDisplay {} origin {topleft} offsetx 0 offsety 0 template {} methods {method}]
   variable history
   variable debug 0
-  variable version {2020.04.03}
+  variable version {2022.10.31}
 } ]
 
 #------------------------------------------------------------------------
@@ -588,40 +600,157 @@ proc ::tclapp::xilinx::designutils::prettyTable::Template { {name {}} } {
       # +-----+----+----+----+----+----+----+
       set maxX 0
       set maxY 0
+      # hasMaxtrixSLR=1 : clock regions match S*X*Y* (used in devices such as P80)
+      set hasMaxtrixSLR 0
       foreach slr [lsort [get_slrs -quiet]] {
         foreach region [get_clock_regions -quiet -of $slr] {
-          regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y
+          regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y
           if {$X > $maxX} { set maxX $X }
           if {$Y > $maxY} { set maxY $Y }
+          if {$S != {}} { set hasMaxtrixSLR 1 }
           lappend ar(${slr}:X) $X
           lappend ar(${slr}:Y) $Y
         }
       }
-      set column0 [list]
-      set header [list {}]
-      for {set i 0} {$i <= $maxX} {incr i} {
-        lappend header "X$i"
+
+      if {$hasMaxtrixSLR} {
+        # Device with SLRs positioned in a matrix (P80)
+        # ----------------------------------
+        #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+        #  |    | X0 | X1 | X2 | X3 | X4 | X5 | X6 | X7 | X8 | X9 | X10 | X11 | X11 | X10 | X9 | X8 | X7 | X6 | X5 | X4 | X3 | X2 | X1 | X0 |
+        #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+        #  | Y0 |    |    |    |    |    |    |    |    |    |    |     |     |     |     |    |    |    |    |    |    |    |    |    |    |
+        #  | Y1 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y2 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y3 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y4 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y5 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y6 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+        #  | Y6 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y5 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y4 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y3 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y2 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y1 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+        #  | Y0 |    |    |    |    |    |    |    |    |    |    |     |     |     |     |    |    |    |    |    |    |    |    |    |    |
+        #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+        # ----------------------------------
+        # Header
+        set header [list {}]
+        for {set i 0} {$i <= $maxX} {incr i} {
+          lappend header "X$i"
+        }
+        for {set i $maxX} {$i >= 0} {incr i -1} {
+          lappend header "X$i"
+        }
+        # Column 0
+        for {set i 0} {$i <= $maxY} {incr i} {
+          lappend column0 "Y$i"
+        }
+        for {set i $maxY} {$i >= 0} {incr i -1} {
+          lappend column0 "Y$i"
+        }
+        set tbl [tclapp::xilinx::designutils::prettyTable]
+        $tbl creatematrix [expr (($maxX +1) * 2) +1] [expr (($maxY +1) *2) +0]
+        $tbl configure -align_right -origin bottomleft -offsetx 1 -offsety 0
+        $tbl header $header
+        $tbl setcolumn 0 $column0
+        $tbl separator [expr ($maxY+1)]
+        # Save the 'template' parameter with the template name
+        $tbl set_param {template} {deviceview}
+        $tbl set_param {methods} {method deviceview}
+        $tbl set_param {deviceType} {2x2}
+        $tbl set_param {deviceInvalidCRs} [list]
+        # Max X/Y of one of the SLRs
+        $tbl set_param {deviceMaxX} $maxX
+        $tbl set_param {deviceMaxY} $maxY
+      } else {
+        # Legacy SSI device
+        # -----------------
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        #  |     | X0 | X1 | X2 | X3 | X4 | X5 | X6 | X7 | X8 | X9 | X10 | X11 | X12 |
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        #  | Y13 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  | Y12 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  | Y11 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        #  | Y10 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y9 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y8 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        #  |  Y7 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y6 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y5 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        #  |  Y4 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y3 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y2 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y1 |    |    |    |    |    |    |    |    |    |    |   x |   x |   x |
+        #  |  Y0 |    |    |    |    |    |    |    |    |    |    |     |     |     |
+        #  +-----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+
+        # -----------------
+        set column0 [list]
+        set header [list {}]
+        for {set i 0} {$i <= $maxX} {incr i} {
+          lappend header "X$i"
+        }
+        for {set i $maxY} {$i >= 0} {incr i -1} {
+          lappend column0 "Y$i"
+        }
+        set tbl [tclapp::xilinx::designutils::prettyTable]
+        $tbl creatematrix [expr $maxX +2] [expr $maxY +1]
+        $tbl configure -align_right -origin bottomleft -offsetx 1 -offsety 0
+        $tbl header $header
+        $tbl setcolumn 0 $column0
+        # Start from the highest number SLR. The lowest (SLR0)
+        # can be skipped as the number of separators that are needed
+        # is the number of SLRs minus 1
+        foreach slr [lrange [lsort -decreasing [get_slrs -quiet]] 0 end-1] {
+          set Y [lsort -integer -increasing -unique $ar(${slr}:Y)]
+          # Get the lowest Y number for this SLR
+          set n [lindex $Y 0]
+          $tbl separator [expr $maxY - $n +1]
+        }
+        # Save the 'template' parameter with the template name
+        $tbl set_param {template} {deviceview}
+        $tbl set_param {methods} {method deviceview}
+        $tbl set_param {deviceType} {ssi}
+        $tbl set_param {deviceInvalidCRs} [list]
+        # Max X/Y of the entire device
+        $tbl set_param {deviceMaxX} $maxX
+        $tbl set_param {deviceMaxY} $maxY
       }
-      for {set i $maxY} {$i >= 0} {incr i -1} {
-        lappend column0 "Y$i"
+
+      # Find invalid (non-existing) clock regions
+      if {$hasMaxtrixSLR} {
+        # Assuming that each SLR is symetric when in a matrix configuration
+        set regions [get_clock_regions -quiet -of [get_slrs SLR0]]
+      } else {
+        set regions [get_clock_regions -quiet]
       }
-      set tbl [::tclapp::xilinx::designutils::prettyTable]
-      $tbl creatematrix [expr $maxX +2] [expr $maxY +1]
-      $tbl configure -align_right -origin bottomleft -offsetx 1 -offsety 0
-      $tbl header $header
-      $tbl setcolumn 0 $column0
-      # Start from the highest number SLR. The lowest (SLR0)
-      # can be skipped as the number of separators that are needed
-      # is the number of SLRs minus 1
-      foreach slr [lrange [lsort -decreasing [get_slrs -quiet]] 0 end-1] {
-        set Y [lsort -integer -increasing -unique $ar(${slr}:Y)]
-        # Get the lowest Y number for this SLR
-        set n [lindex $Y 0]
-        $tbl separator [expr $maxY - $n +1]
+      set invalidClockRegions [list]
+      for {set X 0} {$X <= $maxX} {incr X} {
+        for {set Y 0} {$Y <= $maxY} {incr Y} {
+          if {$hasMaxtrixSLR} {
+            if {[lsearch $regions "S0X${X}Y${Y}"] == -1} {
+              for {set idx 0} {$idx < [llength [get_slrs]]} {incr idx} {
+                lappend invalidClockRegions "S${idx}X${X}Y${Y}"
+              }
+            }
+          } else {
+            if {[lsearch $regions "X${X}Y${Y}"] == -1} {
+              lappend invalidClockRegions "X${X}Y${Y}"
+            }
+          }
+        }
       }
-      # Save the 'template' parameter with the template name
-      $tbl set_param {template} {deviceview}
-      $tbl set_param {methods} {method deviceview}
+      # Save the list of invalid clock regions
+      $tbl set_param {deviceInvalidCRs} $invalidClockRegions
+
+      # Clear the device to add the invalid regions on it
+      $tbl cleardevice
+
       # Return the table object
       set tbl
     }
@@ -660,7 +789,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_table {args} {
       {^-va(l(u(es?)?)?)?$} {
         set table [lshift args]
       }
-      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} -
+      {^-he(a(d(er?)?)?)?$} {
         set header [lshift args]
       }
       {^-title$} -
@@ -699,6 +829,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_table {args} {
       {^-ch(a(n(n(el?)?)?)?)?$} {
         set channel [lshift args]
       }
+      {^-split_table$} -
+      {^-sp(l(i(t(_(t(a(b(le?)?)?)?)?)?)?)?)?$} {
+        lappend printOptions {-split_table}
+        lappend printOptions [lshift args]
+      }
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set verbose 1
       }
@@ -722,23 +857,25 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_table {args} {
     puts [format {
   Usage: ::tclapp::xilinx::designutils::prettyTable print_table
               -values <row(s)>
-              -columns <column(s)>
+              [-columns <column(s)>|-header <column(s)>]
               [-title <title>]
               [-align_left|-left]
               [-align_right|-right]
               [-lean][-classic][-compact]
               [-indent <indent_level>]
+              [-split_table <num_rows>]
               [-channel <channel>]
               [-verbose|-v]
               [-help|-h]
 
   Description: Print table from table content
 
-    -columns: table column names
+    -columns|-header: table column names
     -values: table rows
     -title: table title
     -indent: indent table
     -channel: output channel. Default: stdout
+    -split_table: specify the max number of rows. Split the table into side-by-side tables
 
   Example:
      ::tclapp::xilinx::designutils::prettyTable print_table -columns {Name # %%} -values [list {LUT 9754 66.51} {CARRY 2622 17.88} ]
@@ -748,8 +885,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_table {args} {
   }
 
   if {[llength $header] == 0} {
-    puts " -E- no column defined (-columns)"
-    incr error
+#     puts " -E- no column defined (-columns/-header)"
+#     incr error
+    # Create header if not specified
+    for {set idx 0} {$idx < [llength [lindex $table 0]]} {incr idx} {
+      lappend header [format {Column %s} $idx]
+    }
   }
 
   if {$error} {
@@ -801,7 +942,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_array {args} {
         catch { unset var }
         upvar 2 $_var var
       }
-      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} -
+      {^-he(a(d(er?)?)?)?$} {
         set header [lshift args]
       }
       {^-title$} -
@@ -840,6 +982,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_array {args} {
       {^-ch(a(n(n(el?)?)?)?)?$} {
         set channel [lshift args]
       }
+      {^-split_table$} -
+      {^-sp(l(i(t(_(t(a(b(le?)?)?)?)?)?)?)?)?$} {
+        lappend printOptions {-split_table}
+        lappend printOptions [lshift args]
+      }
       {^-v(e(r(b(o(se?)?)?)?)?)?$} {
         set verbose 1
       }
@@ -863,12 +1010,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_array {args} {
     puts [format {
   Usage: ::tclapp::xilinx::designutils::prettyTable print_array
               -var <TclArrayVar>
-              [-columns <column(s)>]
+              [-columns <column(s)>|-header <column(s)>]
               [-title <title>]
               [-align_left|-left]
               [-align_right|-right]
               [-lean][-classic][-compact]
               [-indent <indent_level>]
+              [-split_table <num_rows>]
               [-channel <channel>]
               [-verbose|-v]
               [-help|-h]
@@ -876,10 +1024,11 @@ proc ::tclapp::xilinx::designutils::prettyTable::print_array {args} {
   Description: Print table from an existing Tcl array
 
     -var: Tcl array name that contain the table data
-    -columns: table column names
+    -columns|-header: table column names
     -title: table title
     -indent: indent table
     -channel: output channel. Default: stdout
+    -split_table: specify the max number of rows. Split the table into side-by-side tables
 
   Example:
      ::tclapp::xilinx::designutils::prettyTable print_array -var myarray -title {Title for my table}
@@ -939,7 +1088,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::create_table {args} {
       {^-va(l(u(es?)?)?)?$} {
         set table [lshift args]
       }
-      {^-c(o(l(u(m(ns?)?)?)?)?)?$} {
+      {^-c(o(l(u(m(ns?)?)?)?)?)?$} -
+      {^-he(a(d(er?)?)?)?$} {
         set header [lshift args]
       }
       {^-title$} -
@@ -969,14 +1119,14 @@ proc ::tclapp::xilinx::designutils::prettyTable::create_table {args} {
     puts [format {
   Usage: ::tclapp::xilinx::designutils::prettyTable create_table
               -values <row(s)>
-              -columns <column(s)>
+              [-columns <column(s)>|-header <column(s)>]
               [-title <title>]
               [-verbose|-v]
               [-help|-h]
 
   Description: Create table from table content
 
-    -columns: table column names
+    -columns|-header: table column names
     -values: table rows
     -title: table title
     -channel: output channel. Default: stdout
@@ -989,8 +1139,12 @@ proc ::tclapp::xilinx::designutils::prettyTable::create_table {args} {
   }
 
   if {[llength $header] == 0} {
-    puts " -E- no column defined (-columns)"
-    incr error
+#     puts " -E- no column defined (-columns/-header)"
+#     incr error
+    # Create header if not specified
+    for {set idx 0} {$idx < [llength [lindex $table 0]]} {incr idx} {
+      lappend header [format {Column %s} $idx]
+    }
   }
 
   if {$error} {
@@ -2000,7 +2154,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
         puts " -D- ::tclapp::xilinx::designutils::prettyTable::${methods}:${method} $self $args"
       }
     }
-    eval ::tclapp::xilinx::designutils::prettyTable::${methods}:${method} $self $args
+#     eval ::tclapp::xilinx::designutils::prettyTable::${methods}:${method} $self $args
+    ::tclapp::xilinx::designutils::prettyTable::${methods}:${method} $self {*}$args
   } else {
     # Search for a unique matching method among all the available methods
     set match [dict create]
@@ -2039,7 +2194,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::do {self args} {
             puts " -D- $procname $self $args"
           }
         }
-        eval $procname $self $args
+#         eval $procname $self $args
+        $procname $self {*}$args
       }
       default {
         error " -E- multiple methods match '$method': $keys"
@@ -2375,6 +2531,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delcolumns {self columns
     return {}
   }
   set L [list]
+  set columns [expandNumericRange $self [join $columns ,] -unique 1]
   foreach column $columns {
   if {[regexp {^end$} $column]} { set column [expr [llength $header] -1] }
   if {[regexp {^end-([0-9]+)$} $column - num]} { set column [expr [llength $header] -1 - $num] }
@@ -2425,6 +2582,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:delrows {self rows} {
     return {}
   }
   set L [list]
+  set rows [expandNumericRange $self [join $rows ,] -unique 1]
   foreach row $rows {
     if {[regexp {^end$} $row]} { set row [expr [llength $table] -1] }
     if {[regexp {^end-([0-9]+)$} $row - num]} { set row [expr [llength $table] -1 - $num] }
@@ -3360,6 +3518,8 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
   set columnsToDisplay $params(columnsToDisplay)
   set printNextTo {}
   set showColIndexes 0
+  set splitTable -1
+  set splitTableCmdLine [list]
   while {[llength $args]} {
     set name [lshift args]
     switch -regexp -- $name {
@@ -3395,6 +3555,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
         set startRow [max 0 [expr $numRows - $n] ]
         set endRow {end}
       }
+      {^-split_table$} -
+      {^-sp(l(i(t(_(t(a(b(le?)?)?)?)?)?)?)?)?$} {
+        set splitTable [lshift args]
+      }
       {^-return_var$} -
       {^-re(t(u(r(n(_(v(ar?)?)?)?)?)?)?)?$} {
         set returnVar [lshift args]
@@ -3402,38 +3566,48 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       {^-columns$} -
       {^-co(l(u(m(ns?)?)?)?)?$} {
         set columnsToDisplay [lshift args]
+        lappend splitTableCmdLine {-columns}
+        lappend splitTableCmdLine $columnsToDisplay
       }
       {^-noheader$} -
       {^-noh(e(a(d(er?)?)?)?)?$} {
         set printHeader 0
+        lappend splitTableCmdLine {-noheader}
       }
       {^-left$} -
       {^-le(ft?)?$} -
       {^-align_left$} -
       {^-align_l(e(ft?)?)?$} {
         set align {-}
+        lappend splitTableCmdLine {-align_left}
       }
       {^-right$} -
       {^-ri(g(ht?)?)?$} -
       {^-align_right$} -
       {^-align_r(i(g(ht?)?)?)?$} {
         set align {}
+        lappend splitTableCmdLine {-align_right}
       }
       {^-lean$} -
       {^-le(an?)?$} {
         set format {lean}
+        lappend splitTableCmdLine {-lean}
       }
       {^-classic$} -
       {^-cl(a(s(s(ic?)?)?)?)?$} {
         set format {classic}
+        lappend splitTableCmdLine {-classic}
       }
       {^-compact$} -
       {^-co(m(p(a(ct?)?)?)?)?$} {
         set format {compact}
+        lappend splitTableCmdLine {-compact}
       }
       {^-format$} -
       {^-fo(r(m(at?)?)?)?$} {
         set format [lshift args]
+        lappend splitTableCmdLine {-format}
+        lappend splitTableCmdLine $format
       }
       {^-next_to$} -
       {^-ne(x(t(_(to?)?)?)?)?$} {
@@ -3442,10 +3616,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       {^-indent$} -
       {^-in(d(e(nt?)?)?)?$} {
         set indent [lshift args]
+        lappend splitTableCmdLine {-indent}
+        lappend splitTableCmdLine $indent
       }
       {^-notitle$} -
       {^-not(i(t(le?)?)?)?$} {
         set printTitle 0
+        lappend splitTableCmdLine {-notile}
       }
       {^\?$} -
       {^-help$} -
@@ -3502,6 +3679,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
               [-noheader]
               [-notitle]
               [-show_column_indexes]
+              [-split_table <num_rows>]
               [-help|-h]
 
   Description: Return table content
@@ -3512,6 +3690,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
       leave increase space(s) between both tables
     -show_column_indexes: show the column indexes in the table header
     -from_row/-to_row/-rows/-head/-tail: control the number of rows that are reported
+    -split_table: specify the max number of rows. Split the table into side-by-side tables
 
   Example:
      <prettyTableObject> print
@@ -3573,6 +3752,47 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:print {self args} {
     puts " -E- NO HEADER DEFINED"
     return {}
   }
+
+  # <-- -split_table: split the table into multiple side-by-side tables
+  if {$splitTable != -1} {
+    set numRowsToDisplay $splitTable
+    set idx $startRow
+    set report {}
+    if {$endRow == {end}} {
+      set lastRow [expr [$self numrows] -1]
+    } else {
+      set lastRow $endRow
+    }
+    while 1 {
+      if {$idx > $lastRow} { break }
+      if {[expr $idx + $numRowsToDisplay] <= $lastRow} {
+        set report [$self print {*}$splitTableCmdLine -from_row $idx -to_row [expr $idx + $numRowsToDisplay -1] -next_to $report]
+      } else {
+        set report [$self print {*}$splitTableCmdLine -from_row $idx -to_row $lastRow -next_to $report]
+      }
+      set idx [expr $idx + $numRowsToDisplay]
+    }
+
+    # The 'res' variable is important when -return_var is specified
+    set res $report
+    if {$filename != {}} {
+      if {$append} {
+        set FH [open $filename a]
+      } else {
+        set FH [open $filename w]
+      }
+      puts $FH $res
+      close $FH
+      return
+    }
+    if {$returnVar != {}} {
+      # The report is returned through the upvar
+      return {}
+    } else {
+      return $res
+    }
+  }
+  # End of -split_table -->
 
   set maxs {}
   set idx -1
@@ -4707,8 +4927,10 @@ proc ::tclapp::xilinx::designutils::prettyTable::method:import {self args} {
         incr count
       }
     }
-    puts " -I- Header: $header"
-    puts " -I- Number of imported row(s): $count"
+    if {$verbose} {
+      puts " -I- Header: $header"
+      puts " -I- Number of imported row(s): $count"
+    }
   }
   # Update number of rows
   $self numrows
@@ -5911,7 +6133,7 @@ proc ::tclapp::xilinx::designutils::prettyTable::expandRange {self ranges args} 
 }
 
 #------------------------------------------------------------------------
-# ::tclapp::xilinx::designutils::prettyTable::expandRange
+# ::tclapp::xilinx::designutils::prettyTable::expandExprRange
 #------------------------------------------------------------------------
 # **INTERNAL**
 #------------------------------------------------------------------------
@@ -5927,6 +6149,88 @@ proc ::tclapp::xilinx::designutils::prettyTable::expandExprRange {self range arg
 
   # Return coma separated list (compatibility for 'expr')
   return [join [::tclapp::xilinx::designutils::prettyTable::expandRange $self $range {*}$args -mode value -numeric 1] {,} ]
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::expandNumericRange
+#------------------------------------------------------------------------
+# **INTERNAL**
+#------------------------------------------------------------------------
+# Usage: ::tclapp::xilinx::designutils::prettyTable::expandNumericRange <range>
+#------------------------------------------------------------------------
+# Return a numeric list based on a range.
+# E.g:
+#   2:10,3:end-30,end
+#   => 2 3 4 5 6 7 8 9 10 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 64
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::expandNumericRange {self ranges args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Get a table cell value
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+
+  array set defaults [list \
+      -unique 0 \
+    ]
+  array set options [array get defaults]
+  array set options $args
+
+  set result [list]
+  foreach range [split $ranges {,}] {
+# puts "<range:$range>"
+    if {[regexp {^([0-9]+):([0-9]+)$} $range - min max]} {
+      foreach {min max} [list [min $min $max]  [max $min $max] ] {}
+      for {set i $min} {$i <= $max} {incr i} {
+        lappend result $i
+      }
+    } elseif {[regexp {^[0-9]+$} $range]} {
+      lappend result $range
+    } elseif {[regexp {^end$} $range]} {
+      lappend result [expr [llength $header] -1]
+    } elseif {[regexp {^end-([0-9]+)$} $range - num]} {
+      lappend result [expr [llength $header] -1 - $num]
+    } elseif {[regexp {^([0-9]+):end$} $range - min]} {
+      set max [expr [llength $header] -1]
+      foreach {min max} [list [min $min $max]  [max $min $max] ] {}
+      for {set i $min} {$i <= $max} {incr i} {
+        lappend result $i
+      }
+    } elseif {[regexp {^([0-9]+):end-([0-9]+)$} $range - min num]} {
+      set max [expr [llength $header] -1 - $num]
+      foreach {min max} [list [min $min $max]  [max $min $max] ] {}
+      for {set i $min} {$i <= $max} {incr i} {
+        lappend result $i
+      }
+    } elseif {[regexp {^end-([0-9]+):end$} $range - num]} {
+      set min [expr [llength $header] -1 - $num]
+      set max [expr [llength $header] -1]
+      foreach {min max} [list [min $min $max]  [max $min $max] ] {}
+      for {set i $min} {$i <= $max} {incr i} {
+        lappend result $i
+      }
+    } elseif {[regexp {^end-([0-9]+):end-([0-9]+)$} $range - min max]} {
+      set min [expr [llength $header] -1 - $min]
+      set max [expr [llength $header] -1 - $max]
+      foreach {min max} [list [min $min $max]  [max $min $max] ] {}
+      for {set i $min} {$i <= $max} {incr i} {
+        lappend result $i
+      }
+    } else {
+      puts " -E- unknown range '$range'"
+      return [list]
+    }
+  }
+
+  if {$options(-unique)} {
+    set result [lsort -real -unique $result]
+  }
+
+  return $result
 }
 
 #------------------------------------------------------------------------
@@ -7134,9 +7438,262 @@ proc ::tclapp::xilinx::designutils::prettyTable::pivottable:refreshtable {self a
 
 ###########################################################################
 ##
+## Helper procs for template 'deviceview'
+##
+###########################################################################
+
+eval [list namespace eval ::tclapp::xilinx::designutils::prettyTable::deviceview {}]
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY
+#------------------------------------------------------------------------
+# Convert a S*X*Y* region into X/Y cell coordonnates
+# Assumption: the table origin is bottom/left with -offsetx 1 -offsety 0
+#------------------------------------------------------------------------
+# E.g:
+#   $tbl incrcell {*}[::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY $tbl S0X3Y0]
+#   foreach {X Y} [::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY $tbl $region] { break }
+
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY {self region} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  set cellX -1
+  set cellY -1
+  # For monolithic SSI devices: maxX/maxY represent the size of the entire device
+  # For 2x2 SLR devices: maxX/maxY represent the size of a single SLR. All other SLRs are expected to have a similar footprint
+  set maxX [subst $${self}::params(deviceMaxX)]
+  set maxY [subst $${self}::params(deviceMaxY)]
+  if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y]} {
+    # E.g: 2x2 SLR device
+    #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+    #  |    | X0 | X1 | X2 | X3 | X4 | X5 | X6 | X7 | X8 | X9 | X10 | X11 | X11 | X10 | X9 | X8 | X7 | X6 | X5 | X4 | X3 | X2 | X1 | X0 |
+    #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+    #  | Y0 |    |    |    |    |    |    |    |    |    |    |     |     |     |     |    |    |    |    |    |    |    |    |    |    |
+    #  | Y1 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y2 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y3 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y4 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y5 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y6 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+    #  | Y6 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y5 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y4 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y3 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y2 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y1 |    |    |    |    |    |    |    |    |    |  x |   x |   x |   x |   x |  x |    |    |    |    |    |    |    |    |    |
+    #  | Y0 |    |    |    |    |    |    |    |    |    |    |     |     |     |     |    |    |    |    |    |    |    |    |    |    |
+    #  +----+----+----+----+----+----+----+----+----+----+----+-----+-----+-----+-----+----+----+----+----+----+----+----+----+----+----+
+    switch $S {
+      0 {
+        # SLR0 - 2x2
+        set cellX $X
+        set cellY $Y
+      }
+      1 {
+        # SLR1 - 2x2
+        set cellX $X
+        set cellY [expr $maxY + ($maxY - $Y +1)]
+      }
+      2 {
+        # SLR2 - 2x2
+        set cellX [expr $maxX + ($maxX - $X +1)]
+        set cellY [expr $maxY + ($maxY - $Y +1)]
+      }
+      3 {
+        # SLR3 - 2x2
+        set cellX [expr $maxX + ($maxX - $X +1)]
+        set cellY $Y
+      }
+      "" {
+        # For SSI/monolithic
+        set cellX $X
+        set cellY $Y
+      }
+      default {
+#         puts " -W- unrecognized region $region"
+      }
+    }
+  } else {
+#     puts " -W- unrecognized region $region"
+  }
+  return [list $cellX $cellY]
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview::updateOrigin
+#------------------------------------------------------------------------
+# Update the table origin based on the clock region
+# Note: The table params origin/offsetx/offsety are modified
+#------------------------------------------------------------------------
+# Example usage:
+#   # Save settings
+#   set tmpOrigin [subst $${self}::params(origin)]
+#   set tmpOffsetX [subst $${self}::params(offsetx)]
+#   set tmpOffsetY [subst $${self}::params(offsety)]
+#   ...
+#   if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y]} {
+#     ::tclapp::xilinx::designutils::prettyTable::deviceview::updateOrigin $self $region
+#     ::tclapp::xilinx::designutils::prettyTable::method:incrcells $self $X $Y
+#   }
+#   ...
+#   # Restore settings
+#   set ${self}::params(origin) $tmpOrigin
+#   set ${self}::params(offsetx) $tmpOffsetX
+#   set ${self}::params(offsety) $tmpOffsetY
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview::updateOrigin {self region} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # For monolithic SSI devices: origin is bottom/left
+  # For 2x2 SLR devices: the origin depends on the SLR. The assumption is
+  # that the user will not attemp to specify X/Y beyond the SLR boundaries
+  if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y]} {
+    switch $S {
+      0 {
+        # SLR0 - 2x2
+        $self configure -origin bottomleft -offsetx 1 -offsety 0
+      }
+      1 {
+        # SLR1 - 2x2
+        $self configure -origin topleft -offsetx 1 -offsety 0
+      }
+      2 {
+        # SLR2 - 2x2
+        $self configure -origin topright -offsetx 0 -offsety 0
+      }
+      3 {
+        # SLR3 - 2x2
+        $self configure -origin bottomright -offsetx 0 -offsety 0
+      }
+      "" {
+        # For SSI
+        $self configure -origin bottomleft -offsetx 1 -offsety 0
+      }
+      default {
+#         puts " -W- unrecognized region $region"
+      }
+    }
+  } else {
+#     puts " -W- unrecognized region $region"
+  }
+  return -code ok
+}
+
+###########################################################################
+##
 ## Methods for template 'deviceview'
 ##
 ###########################################################################
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview:cleardevice
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> cleardevice
+#------------------------------------------------------------------------
+# Clear the device view (and restore the invalid clock regions)
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview:cleardevice {self args} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Clear the device view (?)
+  upvar #0 ${self}::header header
+  upvar #0 ${self}::table table
+  upvar #0 ${self}::numRows numRows
+
+  if {([llength $args] != 0) && ([llength $args] != 1)} { set args {-help} }
+  if {[lsearch {-h -help ?} [lindex $args 0]] != -1} {
+    puts [format {  Usage: <prettyTableObject> cleardevice [<char>]}]
+    puts [format {  Default: x }]
+    return -code ok
+  }
+  set char {x}
+  if {[llength $args]} {
+    set char [lindex $args 0]
+  }
+
+  # Clear the table
+  $self cleartable
+
+  # Restore the invalid clock regions
+  set invalidClockRegions [subst $${self}::params(deviceInvalidCRs)]
+  foreach region $invalidClockRegions {
+    if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y]} {
+      ::tclapp::xilinx::designutils::prettyTable::deviceview:setregion $self $region $char
+    } else {
+      puts " -W- unrecognized region $region"
+    }
+  }
+
+  return $self
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview:getregion
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> getregion <region>
+#------------------------------------------------------------------------
+# Get a clock region value (for template 'deviceview')
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview:getregion {self region} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Get a clock region value
+  foreach {X Y} [::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY $self $region] { break }
+  set value [::tclapp::xilinx::designutils::prettyTable::method:getcells $self $X $Y]
+  return $value
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview:setregion
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> setregion <region> <value>
+#------------------------------------------------------------------------
+# Set a clock region to a value (for template 'deviceview')
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview:setregion {self region value} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Set a clock region value
+  foreach {X Y} [::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY $self $region] { break }
+  ::tclapp::xilinx::designutils::prettyTable::method:setcells $self $X $Y $value
+  return $self
+}
+
+#------------------------------------------------------------------------
+# ::tclapp::xilinx::designutils::prettyTable::deviceview:incrregion
+#------------------------------------------------------------------------
+# Usage: <prettyTableObject> incrregion <region> [<value>]
+#------------------------------------------------------------------------
+# Increment a clock region to a value (for template 'deviceview')
+#------------------------------------------------------------------------
+proc ::tclapp::xilinx::designutils::prettyTable::deviceview:incrregion {self region {value 1}} {
+  # Summary :
+  # Argument Usage:
+  # Return Value:
+  # Categories: xilinxtclstore, designutils
+
+  # Increment a clock region value
+  foreach {X Y} [::tclapp::xilinx::designutils::prettyTable::deviceview::region2XY $self $region] { break }
+  ::tclapp::xilinx::designutils::prettyTable::method:incrcells $self $X $Y $value
+  return $self
+}
 
 #------------------------------------------------------------------------
 # ::tclapp::xilinx::designutils::prettyTable::deviceview:plotregions
@@ -7154,19 +7711,24 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotregions {self L 
   # Plot a list of clock regions
   array set defaults [list \
       -clear 1 \
+      -char {x} \
     ]
   array set options [array get defaults]
   array set options $args
   if {$options(-clear)} {
-    ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
+    ::tclapp::xilinx::designutils::prettyTable::deviceview:cleardevice $self $options(-char)
+#     ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
   }
+
   foreach el $L {
     if {$el == {}} { continue }
-    if {[regexp {^X([0-9]+)Y([0-9]+)$} $el - X Y]} {
-#       $self incrcells $X $Y
-      ::tclapp::xilinx::designutils::prettyTable::method:incrcells $self $X $Y
+    if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $el - - S X Y]} {
+      ::tclapp::xilinx::designutils::prettyTable::deviceview:incrregion $self $el
+    } else {
+      puts " -W- unrecognized region $el"
     }
   }
+
   return $self
 }
 
@@ -7186,11 +7748,13 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotcells {self cell
   # Plot a list of cells
   array set defaults [list \
       -clear 1 \
+      -char {x} \
     ]
   array set options [array get defaults]
   array set options $args
   if {$options(-clear)} {
-    ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
+    ::tclapp::xilinx::designutils::prettyTable::deviceview:cleardevice $self $options(-char)
+#     ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
   }
   set L [list]
   foreach cell [filter [get_cells -quiet $cells] {IS_PRIMITIVE}] {
@@ -7219,13 +7783,15 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotnets {self nets 
   # Plot a list of nets
   array set defaults [list \
       -clear 1 \
+      -char {x} \
     ]
   array set options [array get defaults]
   array set options $args
   if {$options(-clear)} {
-    ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
+    ::tclapp::xilinx::designutils::prettyTable::deviceview:cleardevice $self $options(-char)
+#     ::tclapp::xilinx::designutils::prettyTable::method:cleartable $self
   }
-  set nets [get_nets -quiet $nets -filter {TYPE != POWER && TYPE != GROUND}]
+  set nets [get_nets -quiet $nets -segments -top_net_of_hierarchical_group -filter {TYPE != POWER && TYPE != GROUND}]
   set drivers [list]
   foreach net $nets {
     set driver [get_cells -quiet -of [get_pins -quiet -of $net -leaf -filter {DIRECTION == OUT}]] ; llength $driver
@@ -7244,20 +7810,16 @@ proc ::tclapp::xilinx::designutils::prettyTable::deviceview:plotnets {self nets 
   }
   foreach region [dict keys $drvs] {
     set num [dict get $drvs $region]
-    if {[regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y]} {
-#       $self appendcells $X $Y " (D)"
-      set val [::tclapp::xilinx::designutils::prettyTable::method:getcells $self $X $Y]
+    if {[regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y]} {
+      set val [::tclapp::xilinx::designutils::prettyTable::deviceview:getregion $self $region]
       if {$num >= 2} {
-#         set val [format {(%sxD) %s} $num $val]
         set val [format {(%s D) %s} $num $val]
-#         ::tclapp::xilinx::designutils::prettyTable::method:prependcells $self $X $Y "(${num} D) "
-#         ::tclapp::xilinx::designutils::prettyTable::method:appendcells $self $X $Y " (${num} D)"
+      } elseif {$val == {}} {
+        set val [format {(D)}]
       } else {
         set val [format {(D) %s} $val]
-#         ::tclapp::xilinx::designutils::prettyTable::method:prependcells $self $X $Y "(D) "
-#         ::tclapp::xilinx::designutils::prettyTable::method:appendcells $self $X $Y " (D)"
       }
-      ::tclapp::xilinx::designutils::prettyTable::method:setcells $self $X $Y $val
+      ::tclapp::xilinx::designutils::prettyTable::deviceview:setregion $self $region $val
     }
   }
   return $self
@@ -7347,13 +7909,13 @@ if {0} {
 
       foreach load [get_cells -quiet -of $loads] {
         set region [get_clock_regions -quiet -of $load]
-        regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y
+        regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y
         $tbl incrcells $X $Y
       }
 
       foreach c [get_cells -quiet -of $driver] {
         set region [get_clock_regions -quiet -of $c]
-        regexp {^X([0-9]+)Y([0-9]+)$} $region - X Y
+        regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $region - - S X Y
       #   $tbl appendcells $X $Y " (D)"
         $tbl prependcells $X $Y "(D) "
       }
@@ -7362,12 +7924,12 @@ if {0} {
       set userClockRoot [get_property -quiet USER_CLOCK_ROOT $net]
 
       if {$clockRoot != {}} {
-        regexp {^X([0-9]+)Y([0-9]+)$} $clockRoot - X Y
+        regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $clockRoot - - S X Y
         $tbl prependcells $X $Y "(R) "
       }
 
       if {$userClockRoot != {}} {
-        regexp {^X([0-9]+)Y([0-9]+)$} $userClockRoot - X Y
+        regexp {^(S([0-9]))?X([0-9]+)Y([0-9]+)$} $userClockRoot - - S X Y
         $tbl prependcells $X $Y "(U) "
       }
 

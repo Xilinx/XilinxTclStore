@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>generate_target for bd with block containers when needed</revision_history>
+      <revision_history>Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

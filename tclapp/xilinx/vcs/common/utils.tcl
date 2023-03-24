@@ -360,6 +360,26 @@ proc xcs_exec_script { scr_file error_log_arg } {
   return $faulty_run
 }
 
+proc xcs_exec_shell_script { scr_file error_log_arg {args {}} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $error_log_arg error_log
+
+  set faulty_run 0
+  if { {} != $args } {
+    if { [catch {rdi::execute_script -args $args $scr_file} error_log] } {
+      set faulty_run 1
+    }
+  } else {
+    if { [catch {rdi::execute_script $scr_file} error_log] } {
+      set faulty_run 1
+    }
+  }
+  return $faulty_run
+}
+
 proc xcs_is_pure_verilog { b_ver b_vhd b_sc b_cpp b_c b_asm } {
   # Summary:
   # Argument Usage:
@@ -618,6 +638,10 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   # Return Value:
   #
   variable a_sim_cache_all_design_files_obj
+
+  if { [get_param "project.useIPGenSrcFileForSimulation" ] } {
+    return $vh_file
+  }
 
   # get the header file object
   set vh_file_obj  {}
@@ -1622,7 +1646,7 @@ proc xcs_is_core_container { ip_file_name } {
   }
 
   # get ip file object
-  set ip_file_obj [get_files -all -quiet ${ip_file_name}]
+  set ip_file_obj [lindex [get_files -all -quiet ${ip_file_name}] 0]
   if { {} == $ip_file_obj } {
     send_msg_id SIM-utils-071 WARNING "File does not exist! '$ip_file_name' (core-container check not applied)\n"
     set b_is_container 0
@@ -2975,6 +2999,9 @@ proc xcs_get_compiler_name { simulator file_type } {
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
         "SystemVerilog"                {set compiler "vlog"}
+        "SystemC"                      {set compiler "ccomp"}
+        "CPP"                          {set compiler "g++"}
+        "C"                            {set compiler "gcc"}
       }
     }
     "ies" {
@@ -3769,8 +3796,8 @@ proc xcs_get_simulator_pretty_name { name } {
   set pretty_name {}
   switch -regexp -- $name {
     "xsim"      { set pretty_name "Xilinx Vivado Simulator" }
-    "modelsim"  { set pretty_name "Mentor Graphics ModelSim Simulator" }
-    "questa"    { set pretty_name "Mentor Graphics Questa Advanced Simulator" }
+    "modelsim"  { set pretty_name "Siemens ModelSim Simulator" }
+    "questa"    { set pretty_name "Siemens Questa Advanced Simulator" }
     "ies"       { set pretty_name "Cadence Incisive Enterprise Simulator" }
     "xcelium"   { set pretty_name "Cadence Xcelium Parallel Simulator" }
     "vcs"       { set pretty_name "Synopsys Verilog Compiler Simulator" }
@@ -4199,6 +4226,18 @@ proc xcs_contains_C_files {} {
   return false
 }
 
+proc xcs_contains_systemc_files {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set sc_filter  "(USED_IN_SIMULATION == 1) && (FILE_TYPE == \"SystemC\")"
+  if { [llength [get_files -quiet -all -filter $sc_filter ]] > 0 } {
+    return true
+  }
+  return false
+}
+
 proc xcs_get_protoinst_files { dynamic_repo_dir } {
   # Summary:
   # Argument Usage:
@@ -4270,6 +4309,19 @@ proc xcs_get_file_from_repo { src_file dynamic_repo_dir b_found_in_repo_arg repo
     return $repo_src_file
   }
   return $src_file
+}
+
+proc xcs_is_xlnoc_for_synth { file_obj } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set file_name [file tail $file_obj]
+  set used_in_synth [get_property -quiet "used_in_synthesis" $file_obj]
+  if { ("xlnoc.v" == $file_name) && $used_in_synth } {
+    return true
+  }
+  return false
 }
 
 proc xcs_fetch_lib_info { simulator clibs_dir b_int_sm_lib_ref_debug } {
@@ -4757,6 +4809,25 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
   # print extracted shared library information
   if { $b_int_sm_lib_ref_debug } {
     xcs_print_shared_lib_info
+  }
+}
+
+proc xcs_print_local_IP_compilation_msg { b_print l_local_libs clibs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { $b_print && ([llength $l_local_libs] > 0) } {
+    puts "-----------------------------------------------------------------------------------------------------------"
+    puts "List of IP library version not found in clibs, these IP sources will be compiled locally with the design"
+    if { {} != $clibs } {
+      puts "(CLIBS:$clibs)"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
+    foreach lib $l_local_libs {
+      puts "$lib"
+    }
+    puts "-----------------------------------------------------------------------------------------------------------"
   }
 }
 
@@ -5435,7 +5506,7 @@ proc xcs_write_launch_mode_for_vitis { fh_scr simulator } {
   }
   puts $fh_scr "elif \[\[ (\$arg = \"gui\") \]\]; then"
   puts $fh_scr "  mode=\"-gui\""
-  puts $fh_scr "fi\n"
+  puts $fh_scr "fi"
 }
 
 proc xcs_get_incl_files_from_ip { tcl_obj } {
@@ -5833,8 +5904,8 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
             } else {
               set str "$str\"$val\""
             }
-            lappend args " $str"
           }
+          lappend args " $str"
         }
       }
       "activehdl" -
@@ -5851,8 +5922,8 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
  
           if { [string length $val] > 0 } {
             set str "$str$val"
-            lappend args " $str"
           }
+          lappend args " $str"
         }
       }
       "xrun" {
@@ -5921,8 +5992,8 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
               set str $str\"\"
             }
           }
+          lappend args $str
         }
-        lappend args $str
       }
       "riviera" -
       "activehdl" {
@@ -5934,8 +6005,8 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
           if { [string length $val] > 0 } {
             set str $str$val
           }
+          lappend args $str
         }
-        lappend args $str
       }
       "xrun" {
         foreach element $v_generics {

@@ -64,6 +64,7 @@ proc register_options { simulator } {
     {{simulate.ieee_warnings}      {bool}   {1}                                     {Suppress IEEE warnings}}
     {{simulate.saif_scope}         {string} {}                                      {Specify design hierarchy instance name for which power estimation is desired}}
     {{simulate.saif}               {string} {}                                      {Specify SAIF file}}
+    {{simulate.sc_async_update}    {bool}   {0}                                     {Enable asynchronous request updates for SystemC}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
   }
   # create options

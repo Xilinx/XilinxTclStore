@@ -1,4 +1,7 @@
-11.127 launch target simulator for scripts only
+11.130 skip xlnoc for synth from simulation fileset
+11.129 comments for IP library processing logistics
+11.128 print debug message for local IP compilation
+11.127 merged 2022.2 to 2023.1
 11.126 option for invoking simulator gui in scripts mode
 11.125 code cleanup for aie_cluster binding
 11.124 support for defines and generics for export flow

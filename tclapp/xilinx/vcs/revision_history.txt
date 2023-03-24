@@ -1,4 +1,7 @@
-10.7 launch target simulator for scripts only
+11.2 skip xlnoc for synth from simulation fileset
+11.1 include obj file in archive during link
+11.0 add_wave for vitis context only
+10.7 merged 2022.2 to 2023.1
 9.99 script cleanup
 9.98 helpers for define and generic
 9.97 check for aie ml env and bind aie2
