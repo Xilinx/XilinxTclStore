@@ -2016,8 +2016,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
     set file_object [lindex [get_files -quiet -of_objects [get_filesets $fs_name] [list $file]] 0]
     set file_props [list_property $file_object]
 
-    if { [lsearch $file_props "IMPORTED_FROM"] != -1 } {
-
+    #CR-1155491. Added lsearch of .gen directory in file path because imported file found in .gen dir
+    if { [lsearch $file_props "IMPORTED_FROM"] != -1 && [lsearch -exact $path_dirs "$proj_name.gen"] == -1 } {
       # import files
       set imported_path [get_property "imported_from" $file]
       set rel_file_path [get_relative_file_path_for_source $file [get_script_execution_dir]]
