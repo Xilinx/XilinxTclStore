@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Correct file path of sources from .gen directory which have imported_from property set</revision_history>
+      <revision_history>ignoring deprecated properties retiming and no-retiming in project tcl</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
