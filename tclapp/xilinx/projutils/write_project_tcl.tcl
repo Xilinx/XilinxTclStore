@@ -1899,6 +1899,8 @@ proc is_deprecated_property { property } {
        [string equal $property "platform.xocc_link_xp_switches_default"] ||
        [string equal $property "platform.xocc_compile_xp_switches_default"] ||
        [string equal $property "dsa"] ||
+       [string equal $property "steps.synth_design.args.retiming"] ||
+       [string equal $property "steps.synth_design.args.no_retiming"] ||
        [regexp {dsa\..*} $property ] } {
      return true
   }
