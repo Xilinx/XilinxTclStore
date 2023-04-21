@@ -1,3 +1,4 @@
+3.546 Fix for CR-1160609. Imported files path has 'imports' twice in its path causing errors
 3.545 ignoring deprecated properties retiming and no-retiming in project tcl
 3.544 Correct file path of sources from .gen directory which have imported_from property set
 3.543 Correct file path of sources from .gen directory which have imported_from property set
