@@ -2140,7 +2140,10 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           if { [is_ip_fileset $tcl_obj] } {
             lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
           } else {
-            lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+            lappend l_script_data "set imported_files \"\""
+            lappend l_script_data "foreach f \$files {"
+            lappend l_script_data "  lappend imported_files \[import_files -fileset $tcl_obj \$f\]"
+            lappend l_script_data "}"
           }
        } else {
          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
@@ -3420,7 +3423,9 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
         lappend l_script_data " $ifile\\"
       }
       lappend l_script_data "\]"
-      lappend l_script_data "import_files -of_objects \[get_reconfig_modules $reconfigModule\] \$files"
+      lappend l_script_data "foreach f \$files {"
+      lappend l_script_data "  import_files -of_objects \[get_reconfig_modules $reconfigModule\] \$f"
+      lappend l_script_data "}"
       lappend l_script_data ""
     }
   }
