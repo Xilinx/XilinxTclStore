@@ -29,6 +29,14 @@
 #  * To supress SDC_257 violation, Parameter force_genclk_for_txv set to 1
 #  * Adding missing XPM components
 #
+#  rev 1.5 03/12/2021
+#  * Added support to generate the tcl script for VC-SpyGlass as well.
+#  * same command will be required to generate project file for SpyGlass
+#    and setup for VC-SpyGlass. 
+#  * For VC-SpyGlass setup, a new directory will be created with name 
+#    vc_setup and complete VC-SpyGlass setup will be available in that 
+#    directory. VC-SpyGlass TCL name is vc_setup.tcl.
+#
 ###############################################################################
 package require Vivado 1.2015.1
 
@@ -86,6 +94,9 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
 
   ## Set return code to 0
   set rc 0
+  set rcv 0
+  set rc1 0
+  set rc2 0
   ## Vivado install dir
   set vivado_dir $::env(XILINX_VIVADO)
   set sg_run_dir "sg_results"
@@ -104,6 +115,55 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
     set sg_fh $result
     puts "INFO: Writing Spyglass compile script to file $outfile"
   }
+
+
+  exec rm -rf vc_setup
+  exec mkdir vc_setup
+  ## Open output file to write tcl file for VC-SpyGlass
+  if { [catch {open vc_setup/vc_setup.tcl w} vcresult] } {
+    puts stderr "ERROR: Could not open vc_setup.tcl for writing\n$vcresult"
+    set rcv 1
+    return $rcv
+  } else {
+    set vcsg_fh $vcresult
+    puts "INFO: Writing Spyglass compile script to file $outfile"
+  }
+
+
+## writing vcs options for verilog filelist
+ if { [catch {open vc_setup/vcs_opts_vlog.f w} result1] } {
+    puts stderr "ERROR: Could not open vcs_opts_vlog.f for writing\n$result1"
+    set rc1 1
+    return $rc1
+  } else {
+    set vcsg_fh1 $result1
+    puts "INFO: Writing Spyglass compile script to file vcs_opts_vlog.f"
+  }
+
+  puts $vcsg_fh1 "-sv=2005 -assert svaext"
+  puts $vcsg_fh1 "-error=noMPD"
+  puts $vcsg_fh1 "+libext+.v"
+  puts $vcsg_fh1 "+libext+.sv"
+  puts $vcsg_fh1 "+libext+.vhd"
+  puts $vcsg_fh1 "+libext+.vh"
+  puts $vcsg_fh1 "-Xspyglass_pragma=synopsys"
+  puts $vcsg_fh1 "-Xspyglass_pragma=synthesis"
+  puts $vcsg_fh1 "-p1800_macro_expansion -Xspyglass=0x10000"
+  close $vcsg_fh1
+
+## writing vcs options for vhdl filelist
+if { [catch {open vc_setup/vcs_opts_vhdl.f w} result2] } {
+    puts stderr "ERROR: Could not open vcs_opts_vhdl.f for writing\n$result2"
+    set rc2 1
+    return $rc2
+  } else {
+    set vcsg_fh2 $result2
+    puts "INFO: Writing Spyglass compile script to file vcs_opts_vhdl.f"
+  }
+
+  puts $vcsg_fh2 "-skip_translate_body=synopsys -Xspyglass_pragma=synopsys -skip_translate_body=synthesis -Xspyglass_pragma=synthesis"
+  close $vcsg_fh2
+
 
 # ------------------------
 # ALOKE: Create a list of sgdc files for each blk_mem_gen blackbox found
@@ -152,13 +212,53 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
 
   puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv" 
   puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_memory/hdl/xpm_memory.sv" 
-  puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_VCOMP.vhd" 
   puts $sg_fh "read_file -type verilog $vivado_dir/data/ip/xpm/xpm_fifo/hdl/xpm_fifo.sv\n" 
   
   puts $sg_fh "set_option lib xpm xpm"
   puts $sg_fh "set_option libhdlfiles xpm $vivado_dir/data/ip/xpm/xpm_VCOMP.vhd\n"
 
+  puts $vcsg_fh "set vivado_path \$env\(XILINX_VIVADO)\n"
+  puts $vcsg_fh "#### Common application variables"
+  puts $vcsg_fh "set_app_var enable_cdc true"
+  puts $vcsg_fh "#set_app_var enable_lint true"
+  puts $vcsg_fh "#set_app_var enable_rdc true\n"
+  puts $vcsg_fh "## Enable to treat design const x as 0 "
+  puts $vcsg_fh "set_app_var use_design_x_as_0 true \n"
+  puts $vcsg_fh "## Disable the below settings to not consider //synopsys translate_off and //synopsys translate_on by default."
+  puts $vcsg_fh "set_app_var analyze_skip_translate_body false \n"
+  
+  puts $vcsg_fh "## Xilinx Library Files -- Common to all Xilinx designs "
+  puts $vcsg_fh "define_design_lib unisim -path unisim/VCS "
+  puts $vcsg_fh "define_design_lib unimacro -path unimacro/VCS"
+  puts $vcsg_fh "define_design_lib xpm -path xpm/VCS "
+  puts $vcsg_fh "define_design_lib WORK -path WORK/VCS "
+ 
+  set axil $::env(XILINX_VIVADO)
+  regsub -all {/} $axil {\/} axil
 
+  exec cp $::env(XILINX_VIVADO)/data/vhdl/src/unisims/primitive/vhdl_analyze_order vc_setup/unisim_primitive.f
+  exec cp $::env(XILINX_VIVADO)/data/vhdl/src/unisims/retarget/vhdl_analyze_order vc_setup/unisim_retarget.f
+  exec find $::env(XILINX_VIVADO)/data/vhdl/src/unisims/secureip/ -name "*.vhd" > vc_setup/unisim_secureip.f 
+  exec cp $::env(XILINX_VIVADO)/data/vhdl/src/unimacro/vhdl_analyze_order vc_setup/unimacro_libs.f
+ 
+  exec rm -rf temp_script_spy.csh
+  exec echo "sed -i 's/^/$axil\\/data\\/vhdl\\/src\\/unisims\\/primitive\\//g' vc_setup/unisim_primitive.f " > temp_script_spy.csh
+  exec echo "sed -i 's/^/$axil\\/data\\/vhdl\\/src\\/unisims\\/retarget\\//g' vc_setup/unisim_retarget.f " >> temp_script_spy.csh
+  exec echo "sed -i 's/^/$axil\\/data\\/vhdl\\/src\\/unimacro\\//g' vc_setup/unimacro_libs.f " >> temp_script_spy.csh
+  exec csh temp_script_spy.csh
+  exec rm -rf temp_script_spy.csh
+
+  puts $vcsg_fh "analyze -f vhdl \" \$vivado_path/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhd \$vivado_path/data/vhdl/src/unisims/unisim_VPKG.vhd \" -work unisim "
+  puts $vcsg_fh "analyze -f vhdl \" -f unisim_primitive.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
+  puts $vcsg_fh "analyze -f vhdl \" -f unisim_retarget.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
+  puts $vcsg_fh "analyze -f vhdl \" -f unisim_secureip.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
+  puts $vcsg_fh "analyze -f vhdl \" -f unimacro_libs.f \" -work unimacro -vcs { -f vcs_opts_vhdl.f } "
+  
+  puts $vcsg_fh "analyze -f vhdl \" \$vivado_path/data/ip/xpm/xpm_VCOMP.vhd \" -work xpm -vcs {  -f vcs_opts_vhdl.f } "
+
+  puts $vcsg_fh "analyze -format verilog \" \$vivado_path/data/verilog/src/glbl.v \$vivado_path/data/ip/xpm/xpm_cdc/hdl/xpm_cdc.sv \$vivado_path/data/ip/xpm/xpm_memory/hdl/xpm_memory.sv \$vivado_path/data/ip/xpm/xpm_fifo/hdl/xpm_fifo.sv \" -vcs { -work WORK -f vcs_opts_vlog.f } \n"
+  puts $vcsg_fh "## Design RTL ## "
+ 
   set part [get_parts -of_objects [get_projects]]
   set lib_dir_path $vivado_dir/data/parts/xilinx/$arch_name/public/liberty
   set arch_name_pt $arch_name\_pt
@@ -329,6 +429,7 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
           }
           if {![string match $incdirs ""]} {
             puts $sg_fh "set_option incdir {$incdirs}"
+            exec echo "+incdir+$incdirs" >> vc_setup/vcs_opts_vlog.f
           }
         }
         regsub ":.*" $lib {} lib_no_num
@@ -362,6 +463,14 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
             if {[string match $f_type "VHDL"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "  $f \\"
+                  if {[string match $lib_no_num xil_defaultlib]} {
+                     if { ![regexp {^.*blk_mem_gen_\d+_\d+.*$} $f] } {
+                        puts $vcsg_fh "analyze -f vhdl \" $f \" -work WORK -vcs {  -f vcs_opts_vhdl.f } "
+                     } 
+                  } else {
+                     puts $vcsg_fh "define_design_lib $lib_no_num -path $lib_no_num/VCS"
+                     puts $vcsg_fh "analyze -f vhdl \" $f \" -work $lib_no_num -vcs {  -f vcs_opts_vhdl.f } "
+                  } 
               }
             }
           }
@@ -374,6 +483,7 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
             if {[string match $f_type "Verilog"] || [string match $f_type "SystemVerilog"]} {
               if {![regexp {^blk_mem_gen_v\d+_\d+$} $lib] || ([regexp {^blk_mem_gen_v\d+_\d+$} $lib] && [regexp {/blk_mem_gen_v\d+_\d+\.v} $f]) } {
                 puts $sg_fh "read_file -type verilog $f "
+                puts $vcsg_fh "analyze -f verilog \" $f \" -vcs {  -f vcs_opts_vlog.f } "
               }
             }
           }
@@ -395,11 +505,13 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
     foreach subcore $lib_file_order {
       if {![info exists black_box_libs($subcore)]} {
         if {[regexp {^blk_mem_gen_v\d+_\d+} $subcore]} {
-          set black_box_libs($subcore) 1
+          regsub ":.*" $subcore {} subcore_no_num
+          set black_box_libs($subcore_no_num) 1
         }
       }
     }
     puts $sg_fh ""
+    puts $vcsg_fh ""
 
     ## Delete all information related to this IP 
     set lib_file_order []
@@ -417,6 +529,7 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
   if {$bb_list != ""} {
     foreach bb $bb_list {
       puts $sg_fh "set_option stop $bb\*"
+      puts $vcsg_fh "set_blackbox -designs { $bb }"
     }
   }
 
@@ -428,7 +541,7 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
   puts $sg_fh "set_option work WORK"
   puts $sg_fh "set_option enableSV yes"
   puts $sg_fh "set_option language_mode mixed"
-  puts $sg_fh "set_option sort yes"
+  puts $sg_fh "#set_option sort yes"
   puts $sg_fh "set_option pragma { synopsys synthesis }"
   puts $sg_fh "set_option disable_hdllibdu_lexical_checks yes"
   puts $sg_fh "set_option top $top_module"
@@ -452,6 +565,33 @@ proc ::tclapp::synopsys::spyglass::write_spyglass_script {top_module outfile} {
     puts $sg_fh "}\n"  
   }
   
+  puts $vcsg_fh "set_blackbox -designs { BRAM_TDP_MACRO }\n"
+  puts $vcsg_fh "## IPs in the design : $ips "
+  puts $vcsg_fh "elaborate $top_module -vcs { -liblist_work -liblist_nocelldiff }\n"
+  puts $vcsg_fh "#### Reading SDC file"
+  puts $vcsg_fh "#read_sdc <sdc_file>\n"
+  puts $vcsg_fh "# Example - "
+  puts $vcsg_fh "# read_sdc design.sdc\n"
+##puts $vcsg_fh "## Define clock and reset constraints"
+##puts $vcsg_fh "#create_clock -name <clock_logical_name> -period <period_value> {<design_object>}"
+##puts $vcsg_fh "#create_clock -name CLK1 -period 10 {clk1}"
+##puts $vcsg_fh "#set_clock_group -async -group { <clock_list> } -group { <clock_list> }"
+##puts $vcsg_fh "#create_reset {<design_object>} -sense low -async\n"
+  puts $vcsg_fh "#### Read Blackbox modeling constraint file "
+  puts $vcsg_fh "#read_sdc InferredCdcAttr_<blackbox-module>.tcl \n"
+  puts $vcsg_fh "#### Perform CDC checks"
+  puts $vcsg_fh "## To perform the setup checks only for blackbox modeling"
+  puts $vcsg_fh "#check_cdc -type setup "
+  puts $vcsg_fh "## To perform complete CDC structural checks"
+  puts $vcsg_fh "check_cdc"
+  puts $vcsg_fh "#check_lint"
+  puts $vcsg_fh "#check_rdc\n"
+  puts $vcsg_fh "#### Report Generation"
+  puts $vcsg_fh "report_cdc -verbose -limit 0 -file report_cdc_verbose_limit_0.log"
+  puts $vcsg_fh "#report_lint -verbose -limit 0 -file report_lint_verbose_limit_0.log"
+  puts $vcsg_fh "#report_rdc -verbose -limit 0 -file report_rdc_verbose_limit_0.log\n"
+
   close $sg_fh
+  close $vcsg_fh
   return $rc
 }
