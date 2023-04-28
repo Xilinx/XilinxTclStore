@@ -984,9 +984,6 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
       if { [string equal -nocase $file_type "vhdl 2008"] } {
         set vhd_syntax "-2008"
       }
-      if { [string equal -nocase $file_type "vhdl 2019"] } {
-        set vhd_syntax "-2019"
-      }
       if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
         set arg_list [list $s_64bit]
         lappend arg_list $vhd_syntax

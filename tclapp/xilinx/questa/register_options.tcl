@@ -42,7 +42,7 @@ proc register_options { simulator } {
 
   set options {
     {{compile.tcl.pre}             {string} {}                                      {Specify pre-compile step TCL hook}}
-    {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008} {2019}}}   {Specify VHDL syntax}}
+    {{compile.vhdl_syntax}         {enum}   {{93} {93} {{93} {87} {2002} {2008}}}   {Specify VHDL syntax}}
     {{compile.use_explicit_decl}   {bool}   {1}                                     {Log all signals}}
     {{compile.load_glbl}           {bool}   {1}                                     {Load GLBL module}}
     {{compile.sccom.cores}         {enum}   {{off} {off} {{off} {4} {8} {12} {16}}} {Specify number of process cores to run in parallel}}
