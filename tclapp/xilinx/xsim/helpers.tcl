@@ -415,9 +415,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
         if { [xcs_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "file_type" $file]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -433,9 +433,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           send_msg_id USF-XSim-100 INFO "Fetching design files from '$srcset_obj'...(this may take a while)..."
           foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $srcset_obj]] {
             set file_type [get_property "file_type" $file]
-            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+            if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
             set g_files $global_files_str
-            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
             set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
             if { {} != $cmd_str } {
               lappend files $cmd_str
@@ -452,10 +452,10 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
-        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+        if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
         if { [get_property "is_auto_disabled" $file]} { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -469,9 +469,9 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set ip_filename [file tail $target_obj]
     foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
       set file_type [get_property "file_type" $file]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -726,10 +726,10 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
     # add additional files from simulation fileset
     foreach file [get_files -compile_order sources -used_in synthesis_post -of_objects [get_filesets $a_sim_vars(s_simset)]] {
       set file_type [get_property "file_type" $file]
-      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+      if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
       #if { [get_property "is_auto_disabled" $file]} { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -743,7 +743,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       set file_type [get_property "file_type" $file]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL} != $file_type) } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -763,7 +763,7 @@ proc usf_add_block_fs_files { global_files_str other_ver_opts_arg files_arg comp
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
-  set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
+  set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\" || FILE_TYPE == \"VHDL 2019\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "file_type" $file]
     set cmd_str [usf_get_file_cmd_str $file $file_type false {} other_ver_opts]
@@ -1543,7 +1543,7 @@ proc usf_add_netlist_sources { files_arg l_compile_order_files_arg other_ver_opt
     set nf_obj [lindex [get_files -all -quiet $nf] 0]
     set file_name [file tail $nf]
     set file_type [get_property -quiet "file_type" $nf_obj]
-    if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) } { continue }
+    if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
     set file_name [file tail $nf]
     if { ![info exists a_sim_noc_files_info($file_name)] } {
       set a_sim_noc_files_info($file_name) "$ip_obj"

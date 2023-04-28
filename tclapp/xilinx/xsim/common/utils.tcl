@@ -564,7 +564,8 @@ proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
     set type [lindex [split $file {|}] 0]
     switch $type {
       {VHDL} -
-      {VHDL 2008} {
+      {VHDL 2008} -
+      {VHDL 2019} {
         set b_vhdl_srcs 1
       }
     }
@@ -1333,7 +1334,8 @@ proc xcs_get_file_type_category { file_type } {
   set type {UNKNOWN}
   switch $file_type {
     {VHDL} -
-    {VHDL 2008} {
+    {VHDL 2008} -
+    {VHDL 2019} {
       set type {VHDL}
     }
     {Verilog} -
@@ -2978,6 +2980,7 @@ proc xcs_get_compiler_name { simulator file_type } {
       switch -exact -- $file_type {
         "VHDL"                         {set compiler "vhdl"}
         "VHDL 2008"                    {set compiler "vhdl2008"}
+        "VHDL 2019"                    {set compiler "vhdl2019"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
@@ -2992,7 +2995,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "questa" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vcom"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vcom"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3006,7 +3010,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "activehdl" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vcom"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vcom"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3029,7 +3034,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "xcelium" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "xmvhdl"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "xmvhdl"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3042,7 +3048,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "vcs" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vhdlan"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vhdlan"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3649,6 +3656,7 @@ proc xcs_get_non_hdl_data_files_filter {} {
           FILE_TYPE != \"Verilog Template\"             && \
           FILE_TYPE != \"VHDL\"                         && \
           FILE_TYPE != \"VHDL 2008\"                    && \
+          FILE_TYPE != \"VHDL 2019\"                    && \
           FILE_TYPE != \"VHDL Template\"                && \
           FILE_TYPE != \"EDIF\"                         && \
           FILE_TYPE != \"NGC\"                          && \
