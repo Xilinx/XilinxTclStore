@@ -36,6 +36,11 @@
 #  * For VC-SpyGlass setup, a new directory will be created with name 
 #    vc_setup and complete VC-SpyGlass setup will be available in that 
 #    directory. VC-SpyGlass TCL name is vc_setup.tcl.
+# 
+#  rev 1.6 05/05/2023
+#  * Bug fixes for precompiled library
+#  * Added lint goal into the setup
+#  * Added waivers for xilinx specific primitive cells
 #
 ###############################################################################
 package require Vivado 1.2015.1
@@ -219,8 +224,14 @@ if { [catch {open vc_setup/vcs_opts_vhdl.f w} result2] } {
 
   puts $vcsg_fh "set vivado_path \$env\(XILINX_VIVADO)\n"
   puts $vcsg_fh "#### Common application variables"
-  puts $vcsg_fh "set_app_var enable_cdc true"
+  puts $vcsg_fh "#### To run LINT App"
   puts $vcsg_fh "#set_app_var enable_lint true"
+  puts $vcsg_fh "#configure_lint_setup -goal lint_rtl\n"
+  
+  puts $vcsg_fh "#### To run CDC App"
+  puts $vcsg_fh "set_app_var enable_cdc true\n"
+  
+  puts $vcsg_fh "#### To run RDC App"
   puts $vcsg_fh "#set_app_var enable_rdc true\n"
   puts $vcsg_fh "## Enable to treat design const x as 0 "
   puts $vcsg_fh "set_app_var use_design_x_as_0 true \n"
@@ -229,6 +240,7 @@ if { [catch {open vc_setup/vcs_opts_vhdl.f w} result2] } {
   
   puts $vcsg_fh "## Xilinx Library Files -- Common to all Xilinx designs "
   puts $vcsg_fh "define_design_lib unisim -path unisim/VCS "
+  puts $vcsg_fh "define_design_lib secureip -path secureip/VCS "
   puts $vcsg_fh "define_design_lib unimacro -path unimacro/VCS"
   puts $vcsg_fh "define_design_lib xpm -path xpm/VCS "
   puts $vcsg_fh "define_design_lib WORK -path WORK/VCS "
@@ -251,7 +263,7 @@ if { [catch {open vc_setup/vcs_opts_vhdl.f w} result2] } {
   puts $vcsg_fh "analyze -f vhdl \" \$vivado_path/data/vhdl/src/unisims/unisim_retarget_VCOMP.vhd \$vivado_path/data/vhdl/src/unisims/unisim_VPKG.vhd \" -work unisim "
   puts $vcsg_fh "analyze -f vhdl \" -f unisim_primitive.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
   puts $vcsg_fh "analyze -f vhdl \" -f unisim_retarget.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
-  puts $vcsg_fh "analyze -f vhdl \" -f unisim_secureip.f \" -work unisim -vcs { -f vcs_opts_vhdl.f } "
+  puts $vcsg_fh "analyze -f vhdl \" -f unisim_secureip.f \" -work secureip -vcs { -f vcs_opts_vhdl.f } "
   puts $vcsg_fh "analyze -f vhdl \" -f unimacro_libs.f \" -work unimacro -vcs { -f vcs_opts_vhdl.f } "
   
   puts $vcsg_fh "analyze -f vhdl \" \$vivado_path/data/ip/xpm/xpm_VCOMP.vhd \" -work xpm -vcs {  -f vcs_opts_vhdl.f } "
@@ -583,13 +595,14 @@ if { [catch {open vc_setup/vcs_opts_vhdl.f w} result2] } {
   puts $vcsg_fh "## To perform the setup checks only for blackbox modeling"
   puts $vcsg_fh "#check_cdc -type setup "
   puts $vcsg_fh "## To perform complete CDC structural checks"
-  puts $vcsg_fh "check_cdc"
   puts $vcsg_fh "#check_lint"
+  puts $vcsg_fh "check_cdc"
   puts $vcsg_fh "#check_rdc\n"
   puts $vcsg_fh "#### Report Generation"
-  puts $vcsg_fh "report_cdc -verbose -limit 0 -file report_cdc_verbose_limit_0.log"
   puts $vcsg_fh "#report_lint -verbose -limit 0 -file report_lint_verbose_limit_0.log"
+  puts $vcsg_fh "report_cdc -verbose -limit 0 -file report_cdc_verbose_limit_0.log"
   puts $vcsg_fh "#report_rdc -verbose -limit 0 -file report_rdc_verbose_limit_0.log\n"
+  puts $vcsg_fh "waive_violation -app {lint cdc rdc design} -filter \"FileName =~ \*unisims/primitive\* OR FileName =~ \*unisims/secureip\* OR FileName =~ \*data/ip/xpm\* OR FileName =~ \*data/verilog/src\* OR FileName =~ \*data/vhdl/src/unimacro\* \" -add waive_xilinx_primitive_cells_viols"
 
   close $sg_fh
   close $vcsg_fh
