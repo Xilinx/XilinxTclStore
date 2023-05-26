@@ -12,15 +12,14 @@
 #  * Fixed the path for the device libraries (with gateslib option)
 #  * Added the option 'set_option read_protected_envelope yes'
 #
-# rev 1.3 3/17/2016
+# rev 1.5 3/17/2016
 #  * If the vhdl library is not blk_mem_gen then get ready to 
 #  * prepare for precompilation of this library.
 #  * If it is blk_mem_gen then do not do anything. Let this be a true
 #  * blackbox. Create the corresponding sgdc file for this blackbox.
-#
 #  * Remove the use of the 'synth_fileset' variable
 #
-#  rev 1.4 07/16/2018
+#  rev 1.6 07/16/2018
 #  * Changing lagency name to "Synopsys"
 #  * Changing the methodology path to the latest so no manual changes are 
 #    required in generated .prj file.
@@ -29,7 +28,7 @@
 #  * To supress SDC_257 violation, Parameter force_genclk_for_txv set to 1
 #  * Adding missing XPM components
 #
-#  rev 1.5 03/12/2021
+#  rev 1.7 a - 03/12/2021
 #  * Added support to generate the tcl script for VC-SpyGlass as well.
 #  * same command will be required to generate project file for SpyGlass
 #    and setup for VC-SpyGlass. 
@@ -37,7 +36,7 @@
 #    vc_setup and complete VC-SpyGlass setup will be available in that 
 #    directory. VC-SpyGlass TCL name is vc_setup.tcl.
 # 
-#  rev 1.6 05/05/2023
+#  rev 1.7 b - 05/05/2023
 #  * Bug fixes for precompiled library
 #  * Added lint goal into the setup
 #  * Added waivers for xilinx specific primitive cells
