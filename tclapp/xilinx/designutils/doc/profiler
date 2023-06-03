@@ -1,0 +1,15 @@
+   Description: Utility to profile Vivado commands
+
+   Example 1:
+      xilinx::designutils::profiler add *
+      xilinx::designutils::profiler start -incr
+          <execute some Tcl code with Vivado commands>
+      xilinx::designutils::profiler stop
+      xilinx::designutils::profiler summary
+      xilinx::designutils::profiler reset
+
+   Example 2:
+      xilinx::designutils::profiler add *
+      xilinx::designutils::profiler time { <execute some Tcl code with Vivado commands> }
+      xilinx::designutils::profiler summary
+      xilinx::designutils::profiler reset
