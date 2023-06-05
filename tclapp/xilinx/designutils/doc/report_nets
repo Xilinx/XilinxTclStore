@@ -1,0 +1,11 @@
+
+  Description: Generates a Net Loads Report
+
+     This command creates a net load report. All nets matching a type or name pattern
+     are discovered. The fanout, driver and loads are captured. A unique list of load
+     cells is generated. Each unique cell is searched for in the netload cells list.
+
+  Example:
+     xilinx::designutils::report_nets -type clock
+     xilinx::designutils::report_nets -net [get_selected_objects] -clock -slack -plot -show_ancestor -clock
+     xilinx::designutils::report_nets -net *reset* -summary -clock -slack -file my_report.rpt

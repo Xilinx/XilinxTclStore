@@ -1,0 +1,15 @@
+   Description: Utility to profile Vivado commands
+
+   Example 1:
+      xilinx::designutils::profiler_tcl { open_checkpoint top.dcp }
+      xilinx::designutils::profiler_summary -file profiler.log
+
+   Example 2:
+      xilinx::designutils::profiler_tcl {
+        <DO_SOMETHING_IN_TCL>
+      }
+      xilinx::designutils::profiler_summary -file profiler.log
+
+   Example 3:
+      xilinx::designutils::profiler_tcl { source run.tcl }
+      xilinx::designutils::profiler_summary -file profiler.log
