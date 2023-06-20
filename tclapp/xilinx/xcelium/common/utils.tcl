@@ -3815,7 +3815,7 @@ proc xcs_get_simulator_pretty_name { name } {
 
   set pretty_name {}
   switch -regexp -- $name {
-    "xsim"      { set pretty_name "Xilinx Vivado Simulator" }
+    "xsim"      { set pretty_name "AMD Vivado Simulator" }
     "modelsim"  { set pretty_name "Siemens ModelSim Simulator" }
     "questa"    { set pretty_name "Siemens Questa Advanced Simulator" }
     "ies"       { set pretty_name "Cadence Incisive Enterprise Simulator" }
