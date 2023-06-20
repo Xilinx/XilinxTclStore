@@ -1,4 +1,4 @@
-11.5 update simulator product name
+11.5 sync utils
 11.4 support for vhdl 2019
 11.3 detect shell env for script execution
 11.2 merged 2023.1 to 2023.2
