@@ -1,3 +1,4 @@
+11.133 update simulator product name
 11.132 support for vhdl 2019
 11.131 detect shell env for script execution
 11.130 merged 2023.1 to 2023.2

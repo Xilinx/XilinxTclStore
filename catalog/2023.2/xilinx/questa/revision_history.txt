@@ -1,3 +1,4 @@
+2.284 update simulator product name
 2.283 remove switch for vhdl 2019
 2.282 support for vhdl 2019
 2.281 detect shell env for script execution
