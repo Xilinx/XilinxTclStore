@@ -1345,7 +1345,8 @@ proc usf_write_run_script { simulator log_files } {
   set version_info [split [version] "\n"]
   set release      [lindex $version_info 0]
   set swbuild      [lindex $version_info 1]
-  set copyright    [lindex $version_info 2]
+  set copyright    [lindex $version_info 3]
+  set copyright_1  [lindex $version_info 4]
   set product      [lindex [split $release " "] 0]
   set version_id   [join [lrange $release 1 end] " "]
   set simulator    [xcs_get_simulator_pretty_name $simulator]
@@ -1380,6 +1381,7 @@ proc usf_write_run_script { simulator log_files } {
   puts $fh "$cmt $swbuild"
   puts $fh "$cmt"
   puts $fh "$cmt $copyright"
+  puts $fh "$cmt $copyright_1"
   puts $fh "$cmt"
   puts $fh "$cmt usage: $filename"
   puts $fh "$cmt"

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>sync utils</revision_history>
+      <revision_history>copyright message update</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

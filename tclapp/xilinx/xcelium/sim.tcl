@@ -2105,7 +2105,8 @@ proc usf_xcelium_create_setup_script {} {
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 3]
+  set copyright_1 [lindex $version_txt 4]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
 
