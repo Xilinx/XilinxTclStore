@@ -1,3 +1,4 @@
+2.286 copyright message update
 2.284 sync utils
 2.283 remove switch for vhdl 2019
 2.282 support for vhdl 2019
