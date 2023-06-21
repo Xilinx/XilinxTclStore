@@ -295,6 +295,7 @@ proc usf_questa_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -335,6 +336,7 @@ proc usf_questa_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -1424,7 +1426,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { {None} == $acc } {
     # no val
   } else {
-    lappend arg_list "+$acc"
+    if { $a_sim_vars(b_int_perf_analysis) } {
+      if { ("acc=npr" == $acc) } {
+        lappend arg_list "-access=r+/."
+      }
+    } else {
+      lappend arg_list "+$acc"
+    }
   }
 
   set vhdl_generics [list]
