@@ -10,7 +10,7 @@ namespace eval ::tclapp::synopsys::spyglass {
     }
 
 }
-package provide ::tclapp::synopsys::spyglass 1.6
+package provide ::tclapp::synopsys::spyglass 1.7
 # this is a comment
 # this is another comment
 # this is a 3rd comment line
