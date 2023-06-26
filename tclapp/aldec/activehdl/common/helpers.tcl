@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.33
+package provide ::tclapp::aldec::common::helpers 1.34
 
 namespace eval ::tclapp::aldec::common {
 
@@ -948,6 +948,7 @@ proc usf_init_vars {} {
                 FILE_TYPE != \"Verilog Template\"             && \
                 FILE_TYPE != \"VHDL\"                         && \
                 FILE_TYPE != \"VHDL 2008\"                    && \
+                FILE_TYPE != \"VHDL 2019\"                    && \
                 FILE_TYPE != \"VHDL Template\"                && \
                 FILE_TYPE != \"EDIF\"                         && \
                 FILE_TYPE != \"NGC\"                          && \
@@ -1505,7 +1506,8 @@ proc usf_contains_vhdl { design_files } {
     set type [lindex [split $file {|}] 0]
     switch $type {
       {VHDL} -
-      {VHDL 2008} {
+      {VHDL 2008} -
+      {VHDL 2019} {
         set b_vhdl_srcs 1
       }
     }
@@ -2274,7 +2276,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         set file_type [ get_property "FILE_TYPE" $file ]
         if { ![ is_hdl_type $file_type ] } { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -2293,7 +2295,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
             set is_type_hdl [is_hdl_type $file_type]
             if { !$is_type_hdl } { continue }
             set g_files $global_files_str
-            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+            if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
             set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
             if { {} != $cmd_str } {
               lappend files $cmd_str
@@ -2313,7 +2315,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         if { !$is_type_hdl } { continue }
         if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
         set g_files $global_files_str
-        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+        if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
         if { {} != $cmd_str } {
           lappend files $cmd_str
@@ -2330,7 +2332,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       set is_type_hdl [is_hdl_type $file_type]
       if { !$is_type_hdl } { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -2585,7 +2587,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
       if { !$is_type_hdl } { continue }
       #if { [get_property "IS_AUTO_DISABLED" [lindex [get_files -quiet -all [list "$file"]] 0]]} { continue }
       set g_files $global_files_str
-      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } { set g_files {} }
+      if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } { set g_files {} }
       set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options]
       if { {} != $cmd_str } {
         lappend files $cmd_str
@@ -2620,7 +2622,7 @@ proc usf_add_block_fs_files { global_files_str include_directories_options_arg f
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
-  set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\""
+  set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\" || FILE_TYPE == \"VHDL 2019\""
   foreach file [usf_get_files_from_block_filesets $vhdl_filter] {
     set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
     set cmd_str [usf_get_file_cmd_str $file $file_type {} include_directories_options]
@@ -3574,7 +3576,7 @@ proc usf_get_compiler_name { file_type } {
 
   variable properties
   set compiler ""
-  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) } {
+  if { ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) } {
     set compiler "vcom"
   } elseif { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({Verilog Header} == $file_type) } {
     set compiler "vlog"
@@ -3669,10 +3671,14 @@ proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
         93 { return "-93" }
         2002 { return "-2002" }
         2008 { return "-2008" }
+        2019 { return "-2019" }
       }
     }
     "^VHDL 2008$" {
       return "-2008"
+    }
+    "^VHDL 2019$" {
+      return "-2019"
     }
     "^Verilog|Verilog Header$" {
       switch -- [get_property [usf_aldec_getPropertyName COMPILE.VLOG_SYNTAX] $fileset_object] {
@@ -4114,7 +4120,8 @@ proc usf_get_file_type_category { file_type } {
   set type {UNKNOWN}
   switch $file_type {
     {VHDL} -
-    {VHDL 2008} {
+    {VHDL 2008} -
+    {VHDL 2019} {
       set type {VHDL}
     }
     {Verilog} -
@@ -5011,7 +5018,7 @@ proc usf_find_comp { comps_arg index_arg to_match } {
 }
 
 proc is_hdl_type { file_type } {
-  return [expr { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) }]
+  return [expr { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({VHDL} == $file_type) || ({VHDL 2008} == $file_type) || ({VHDL 2019} == $file_type) }]
 }
 
 proc vip_ips {} {

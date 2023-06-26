@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.33
+package require ::tclapp::aldec::common::helpers 1.34
 
-package provide ::tclapp::aldec::common::sim 1.33
+package provide ::tclapp::aldec::common::sim 1.34
 
 namespace eval ::tclapp::aldec::common {
 
@@ -639,6 +639,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
   set prev_file_type {}
   set b_group_files [get_param "project.assembleFilesByLibraryForUnifiedSim"]
   set useAddsc 0
+  set output [ ::tclapp::aldec::common::helpers::getSystemCLibrary ]
 	
 	foreach file $::tclapp::aldec::common::helpers::properties(designFiles) {
 		set fargs [ split $file {|} ]
@@ -661,6 +662,7 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 		set src_file [ convertToUnifiedSimulation $src_file $vlog_cmd_str $vcom_cmd_str ]
 
 		set commandLine ""
+		set newLine 0
 
 		foreach item [ split $cmd_str " " ] {
 
@@ -674,11 +676,16 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 			}
 
 			if { $commandLine != "" } {
-				if { [ string index $item 0 ] == "-" || [ regexp ".*xilinx_versal.o$" $item ] || [ regexp ".*xilinx_zynqmp.o$" $item ] } {
+				if { [ string index $item 0 ] == "-" || $newLine || [ regexp ".*xilinx_versal.o$" $item ] || [ regexp ".*xilinx_zynqmp.o$" $item ] } {
 					append commandLine " \\\n\t"
+					set newLine 0
 				} else {
 					append commandLine " "
 				}
+			}
+
+			if { $output == $item } {
+				set newLine 1
 			}
 
 			append commandLine "$item"
@@ -1861,11 +1868,11 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
 		}
 	}
 
-  puts $fh "\n"
+  puts $fh ""
 
   set rt [ string trim [ get_property [ ::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.RUNTIME ] $fs_obj ] ]
   if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh "\nputs \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
+    puts $fh "puts \"We are running simulator for infinite time. Added some default signals in the waveform. You can pause simulation and add signals and then resume the simulation again.\""
     puts $fh "puts \"Stopping at breakpoint in simulator also stops the host code execution\""
     puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_GUI) \] \} \{"
     puts $fh "  run 1ns"
@@ -1885,22 +1892,23 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   } else {
     if { {} == $rt } {
       # no runtime specified
-      puts $fh "\nrun"
+      puts $fh "run"
     } else {
       set rt_value [string tolower $rt]
       if { ({all} == $rt_value) || (![regexp {^[0-9]} $rt_value]) } {
-        puts $fh "\nrun -all"
+        puts $fh "run -all"
       } else {
-        puts $fh "\nrun $rt"
+        puts $fh "run $rt"
       }
     }
   }
-  puts $fh "\n"
+  puts $fh ""
 
   set tcl_post_hook [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.TCL.POST] $fs_obj]
   ::tclapp::aldec::common::helpers::usf_aldec_get_file_path_from_project tcl_post_hook
   if { [file isfile $tcl_post_hook] && ![::tclapp::aldec::common::helpers::usf_aldec_is_file_disabled $tcl_post_hook] } {
-    puts $fh "\nsource \{$tcl_post_hook\}\n"
+    puts $fh "source \{$tcl_post_hook\}"
+	puts $fh ""
   } elseif { $tcl_post_hook != "" } {
     send_msg_id USF-[usf_aldec_getSimulatorName]-94 WARNING "File '$tcl_post_hook' not found or disabled.\n"
   }
@@ -1922,6 +1930,7 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
       set rec "-rec"
     }
     puts $fh "asdb2saif -internal -scope $rec ${uut}/* [usf_aldec_getDefaultDatasetName] \{$saif\}"
+	puts $fh ""
   }
 
   # add TCL sources
@@ -1929,7 +1938,6 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   set filter "USED_IN_SIMULATION == 1 && FILE_TYPE == \"TCL\""
   ::tclapp::aldec::common::helpers::usf_find_files tcl_src_files $filter
   if {[llength $tcl_src_files] > 0} {
-    puts $fh ""
     foreach file $tcl_src_files {
       puts $fh "source \{$file\}"
     }
@@ -1937,13 +1945,14 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   }
 
   if { $::tclapp::aldec::common::helpers::properties(b_int_en_vitis_hw_emu_mode) } {
-    puts $fh "\nif \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
+    puts $fh "if \{ \[info exists ::env(VITIS_LAUNCH_WAVEFORM_BATCH) \] \} \{"
     puts $fh "  if \{ \[info exists ::env(USER_POST_SIM_SCRIPT) \] \} \{"
     puts $fh "    if \{ \[catch \{source \$::env(USER_POST_SIM_SCRIPT)\} msg\] \} \{"
     puts $fh "      puts \$msg"
     puts $fh "    \}"
     puts $fh "  \}"
     puts $fh "\}"
+	puts $fh ""
   } 
 
   if { \
@@ -1982,7 +1991,7 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.33 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.34 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
@@ -2004,7 +2013,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "#"
 		puts $_file "# Filename    : $_fileName"
 		puts $_file "# Simulator   : $simulatorName Simulator"
-		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.33"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.34"
 		puts $_file "# Created on  : $timestamp"
 		puts $_file "#"
 		puts $_file "# usage: $_fileName"
@@ -2016,7 +2025,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "REM"
 		puts $_file "REM Filename    : $_fileName"
 		puts $_file "REM Simulator   : $simulatorName Simulator"
-		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.33"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.34"
 		puts $_file "REM Created on  : $timestamp"
 		puts $_file "REM"
 		puts $_file "REM usage: $_fileName"
