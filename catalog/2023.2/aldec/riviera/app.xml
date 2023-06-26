@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2023.1 to 2023.2</revision_history>
+      <revision_history>Add support for VHDL2019</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
