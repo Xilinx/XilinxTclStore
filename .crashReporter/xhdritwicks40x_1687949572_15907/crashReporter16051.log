@@ -1,0 +1,3 @@
+[Crash Reporter] Started with processId = 16051, at dir = '/proj/xhdhdstaff2/ritwicks/ritwicks_rdi_vivado/Rodin/HEAD/XilinxTclStore', at time = Wed Jun 28 16:22:54 2023
+[Crash Reporter] Created Process registration file in crash store: /proj/xhdhdstaff2/ritwicks/ritwicks_rdi_vivado/Rodin/HEAD/XilinxTclStore/.crashReporter/xhdritwicks40x_1687949572_15907/crashStore/processRegFile.txt
+[Crash Reporter] New process registration successfull for <hostname>:<pid> = xhdritwicks40x:16048
