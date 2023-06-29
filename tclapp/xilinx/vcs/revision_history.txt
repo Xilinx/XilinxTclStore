@@ -1,3 +1,4 @@
+11.9 performance fix
 11.8 company name update
 11.7 copyright message update
 11.5 sync utils
