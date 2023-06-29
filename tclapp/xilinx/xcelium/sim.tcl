@@ -309,6 +309,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -349,6 +350,7 @@ proc usf_xcelium_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -1410,7 +1412,13 @@ proc usf_xcelium_write_elaborate_script {} {
 
   set tool "xmelab"
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-  set arg_list [list "-relax -access +rwc -namemap_mixgen"]
+  set arg_list [list "-relax"]
+  set access_mode "rwc"
+  if { $a_sim_vars(b_int_perf_analysis) } {
+    set access_mode "r"
+  }
+  lappend arg_list "-access +$access_mode"
+  lappend arg_list "-namemap_mixgen"
 
   set path_delay 0
   set int_delay 0

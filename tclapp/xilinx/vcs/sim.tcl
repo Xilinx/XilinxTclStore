@@ -316,6 +316,7 @@ proc usf_vcs_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -357,6 +358,7 @@ proc usf_vcs_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -1390,13 +1392,22 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
+
   if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
-    lappend arg_list {-debug_acc+pp+dmptf}
-    # view source code and debug the celldefines, library files and encrypted source code (user-controllable, if reqd)
-    #lappend arg_list {-debug_region+cell+encrypt}
-    # deprecated
-    #lappend arg_list {-debug_pp}
+    #
+    # -debug_acc+pp+dmptf (default)
+    #
+    set debug_vars {+pp+dmptf}
+    set dbg_sw "-debug_acc"
+
+    if { $a_sim_vars(b_int_perf_analysis) } {
+      # do not pass vars
+    } else {
+      append dbg_sw $debug_vars
+    }
+    lappend arg_list $dbg_sw
   }
+
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
 
   set path_delay 0
