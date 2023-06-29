@@ -1396,7 +1396,11 @@ proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
         set cmd_str "  set_property -name \"$name\" -value \"$value\" -objects"
         set b_add_closing_brace 1
       } else {
-        set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
+        if { [ string first "more option" $name ] != -1 } {
+          set cmd_str "set_property -name \"$name\" -value \{$value\} -objects"
+        } else {
+          set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
+        }
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"

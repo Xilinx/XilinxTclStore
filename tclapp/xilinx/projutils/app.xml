@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for CR-1160609. Imported files path has &apos;imports&apos; twice in its path causing errors</revision_history>
+      <revision_history>Fix for CR-1156820: incorrect tcl command when multiple options are added into more options of synthesis settings</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
