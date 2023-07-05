@@ -1490,7 +1490,9 @@ proc usf_vcs_write_elaborate_script {} {
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
           if { [regexp "^noc_v" $name] } {
             set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
-            set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+            if { [regexp "^noc_v1" $name] } {
+              set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+            }
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
             set model_ver [rdi::get_aie_config_type]
