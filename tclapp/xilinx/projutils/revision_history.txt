@@ -1,3 +1,4 @@
+3.549 CR-1164649 Copy run fails to work with error about lsf_name
 3.548 Fix for CR-1156820: incorrect tcl command when multiple options are added into more options of synthesis settings
 3.546 Fix for CR-1160609. Imported files path has 'imports' twice in its path causing errors
 3.545 ignoring deprecated properties retiming and no-retiming in project tcl
