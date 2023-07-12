@@ -1539,6 +1539,7 @@ proc usf_xcelium_write_elaborate_script {} {
           set shared_lib_name [file root $shared_lib_name]
           set shared_lib_name [string trimleft $shared_lib_name "lib"]
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
+          # filter protected
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^xsc_utility_v" $shared_lib_name] } { continue; }
           set arg_list [linsert $arg_list end "-libname" $shared_lib_name]

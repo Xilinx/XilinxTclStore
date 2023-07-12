@@ -1,6 +1,0 @@
-[Crash Reporter] Started with processId = 54976, at dir = '/proj/xhdhdstaff2/ritwicks/ritwicks_rdi_vivado/Rodin/HEAD/XilinxTclStore', at time = Mon Jul 10 15:55:41 2023
-[Crash Reporter] Created Process registration file in crash store: /proj/xhdhdstaff2/ritwicks/ritwicks_rdi_vivado/Rodin/HEAD/XilinxTclStore/.crashReporter/xhdritwicks40x_1688984739_54833/crashStore/processRegFile.txt
-[Crash Reporter] New process registration successfull for <hostname>:<pid> = xhdritwicks40x:54974
-[Crash Reporter] Crash Reporter exit condition met. No registered process is running and No pending crash report transmission.
-[Crash Reporter] Deleted crash store.
-[Crash Reporter] Exiting at Mon Jul 10 15:57:29 2023
