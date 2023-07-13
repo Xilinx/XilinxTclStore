@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>CR-1164649 Copy run fails to work with error about lsf_name</revision_history>
+      <revision_history>Fix for CR-1159213 Unsupported IP</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
