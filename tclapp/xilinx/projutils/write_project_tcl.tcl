@@ -256,7 +256,7 @@ proc reset_global_vars {} {
     set a_global_vars(b_arg_use_bd_files) 1
   }
 
-  set a_global_vars(b_arg_no_bd_xlnoc)        0
+  set a_global_vars(b_arg_no_bd_xlnoc)        1
   set a_global_vars(excludePropDict)      [dict create]
 
   set l_script_data                       [list]
