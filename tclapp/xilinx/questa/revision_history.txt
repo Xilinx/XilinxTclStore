@@ -1,3 +1,4 @@
+2.290 filter aie binding
 2.289 fixed copyright string
 2.288 company name update
 2.287 QOR performance update
