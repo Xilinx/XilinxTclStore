@@ -2049,7 +2049,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             if { {aie} == $model_ver } {
               set lib_dir "${model_ver}_cluster_v1_0_0"
             }
-            lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
+            #lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
           }
 
           variable a_shared_library_path_coln
@@ -2346,8 +2346,8 @@ proc usf_questa_get_sccom_cmd_args {} {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
-        lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
-        lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
+        # lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        # lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
       }
     }
 
@@ -2396,11 +2396,11 @@ proc usf_questa_get_sccom_cmd_args {} {
         set model_ver [rdi::get_aie_config_type]
         set lib_name "${model_ver}_cluster_v1_0_0"
         if { {aie} == $model_ver } {
-          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          # lappend args "-L$data_dir/$cpt_dir/$lib_name"
         } else {
-          lappend args "-L$data_dir/$cpt_dir/$model_ver"
+          # lappend args "-L$data_dir/$cpt_dir/$model_ver"
         }
-        lappend args "-l$lib_name"
+        # lappend args "-l$lib_name"
       }
     }
 

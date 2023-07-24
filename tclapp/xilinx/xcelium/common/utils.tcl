@@ -5860,7 +5860,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     if { {aie} == $model_ver } {
       set aie_lib_dir "${model_ver}_cluster_v1_0_0"
     }
-    append ld_path ":$tp/$aie_lib_dir"
+    #append ld_path ":$tp/$aie_lib_dir"
 
     set xilinx_vitis     {}
     set cardano_api_path {}
