@@ -1,4 +1,15 @@
-11.130 skip xlnoc for synth from simulation fileset
+11.142 merged 2023.2 to 2024.1
+11.141 fixed copyright string
+11.140 filter protected libs from design libs collection
+11.139 filter xcs_utility from design libs collection
+11.138 performance fix
+11.137 bind aie_cluster
+11.136 company name update
+11.135 copyright message update
+11.133 sync utils
+11.132 support for vhdl 2019
+11.131 detect shell env for script execution
+11.130 merged 2023.1 to 2023.2
 11.129 comments for IP library processing logistics
 11.128 print debug message for local IP compilation
 11.127 merged 2022.2 to 2023.1

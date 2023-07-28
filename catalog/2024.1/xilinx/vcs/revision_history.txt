@@ -1,4 +1,13 @@
-11.2 skip xlnoc for synth from simulation fileset
+12.2 merged 2023.2 to 2024.1
+12.1 fixed copyright string
+12.0 bind nocbase for noc_v1
+11.9 performance fix
+11.8 company name update
+11.7 copyright message update
+11.5 sync utils
+11.4 support for vhdl 2019
+11.3 detect shell env for script execution
+11.2 merged 2023.1 to 2023.2
 11.1 include obj file in archive during link
 11.0 add_wave for vitis context only
 10.7 merged 2022.2 to 2023.1

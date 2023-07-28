@@ -1,4 +1,4 @@
-2.335 filter aie binding
+2.335 merged 2023.2 to 2024.1
 2.334 fixed copyright string
 2.333 company name update
 2.332 copyright message update

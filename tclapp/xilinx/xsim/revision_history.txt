@@ -1,4 +1,4 @@
-2.459 filter aie binding
+2.459 merged 2023.2 to 2024.1
 2.458 fixed copyright string
 2.457 copyright message update
 2.456 sync utils

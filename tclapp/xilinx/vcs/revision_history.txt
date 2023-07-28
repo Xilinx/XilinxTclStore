@@ -1,4 +1,4 @@
-12.2 filter aie binding
+12.2 merged 2023.2 to 2024.1
 12.1 fixed copyright string
 12.0 bind nocbase for noc_v1
 11.9 performance fix

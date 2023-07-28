@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adding support for VC SpyGlass</revision_history>
+      <revision_history> Adding support for VC SpyGlass </revision_history>
       <name>spyglass</name>
       <pkg_require>Vivado 2015.1</pkg_require>
       <company>synopsys</company>
@@ -12,7 +12,7 @@
       <procs>
         <proc>
           <name>write_spyglass_script</name>
-          <summary>This proc generates the spyglass project file</summary>
+          <summary>This proc generates the SpyGlass project file and VC SpyGlass TCL setup</summary>
         </proc>
       </procs>
     </app>

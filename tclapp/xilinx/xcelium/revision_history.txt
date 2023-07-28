@@ -1,4 +1,4 @@
-11.142 filter aie binding
+11.142 merged 2023.2 to 2024.1
 11.141 fixed copyright string
 11.140 filter protected libs from design libs collection
 11.139 filter xcs_utility from design libs collection
