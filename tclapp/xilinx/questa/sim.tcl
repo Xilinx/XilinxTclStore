@@ -295,6 +295,7 @@ proc usf_questa_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -335,6 +336,7 @@ proc usf_questa_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -1424,7 +1426,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { {None} == $acc } {
     # no val
   } else {
-    lappend arg_list "+$acc"
+    if { $a_sim_vars(b_int_perf_analysis) } {
+      if { ("acc=npr" == $acc) } {
+        lappend arg_list "-access=r+/."
+      }
+    } else {
+      lappend arg_list "+$acc"
+    }
   }
 
   set vhdl_generics [list]
@@ -1941,7 +1949,8 @@ proc usf_questa_write_header { fh filename } {
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 4]
+  set copyright_1 [lindex $version_txt 5]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   set timestamp   [clock format [clock seconds]]
@@ -2011,7 +2020,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "questa"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
@@ -2040,7 +2049,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             if { {aie} == $model_ver } {
               set lib_dir "${model_ver}_cluster_v1_0_0"
             }
-            lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
+            #lappend shared_ip_libs "$data_dir/$cpt_dir/$lib_dir"
           }
 
           variable a_shared_library_path_coln
@@ -2337,8 +2346,8 @@ proc usf_questa_get_sccom_cmd_args {} {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
-        lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
-        lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
+        # lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
+        # lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
       }
     }
 
@@ -2387,11 +2396,11 @@ proc usf_questa_get_sccom_cmd_args {} {
         set model_ver [rdi::get_aie_config_type]
         set lib_name "${model_ver}_cluster_v1_0_0"
         if { {aie} == $model_ver } {
-          lappend args "-L$data_dir/$cpt_dir/$lib_name"
+          # lappend args "-L$data_dir/$cpt_dir/$lib_name"
         } else {
-          lappend args "-L$data_dir/$cpt_dir/$model_ver"
+          # lappend args "-L$data_dir/$cpt_dir/$model_ver"
         }
-        lappend args "-l$lib_name"
+        # lappend args "-l$lib_name"
       }
     }
 

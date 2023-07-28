@@ -1348,7 +1348,8 @@ proc usf_modelsim_write_header { fh filename } {
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 4]
+  set copyright_1 [lindex $version_txt 5]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   set timestamp   [clock format [clock seconds]]
@@ -1418,7 +1419,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
 
   set log_filename "${step}.log"
   if {$::tcl_platform(platform) == "unix"} {
-    puts $fh_scr "#!/bin/bash -f"
+    puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "modelsim"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""

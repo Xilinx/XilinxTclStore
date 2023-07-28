@@ -338,6 +338,18 @@ proc xcs_control_pre_compile_flow { b_static_arg } {
   }
 }
 
+proc xcs_get_shell_env {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set shell_env "#!/bin/bash -f"
+  if { [rdi::is_ubuntu] } {
+    set shell_env "#!/usr/bin/env bash"
+  }
+  return $shell_env
+} 
+
 proc xcs_exec_script { scr_file error_log_arg } {
   # Summary:
   # Argument Usage:
@@ -552,7 +564,8 @@ proc xcs_contains_vhdl { design_files {flow "NULL"} {s_netlist_file {}} } {
     set type [lindex [split $file {|}] 0]
     switch $type {
       {VHDL} -
-      {VHDL 2008} {
+      {VHDL 2008} -
+      {VHDL 2019} {
         set b_vhdl_srcs 1
       }
     }
@@ -1321,7 +1334,8 @@ proc xcs_get_file_type_category { file_type } {
   set type {UNKNOWN}
   switch $file_type {
     {VHDL} -
-    {VHDL 2008} {
+    {VHDL 2008} -
+    {VHDL 2019} {
       set type {VHDL}
     }
     {Verilog} -
@@ -2966,6 +2980,7 @@ proc xcs_get_compiler_name { simulator file_type } {
       switch -exact -- $file_type {
         "VHDL"                         {set compiler "vhdl"}
         "VHDL 2008"                    {set compiler "vhdl2008"}
+        "VHDL 2019"                    {set compiler "vhdl2019"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" {set compiler "verilog"}
@@ -2980,7 +2995,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "questa" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vcom"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vcom"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -2994,7 +3010,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "activehdl" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vcom"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vcom"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3017,7 +3034,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "xcelium" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "xmvhdl"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "xmvhdl"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3030,7 +3048,8 @@ proc xcs_get_compiler_name { simulator file_type } {
     "vcs" {
       switch -exact -- $file_type {
         "VHDL"                         -
-        "VHDL 2008"                    {set compiler "vhdlan"}
+        "VHDL 2008"                    -
+        "VHDL 2019"                    {set compiler "vhdlan"}
         "Verilog"                      -
         "Verilog Header"               -
         "Verilog/SystemVerilog Header" -
@@ -3637,6 +3656,7 @@ proc xcs_get_non_hdl_data_files_filter {} {
           FILE_TYPE != \"Verilog Template\"             && \
           FILE_TYPE != \"VHDL\"                         && \
           FILE_TYPE != \"VHDL 2008\"                    && \
+          FILE_TYPE != \"VHDL 2019\"                    && \
           FILE_TYPE != \"VHDL Template\"                && \
           FILE_TYPE != \"EDIF\"                         && \
           FILE_TYPE != \"NGC\"                          && \
@@ -3795,7 +3815,7 @@ proc xcs_get_simulator_pretty_name { name } {
 
   set pretty_name {}
   switch -regexp -- $name {
-    "xsim"      { set pretty_name "Xilinx Vivado Simulator" }
+    "xsim"      { set pretty_name "AMD Vivado Simulator" }
     "modelsim"  { set pretty_name "Siemens ModelSim Simulator" }
     "questa"    { set pretty_name "Siemens Questa Advanced Simulator" }
     "ies"       { set pretty_name "Cadence Incisive Enterprise Simulator" }
@@ -3816,7 +3836,8 @@ proc xcs_write_script_header { fh step simulator } {
   set version_info [split [version] "\n"]
   set release      [lindex $version_info 0]
   set swbuild      [lindex $version_info 1]
-  set copyright    [lindex $version_info 2]
+  set copyright    [lindex $version_info 4]
+  set copyright_1  [lindex $version_info 5]
   set product      [lindex [split $release " "] 0]
   set version_id   [join [lrange $release 1 end] " "]
   set simulator    [xcs_get_simulator_pretty_name $simulator]
@@ -3846,6 +3867,7 @@ proc xcs_write_script_header { fh step simulator } {
   puts $fh "$cmt $swbuild"
   puts $fh "$cmt"
   puts $fh "$cmt $copyright"
+  puts $fh "$cmt $copyright_1"
   puts $fh "$cmt"
   puts $fh "$cmt usage: $filename"
   puts $fh "$cmt"
@@ -3930,6 +3952,108 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
         }
       }
     }
+    if { [lsearch -exact $uniq_incl_dirs $dir] == -1 } {
+      lappend uniq_incl_dirs $dir
+      lappend incl_dirs "$dir"
+    }
+  }
+
+  # add boost header references for include dir
+  if { ("xsim" == $simulator) || ("xcelium" == $simulator) } {
+    set boost_dir "%xv_boost_lib_path%"
+    if {$::tcl_platform(platform) == "unix"} {
+      set boost_dir "\$xv_boost_lib_path"
+    }
+  }
+  lappend incl_dirs "$boost_dir"
+
+  return $incl_dirs
+}
+
+proc xcs_get_cx_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_files_dir b_xport_src_files b_absolute_path { ref_dir "true" } } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set incl_dirs [list]
+  set uniq_incl_dirs [list]
+
+  foreach file [get_files -all -quiet -filter $c_filter] {
+    set file_extn [file extension $file]
+
+    # consider header (.h) files only
+    if { {.h} != $file_extn } {
+      continue
+    }
+
+    set used_in_values [get_property "USED_IN" [lindex [get_files -quiet -all [list "$file"]] 0]]
+    # is HLS source?
+    if { [lsearch -exact $used_in_values "c_source"] != -1 } {
+      continue
+    }
+
+    # fetch header file
+    set sc_header_file [xcs_fetch_header_from_export $file true $s_ip_user_files_dir]
+    set dir [file normalize [file dirname $sc_header_file]]
+
+    # is export_source_files? copy to local srcs dir
+    set srcs_header_file {}
+    if { $b_xport_src_files } {
+      xcs_copy_file_to_srcs $sc_header_file $launch_dir srcs_header_file
+    }
+
+    if { $ref_dir } {
+      if { $b_xport_src_files } {
+        if { {} != $srcs_header_file } {
+          set dir [file dirname $srcs_header_file]
+          if { $b_absolute_path } {
+            set dir "$launch_dir/[file dirname $srcs_header_file]"
+          }
+        } else {
+          if { $b_absolute_path } {
+            set dir "[xcs_resolve_file_path $dir $launch_dir]"
+          } else {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      } else {
+        if { ({modelsim} == $simulator) || ({questa} == $simulator) || ({riviera} == $simulator) || ({activehdl} == $simulator) } {
+          if { $b_absolute_path } {
+            set dir "[xcs_resolve_file_path $dir $launch_dir]"
+          } else {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        } else {
+          if { $b_absolute_path } {
+            set dir "[xcs_resolve_file_path $dir $launch_dir]"
+          } else {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      }
+    } else {
+      if { $b_xport_src_files } {
+        if { {} != $srcs_header_file } {
+          set dir [file dirname $srcs_header_file]
+          if { $b_absolute_path } {
+            set dir "$launch_dir/[file dirname $srcs_header_file]"
+          }
+        } else {
+          if { $b_absolute_path } {
+            set dir "[xcs_resolve_file_path $dir $launch_dir]"
+          } else {
+            set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+          }
+        }
+      } else {
+        if { $b_absolute_path } {
+          set dir "[xcs_resolve_file_path $dir $launch_dir]"
+        } else {
+          set dir "[xcs_get_relative_file_path $dir $launch_dir]"
+        }
+      }
+    }
+
     if { [lsearch -exact $uniq_incl_dirs $dir] == -1 } {
       lappend uniq_incl_dirs $dir
       lappend incl_dirs "$dir"
@@ -5736,7 +5860,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     if { {aie} == $model_ver } {
       set aie_lib_dir "${model_ver}_cluster_v1_0_0"
     }
-    append ld_path ":$tp/$aie_lib_dir"
+    #append ld_path ":$tp/$aie_lib_dir"
 
     set xilinx_vitis     {}
     set cardano_api_path {}
@@ -6036,4 +6160,99 @@ proc xcs_get_vhdl_generics { simulator fs args_list } {
       }
     }
   }
+}
+
+proc xcs_get_file_sub_path { src_file leaf_file_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $leaf_file_arg leaf_file
+
+  variable a_sim_vars
+
+  # 1. find if from "sources_1"
+  set match_string  [get_property -quiet name $a_sim_vars(sfs_obj)]
+  if { [xcs_find_elem_sub_path $src_file $match_string leaf_file] } {
+    return true
+  }
+
+  # 2. not found? find if from "sim_1"
+  set match_string [get_property -quiet name $a_sim_vars(fs_obj)]
+  if { [xcs_find_elem_sub_path $src_file $match_string leaf_file] } {
+    return true
+  }
+
+  set leaf_file {}
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "(DEBUG) - '$match_string' not found in '$src_file'"
+  }
+
+  return false
+}
+
+proc xcs_find_elem_sub_path { src_file match sub_file_path_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $sub_file_path_arg sub_file_path
+
+  # <proj>.gen/sources_1/bd/RP_vma/ip/RP_vma_ai_engine_0_0/bd_0/sim/bd_d19a.v
+  set src_file_path [regsub -all {[\[\]]} $src_file {/}]
+  set comps         [split $src_file_path {/}]
+
+  set sub_file_path  {}
+  set comp_elems [list]
+
+  while { [llength $comps] } {
+    set elem [lindex $comps end]
+    lappend comp_elems $elem
+    if { $elem == $match } {
+      set comp_elems    [lreverse $comp_elems]
+      #set sub_file_path [join [lrange $comp_elems 1 end] "/"]
+      set sub_file_path [join $comp_elems "/"]
+      return true
+    }
+    set comps [lrange $comps[set comps {}] 0 end-1]
+  }
+  return false
+}
+
+proc xcs_copy_file_to_srcs { src_file launch_dir srcs_file_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  upvar $srcs_file_arg srcs_file
+
+  set leaf_file {}
+  set srcs_file {}
+  #
+  # find file sub-path wrt <project>/<project>.<fileset>
+  #
+  if { [xcs_get_file_sub_path $src_file leaf_file] } {
+    set dst_file   "srcs/$leaf_file"          ; #                   srcs/bd/vma/ip/vma_ai_0_0/bd_0/sim/bd_d19a.v
+    set srcs_file  $dst_file
+    set dst_dir    [file dirname $dst_file]   ; #                   srcs/bd/vma/ip/vma_ai_0_0/bd_0/sim
+    set target_dir "$launch_dir/$dst_dir"     ; # /work/xps/xsim/ + srcs/bd/vma/ip/vma_ai_0_0/bd_0/sim
+
+    if { ![file exists $target_dir] } {
+      if {[catch {file mkdir $target_dir} error_msg] } {
+        send_msg_id exportsim-Tcl-050 ERROR "failed to create the directory ($target_dir): $error_msg\n"
+        return 1
+      }
+    }
+
+    if { [catch {file copy -force $src_file $target_dir} error_msg] } {
+      send_msg_id exportsim-Tcl-051 WARNING "failed to copy file '$src_file' to '$target_dir' : $error_msg\n"
+    } else {
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "(DEBUG) - copied '$src_file' to '$target_dir'"
+      }
+    }
+  }
+  return 0
 }
