@@ -1,3 +1,4 @@
+12.3 disable aie binding
 12.2 filter aie binding
 12.1 fixed copyright string
 12.0 bind nocbase for noc_v1
