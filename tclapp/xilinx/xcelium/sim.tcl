@@ -1672,7 +1672,7 @@ proc usf_xcelium_write_elaborate_script {} {
             } else {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             }
-            lappend link_arg_list "-L$lib_dir -l$lib_name"
+            #lappend link_arg_list "-L$lib_dir -l$lib_name"
           }
         }
 

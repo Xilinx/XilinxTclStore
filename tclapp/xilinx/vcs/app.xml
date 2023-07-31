@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>filter aie binding</revision_history>
+      <revision_history>disable aie binding</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

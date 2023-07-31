@@ -1502,8 +1502,8 @@ proc usf_vcs_write_elaborate_script {} {
             } else {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             }
-            set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-l$lib_name"]
+            #set arg_list [linsert $arg_list end "-L$lib_dir"]
+            #set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
 
@@ -1606,7 +1606,7 @@ proc usf_vcs_write_elaborate_script {} {
   
         set aie_ip_obj [xcs_find_ip "ai_engine"]
         if { {} != $aie_ip_obj } {
-          #lappend arg_list "-LDFLAGS -Wl,-undefined=_ZN7sc_core14sc_event_queueC1ENS_14sc_module_nameE"
+          lappend arg_list "-LDFLAGS -Wl,-undefined=_ZN7sc_core14sc_event_queueC1ENS_14sc_module_nameE"
         }
       }
     }
