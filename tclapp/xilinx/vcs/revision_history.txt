@@ -1,3 +1,4 @@
+12.4 pass undefined ldflag
 12.3 disable aie binding
 12.2 filter aie binding
 12.1 fixed copyright string
