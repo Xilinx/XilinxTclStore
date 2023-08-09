@@ -1905,6 +1905,7 @@ proc is_deprecated_property { property } {
        [string equal $property "dsa"] ||
        [string equal $property "steps.synth_design.args.retiming"] ||
        [string equal $property "steps.synth_design.args.no_retiming"] ||
+       [string equal $property "platform.ocl_inst_path"] ||       
        [regexp {dsa\..*} $property ] } {
      return true
   }
