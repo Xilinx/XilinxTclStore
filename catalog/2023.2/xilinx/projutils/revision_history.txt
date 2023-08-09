@@ -1,3 +1,4 @@
+3.552 Fix for CR-1170160 (platform.ocl_inst_path is deprecated)
 3.551 Fix for CR-1159634: Unknown file types causing rebuild errors for hw platform
 3.550 Fix for CR-1159213 Unsupported IP
 3.549 CR-1164649 Copy run fails to work with error about lsf_name
