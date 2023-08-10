@@ -7,13 +7,12 @@
 #
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::mentor::questa_resetcheck {
   # Export procs that should be allowed to import into other namespaces
-  variable QUESTA_ResetCheck_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
   namespace export write_questa_resetcheck_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_resetcheck::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -35,7 +34,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_resetcheck::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -59,7 +58,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
+proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} {
 
   # Summary : This proc generates the Questa ResetCheck script file
 
@@ -135,7 +134,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
 
   # Getting the current vivado version and remove 'v' from the version string
   set vivado_version [lindex [version] 1]
-  regsub {v} $vivado_version {} vivado_version 
+  regsub {v} $vivado_version {} vivado_version
+  set major [lindex [split $vivado_version .] 0]
+  set minor [lindex [split $vivado_version .] 1]
+  set vivado_version "$major\.$minor"
+ 
 
   ## -add_button and -remove_button can't be specified together
   if { ($remove_button == 1) && ($add_button == 1) } {
@@ -147,27 +150,32 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20ResetCheck tclapp::mentor::questa_cdc::write_questa_resetcheck_script "" /home/iahmed/questa_resetcheck_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20ResetCheck%20Run "" -run true
+    ## 0=Run%20Questa%20ResetCheck tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script "" /home/iahmed/questa_resetcheck_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20ResetCheck%20Run "" -run true
     ## -----------------------------------------
 
-    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    set status [catch {exec grep write_questa_resetcheck_script $commands_file} result]
-    if { $status == 0 } {
-      puts "INFO : Vivado GUI button for running Questa ResetCheck is already installed in $commands_file. Exiting ..."
-      return $rc
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml"
+    } else {
+      set commands_file "$::env(HOME)\\AppData\\Roaming\\Xilinx\\Vivado\\$vivado_version\\commands\\commands.xml"
     }
-     variable    QUESTA_ResetCheck_TCL_SCRIPT_PATH
-    set questa_resetcheck_logo "$QUESTA_ResetCheck_TCL_SCRIPT_PATH/questa_resetcheck_logo.PNG"
+    #set status [catch {exec grep write_questa_resetcheck_script $commands_file} result]
+    #if { $status == 0 } {
+    #  puts "INFO : Vivado GUI button for running Questa ResetCheck is already installed in $commands_file. Exiting ..."
+    #  return $rc
+    #}
+    set questa_resetcheck_logo "$::env(QUESTA_ResetCheck_TCL_SCRIPT_PATH)/questa_resetcheck_logo.PNG"
     if { ! [file exists $questa_resetcheck_logo] } {
       set questa_resetcheck_logo "\"$questa_resetcheck_logo\""
       puts "INFO: Can't find the Questa ResetCheck logo at $questa_resetcheck_logo"
       if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_resetcheck_logo.PNG"] } {
-        set questa_resetcheck_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_resetcheck_logo.PNG"
+        set questa_resetcheck_logo "\$::env(QHOME)/share/fpga_libs/Xilinx/questa_resetcheck_logo.PNG"
         puts "INFO: Found the Questa ResetCheck logo at $questa_resetcheck_logo"
       }
     }
+
     if { [catch {open $commands_file a} result] } {
-      puts stderr "ERROR: Could not open commands.paini to add the Questa ResetCheck button, path '$commands_file'\n$result"
+      puts stderr "ERROR: Could not open commands.xml to add the Questa ResetCheck button, path '$commands_file'\n$result"
       set rc 9
       return $rc
     } else {
@@ -175,85 +183,199 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
       puts "INFO: Adding Vivado GUI button for running Questa ResetCheck in $commands_file"
     }
     set questa_resetcheck_command_index 0
-    set vivado_cmds_version 1
+    set vivado_cmds_version "1.0"
+    set encoding_cmds_version "UTF-8"
+    set major_cmds_version "1"
+    set minor_cmds_version "0"
+    set name_cmds_version "USER"
     if { [file size $commands_file] } {
-      set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
-      if { $last_command_index == "VERSION" } {
-        ## This means that there are no commands in the file, and only the "VERSION" line is there
-        set questa_resetcheck_command_index 0
-        set vivado_cmds_version [exec cat $commands_file | tail -1 | cut -f2 -d=]
-      } else {
-        set questa_resetcheck_command_index [incr last_command_index]
-        set vivado_cmds_version [exec cat $commands_file | head -1 | cut -f2 -d=]
+      set file1 [open $commands_file r]
+      set file2 [read $file1]
+      set commands_file_line [split $file2 "\n"]
+      set last_command [lindex $commands_file_line end-1]
+      
+      foreach line $commands_file_line {
+	if {[regexp {write_questa_resetcheck_script} $line]} {
+	  puts "INFO : Vivado GUI button for running Questa ResetCheck is already installed in $commands_file. Exiting ..."
+          close $commands_fh
+	  close $file1
+	  return $rc
+	}
       }
+      
+      if { $last_command == "<custom_commands major=\"$major_cmds_version\" minor=\"$minor_cmds_version\">"} {
+        set questa_resetcheck_command_index 0
+ 
+      } else {
+        set numbers 0
+        foreach line $commands_file_line {
+	  if {[regexp {<position>([0-9]+)} $line m1 m2]} {
+	    set numbers $m2
+	  }
+	}
+	set last_command_index $numbers
+        set questa_resetcheck_command_index [incr last_command_index]
+ 
+      }
+	close $file1
     } else {
-      puts $commands_fh "VERSION=$vivado_cmds_version"
+      puts $commands_fh "<?xml version=\"$vivado_cmds_version\" encoding=\"$encoding_cmds_version\"?>"
+      puts $commands_fh "<custom_commands major=\"$major_cmds_version\" minor=\"$minor_cmds_version\">"
       set questa_resetcheck_command_index 0
     }
-    set button_code ""
-    if { $vivado_cmds_version == 1 } {
-      set button_code "$questa_resetcheck_command_index=Run%20Questa%20ResetCheck"
+    puts $commands_fh "  <custom_command>"
+    puts $commands_fh "    <position>$questa_resetcheck_command_index</position>"
+    puts $commands_fh "    <name>Run_Questa_ResetCheck</name>"
+    puts $commands_fh "    <menu_name>Run Questa ResetCheck</menu_name>"
+    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl; tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script</command>"
+    puts $commands_fh "    <toolbar_icon>$questa_resetcheck_logo</toolbar_icon>"
+    puts $commands_fh "    <show_on_toolbar>true</show_on_toolbar>"
+    puts $commands_fh "    <run_proc>true</run_proc>"
+    puts $commands_fh "    <source name=\"$name_cmds_version\"/>"
+    puts $commands_fh "    <args>"
+    puts $commands_fh "     <arg>"
+    puts $commands_fh "        <name>Top_Module</name>"
+    puts $commands_fh "        <default>\[lindex \[find_top\] 0\]</default>"
+    puts $commands_fh "        <optional>false</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Output_Directory</name>"
+    puts $commands_fh "        <default>-output_directory Questa_ResetCheck</default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Use_Existing_XDC</name>"
+    puts $commands_fh "        <default>-use_existing_xdc</default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Invoke_Questa_ResetCheck_Run</name>"
+    puts $commands_fh "        <default>-run resetcheck_run</default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "    </args>"
+    puts $commands_fh "  </custom_command>"
+    puts $commands_fh "</custom_commands>"
+# obselet generating .paini file    
+#   set button_code ""
+#    if { $vivado_cmds_version == 1 } {
+#      set button_code "$questa_resetcheck_command_index=Run%20Questa%20ResetCheck"
 
-			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
                
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
-      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^@ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20ResetCheck%20Run \"\" -run%20resetcheck_run true"
-    } else {
-      set button_code "$questa_resetcheck_command_index=$questa_resetcheck_command_index Run%20Questa%20ResetCheck Run%20Questa%20ResetCheck"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^@ \"\" true 4"
+#      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+#      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
+#      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+#      set button_code "$button_code Invoke%20Questa%20ResetCheck%20Run \"\" -run%20resetcheck_run true"
+#    } else {
+#      set button_code "$questa_resetcheck_command_index=$questa_resetcheck_command_index Run%20Questa%20ResetCheck Run%20Questa%20ResetCheck"
        
-			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
                 
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
-      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
-      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20ResetCheck%20Run \"\" -run%20resetcheck_run true"
-    }
-    puts $commands_fh $button_code
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^ \"\" true 4"
+#      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+#      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
+#      set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
+#      set button_code "$button_code Invoke%20Questa%20ResetCheck%20Run \"\" -run%20resetcheck_run true"
+#    }
+#    puts $commands_fh $button_code
     close $commands_fh
+    ##################################################################################################
+    ## to delete the last line in the file equal to set a [catch {exec sed -i "\$d" $commands_file} b]
+    set op_file [open "$commands_file.tmp" w]
+
+    ## Read the original commands.xml file
+    set ip_file [open "$commands_file" r]
+    set ip_data [read $ip_file]
+    set ip_lines [split $ip_data "\n"]
+    
+    for {set i 0} {$i < [llength $ip_lines]} {incr i} { 
+      if {[lindex $ip_lines $i] == ""} {
+        continue
+      } elseif {[lindex $ip_lines $i] == "</custom_commands>"} {
+        continue
+      } else {
+        puts $op_file "[lindex $ip_lines $i]" 
+      }
+    }    
+    puts $op_file "</custom_commands>" 
+    close $ip_file
+    close $op_file
+
+    #file delete -force $commands_file
+    if { $OS == "Linux" } {
+       exec rm -rf $commands_file
+    } else {
+       file delete -force $commands_file
+    }
+    file rename ${commands_file}.tmp $commands_file
+    ##################################################################################################
     return $rc
   }
 
   ## Remove Vivado GUI button for Questa ResetCheck
   if { $remove_button == 1 } {
-    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml"
+    } else {
+      set commands_file "$::env(HOME)\\AppData\\Roaming\\Xilinx\\Vivado\\$vivado_version\\commands\\commands.xml"
+    }
+    if { [file exist $commands_file] } {
     ## Temp file to write the modified file
     set op_file [open "$commands_file.tmp" w]
 
-    ## Read the original commands.paini file
+    ## Read the original commands.xml file
     set ip_file [open "$commands_file" r]
     set ip_data [read $ip_file]
     set ip_lines [split $ip_data "\n"]
 
     set questa_resetcheck_command_found 0
-    foreach ip_line $ip_lines {
-      if { $ip_line == "" } {
-        continue
-      }
-      if { [regexp {Questa.*ResetCheck.*write_questa_resetcheck_script.tcl} $ip_line] } {
-        set questa_resetcheck_command_found 1
-        continue
-      }
-      if { $questa_resetcheck_command_found == 1 } {
-        regsub {(^\d+)=.*} $ip_line {\1} cmd_id
-        regsub {^\d+=(.*)} $ip_line {\1} cmd_text
-        incr cmd_id -1 
-        puts $op_file "$cmd_id=$cmd_text"        
+    set questa_resetcheck_command_found_flag 0
+    set position 0
+
+    for {set i 0} {$i < [llength $ip_lines]} {incr i} {
+        if { $questa_resetcheck_command_found_flag == 0 } {
+	  if { [regexp {\s\s\<custom_command\>} [lindex $ip_lines $i]]  && [regexp {\s\s\s\<name\>Run_Questa_ResetCheck\</name\>} [lindex $ip_lines [expr $i + 2]]] } {
+	    regexp {<position>([0-9]+)\</position\>} [lindex $ip_lines [expr $i + 1]] m1 m2
+	    set position $m2
+            set questa_resetcheck_command_found 1
+            set questa_resetcheck_command_found_flag 1
+	    continue
+          }
+        } else {
+	  if { ! [regexp {\s\s\</custom_command\>} [lindex $ip_lines $i]] } {
+	    continue
+	  } else {
+  	    set questa_resetcheck_command_found_flag 0
+	    continue
+	  }
+        }
+      
+      if {$questa_resetcheck_command_found_flag == 0 && $questa_resetcheck_command_found == 1 && [regexp {<position>([0-9]+)\</position\>} [lindex $ip_lines $i]]} {
+        puts $op_file "  <position>$position\</position\>"
+	incr position
       } else {
-        puts $op_file $ip_line
+          if {[lindex $ip_lines $i] == ""} {
+	    continue
+	  } else {
+	  puts $op_file "[lindex $ip_lines $i]"
+	}
       }
     }
     close $ip_file
     close $op_file
-
     ## Now, remove the old commands file and replace it with the new one
-    exec rm -f 
-    file delete $commands_file
+    #exec rm -f 
+    #file delete -force $commands_file
+    if { $OS == "Linux" } {
+       exec rm -rf $commands_file
+    } else {
+       file delete -force $commands_file
+    }
     file rename ${commands_file}.tmp $commands_file
     if { $questa_resetcheck_command_found == 1 } {
       puts "INFO: Vivado GUI button for running Questa ResetCheck is removed from $commands_file"
@@ -261,6 +383,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
       puts "INFO: Vivado GUI button for running Questa ResetCheck wasn't found in $commands_file."
       puts "    : File has not been changed."
     }
+  } else {
+    puts "INFO: File $::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml not exist, cannot remove from unexisting file"
+  }
     return $rc
   }
 
@@ -598,7 +723,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
 	  set file_h [open $fn]
 	  set found_encrypted 1
 	  while {[gets $file_h line] >= 0} {
-	      if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value]  || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value]    } {
+	      if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value]  || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value] || [regexp {localparam} $line all value]   } {
 		  set found_encrypted 0
 	          break
 	      }
@@ -618,7 +743,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
           set file_h [open $fn]
           set found_encrypted 1
           while {[gets $file_h line] >= 0} {
-              if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value]  || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+              if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value]  || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]   || [regexp {localparam} $line all value]   } {
                   set found_encrypted 0
                   break
               }
@@ -684,7 +809,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
 
     # For each library, list the files
     foreach lib $lib_file_order {
-      if {![info exists compiled_lib_list($lib)] || [matches_default_libs $lib]} {
+#      if {![info exists compiled_lib_list($lib)] || [matches_default_libs $lib]} {
         regsub ":.*" $lib {} lib_no_num
         puts "INFO: Obtaining list of files for design= $ip_ref, library= $lib"
         set lang $lib_file_lang($lib)
@@ -821,9 +946,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
           set line "\n"
           lappend compile_lines $line
         }
-      } else {
-        puts "INFO: Library $lib has already been compiled. Skipping it."
-      }
+#      } else {
+#        puts "INFO: Library $lib has already been compiled. Skipping it."
+#      }
     }
 
     ## Bookkeeping on which libraries are already compiled
@@ -835,7 +960,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
     foreach subcore $lib_file_order {
       if {![info exists black_box_libs($subcore)]} {
         if {[regexp {^blk_mem_gen_v\d+_\d+} $subcore]} {
-          set line "#resetcheck blackbox memory ${subcore}_synth"
           lappend black_box_lines $line
           set black_box_libs($subcore) 1
         }
@@ -1131,27 +1255,39 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
   puts "This script will be deprecated. Use write_questa_rdc_script.tcl  instead"
 
   ## Change permissions of the generated running script
-  ## exec chmod u+x $userOD/$run_script
+  set OS [lindex $::tcl_platform(os) 0]
+  if { $OS == "Linux" } {
+    exec chmod u+x $userOD/$run_script
+  }
   if { $run_questa_resetcheck == "resetcheck_run" } {
     puts "INFO : Running Questa ResetCheck (Command: resetcheck run), the UI will be invoked when the run is finished"
     puts "     : Log can be found at $userOD/ResetCheck_RESULTS/qverify.log"
-    ## exec /bin/sh -c "cd $userOD; sh qresetcheck_run.sh"
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      exec /bin/sh -c "cd $userOD; sh qresetcheck_run.sh"
+    }
     puts "INFO : Questa ResetCheck run is finished"
     puts "INFO : Invoking Questa ResetCheck UI for debugging."
-    exec qverify -l qverify_ui.log $userOD/ResetCheck_RESULTS/resetcheck.db &
+    exec qverify $userOD/ResetCheck_RESULTS/resetcheck.db &
   } elseif { $run_questa_resetcheck == "report_clock" } {
     puts "INFO : Running Questa ResetCheck (Command: resetcheck run -report_clock), the UI will be invoked when the run is finished"
     puts "     : Log can be found at $userOD/ResetCheck_RESULTS/qverify.log"
-    ## exec /bin/sh -c "cd $userOD; sh qresetcheck_run.sh"
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      exec /bin/sh -c "cd $userOD; sh qresetcheck_run.sh"
+    }
     puts "INFO : Questa ResetCheck run is finished"
     puts "INFO : Invoking Questa ResetCheck UI for debugging."
-#    ## exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log ResetCheck_RESULTS/resetcheck.db" &
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+#     exec /bin/sh -c "cd $userOD; qverify -l qverify_ui.log ResetCheck_RESULTS/resetcheck.db" &
+    }
   }
   return $rc
 }
 
 ## Keep an environment variable with the path of the script
-#set env(QUESTA_ResetCheck_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+set env(QUESTA_ResetCheck_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa ResetCheck script
-#namespace import tclapp::mentor::questa_cdc::*
+namespace import tclapp::mentor::questa_resetcheck::*
