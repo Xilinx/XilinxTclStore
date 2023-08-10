@@ -5,16 +5,16 @@
 #
 # Script created on 12/20/2016 by Islam Ahmed (Mentor Graphics Inc) &
 #                                 Ravi Kurlagunda
-#
+# Script last Modified on 05/29/2023
+# Vivado v2022.1
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::mentor::questa_lint {
   # Export procs that should be allowed to import into other namespaces
-  variable QUESTA_Lint_TCL_SCRIPT_PATH [file normalize [file dirname [info script]]]
   namespace export write_questa_lint_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_lint::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -36,7 +36,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_lint::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -59,8 +59,20 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   }
   return $new_lib
 }
+proc ::tclapp::mentor::questa_lint::sv_vhdl_keyword_table {keyword_table} {
 
-proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
+  set keywords {library module entity package ENTITY PACKAGE `protect all define function task localparam interface `timescale}
+  foreach keyword $keywords {
+    dict incr keyword_table $keyword
+  }    
+  return $keyword_table
+}
+proc ::tclapp::mentor::questa_lint::is_sv_vhdl_keyword {keyword_table word} {
+
+   return [dict exists $keyword_table $word]
+}
+
+proc ::tclapp::mentor::questa_lint::write_questa_lint_script {args} {
 
   # Summary : This proc generates the Questa Lint script file
 
@@ -68,6 +80,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   # top_module : Provide the design top name
   # [-output_directory <arg>]: Specify the output directory to generate the scripts in
   # [-run <arg>]: Run Questa Lint and invoke the UI of Questa Lint debug after generating the running scripts, default behavior is to stop after the generation of the scripts
+  # [-lint_constraints]:Directives in the form of tcl File
   # [-add_button]: Add a button to run Questa Lint in Vivado UI.
   # [-remove_button]: Remove the Questa Lint button from Vivado UI.
 
@@ -82,10 +95,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   set userOD "."
   set top_module ""
   set no_sdc 0
-  set run_questa_lint "lint run"
+  set lint_constraints ""
+  set run_questa_lint ""
   set add_button 0
   set remove_button 0
-  set usage_msg "Usage    : write_questa_lint_script <top_module> \[-output_directory <out_dir>\] \[-run <report_clock|lint_run>\] \[-add_button\] \[-remove_button\]"
+  set usage_msg "Usage    : write_questa_lint_script <top_module> \[-output_directory <out_dir>\]  \[-lint_constraints <constraints_file>\] \[-run <lint_run>\] \[-add_button\] \[-remove_button\]"
   # Parse the arguments
   if { [llength $args] > 8 } {
     puts "** ERROR : Extra arguments passed to the proc."
@@ -113,11 +127,20 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
     } elseif { [lindex $args $i] == "-run" } {
       incr i
       set run_questa_lint "[lindex $args $i]"
-      if { ($run_questa_lint != "lint_run") && ($run_questa_lint != "report_clock") } {
+      if { ($run_questa_lint != "lint_run")  } {
         puts "** ERROR : Invalid argument value for -run '$run_questa_lint'"
         puts $usage_msg
         return 1
       }
+    } elseif { [lindex $args $i] == "-lint_constraints" } {
+      incr i
+        set lint_constraints "[lindex $args $i]" 
+        if { ($lint_constraints == "") } {
+          puts "** ERROR : Missing argument value for -lint_constraints"
+            puts $usage_msg
+            return 1
+        }
+      set lint_constraints [file normalize $lint_constraints]
     } elseif { [lindex $args $i] == "-add_button" } {
       set add_button 1
     } elseif { [lindex $args $i] == "-remove_button" } {
@@ -133,7 +156,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   # Getting the current vivado version and remove 'v' from the version string
   set vivado_version [lindex [version] 1]
   regsub {v} $vivado_version {} vivado_version 
-
+  set major [lindex [split $vivado_version .] 0]
+  set minor [lindex [split $vivado_version .] 1]
+  set vivado_version "$major\.$minor"
   ## -add_button and -remove_button can't be specified together
   if { ($remove_button == 1) && ($add_button == 1) } {
     puts "** ERROR : '-add_button' and '-remove_button' can't be specified together."
@@ -144,27 +169,32 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20Lint tclapp::mentor::questa_cdc::write_questa_lint_script "" /home/iahmed/questa_lint_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20Lint%20Run "" -run true
+    ## 0=Run%20Questa%20Lint tclapp::mentor::questa_lint::write_questa_lint_script "" /home/iahmed/questa_lint_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20Lint%20Run "" -run true
     ## -----------------------------------------
 
-    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
-    set status [catch {exec grep write_questa_lint_script $commands_file} result]
-    if { $status == 0 } {
-      puts "INFO : Vivado GUI button for running Questa Lint is already installed in $commands_file. Exiting ..."
-      return $rc
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml"
+    } else {
+      set commands_file "$::env(HOME)\\AppData\\Roaming\\Xilinx\\Vivado\\$vivado_version\\commands\\commands.xml"
     }
-    variable QUESTA_Lint_TCL_SCRIPT_PATH
-    set questa_lint_logo "$QUESTA_Lint_TCL_SCRIPT_PATH/questa_lint_logo.PNG"
+    #set status [catch {exec grep write_questa_lint_script $commands_file} result]
+    #if { $status == 0 } {
+    #  puts "INFO : Vivado GUI button for running Questa Lint is already installed in $commands_file. Exiting ..."
+    #  return $rc
+    #}
+    set questa_lint_logo "$::env(QUESTA_Lint_TCL_SCRIPT_PATH)/questa_lint_logo.PNG"
     if { ! [file exists $questa_lint_logo] } {
       set questa_lint_logo "\"$questa_lint_logo\""
       puts "INFO: Can't find the Questa Lint logo at $questa_lint_logo"
-      if { [file exists "$::env(QHOME)/share/fpga_libs/Xilinx/questa_lint_logo.PNG"] } {
+      if { [file exists "\$::env(QHOME)/share/fpga_libs/Xilinx/questa_lint_logo.PNG"] } {
         set questa_lint_logo "$::env(QHOME)/share/fpga_libs/Xilinx/questa_lint_logo.PNG"
         puts "INFO: Found the Questa Lint logo at $questa_lint_logo"
       }
     }
+    
     if { [catch {open $commands_file a} result] } {
-      puts stderr "ERROR: Could not open commands.paini to add the Questa Lint button, path '$commands_file'\n$result"
+      puts stderr "ERROR: Could not open commands.xml to add the Questa Lint button, path '$commands_file'\n$result"
       set rc 9
       return $rc
     } else {
@@ -172,85 +202,205 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
       puts "INFO: Adding Vivado GUI button for running Questa Lint in $commands_file"
     }
     set questa_lint_command_index 0
-    set vivado_cmds_version 1
+    set vivado_cmds_version "1.0"
+    set encoding_cmds_version "UTF-8"
+    set major_cmds_version "1"
+    set minor_cmds_version "0"
+    set name_cmds_version "USER"
     if { [file size $commands_file] } {
-      set last_command_index [exec cat $commands_file | tail -1 | cut -f1 -d=]
-      if { $last_command_index == "VERSION" } {
-        ## This means that there are no commands in the file, and only the "VERSION" line is there
-        set questa_lint_command_index 0
-        set vivado_cmds_version [exec cat $commands_file | tail -1 | cut -f2 -d=]
-      } else {
-        set questa_lint_command_index [incr last_command_index]
-        set vivado_cmds_version [exec cat $commands_file | head -1 | cut -f2 -d=]
+      set file1 [open $commands_file r]
+      set file2 [read $file1]
+      set commands_file_line [split $file2 "\n"]
+      set last_command [lindex $commands_file_line end-1]
+      
+      foreach line $commands_file_line {
+	if {[regexp {write_questa_lint_script} $line]} {
+	  puts "INFO : Vivado GUI button for running Questa Lint is already installed in $commands_file. Exiting ..."
+          close $commands_fh
+	  close $file1
+	  return $rc
+	}
       }
+      
+      if { $last_command == "<custom_commands major=\"$major_cmds_version\" minor=\"$minor_cmds_version\">"} {
+        set questa_lint_command_index 0
+ 
+      } else {
+        set numbers 0
+        foreach line $commands_file_line {
+	  if {[regexp {<position>([0-9]+)} $line m1 m2]} {
+	    set numbers $m2
+	  }
+	}
+	set last_command_index $numbers
+        set questa_lint_command_index [incr last_command_index]
+ 
+      }
+	close $file1
     } else {
-      puts $commands_fh "VERSION=$vivado_cmds_version"
+      puts $commands_fh "<?xml version=\"$vivado_cmds_version\" encoding=\"$encoding_cmds_version\"?>"
+      puts $commands_fh "<custom_commands major=\"$major_cmds_version\" minor=\"$minor_cmds_version\">"
       set questa_lint_command_index 0
     }
-    set button_code ""
-    if { $vivado_cmds_version == 1 } {
-      set button_code "$questa_lint_command_index=Run%20Questa%20Lint"
+    puts $commands_fh "  <custom_command>"
+    puts $commands_fh "    <position>$questa_lint_command_index</position>"
+    puts $commands_fh "    <name>Run_Questa_Lint</name>"
+    puts $commands_fh "    <menu_name>Run Questa Lint</menu_name>"
+    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl; tclapp::mentor::questa_lint::write_questa_lint_script</command>"
+    puts $commands_fh "    <toolbar_icon>$questa_lint_logo</toolbar_icon>"
+    puts $commands_fh "    <show_on_toolbar>true</show_on_toolbar>"
+    puts $commands_fh "    <run_proc>true</run_proc>"
+    puts $commands_fh "    <source name=\"$name_cmds_version\"/>"
+    puts $commands_fh "    <args>"
+    puts $commands_fh "     <arg>"
+    puts $commands_fh "        <name>Top_Module</name>"
+    puts $commands_fh "        <default>\[lindex \[find_top\] 0\]</default>"
+    puts $commands_fh "        <optional>false</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Output_Directory</name>"
+    puts $commands_fh "        <default>-output_directory Questa_Lint</default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Lint_Constraints</name>"
+    puts $commands_fh "        <default></default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "      <arg>"
+    puts $commands_fh "        <name>Invoke_Questa_Lint_Run</name>"
+    puts $commands_fh "        <default>-run lint_run</default>"
+    puts $commands_fh "        <optional>true</optional>"
+    puts $commands_fh "      </arg>"
+    puts $commands_fh "    </args>"
+    puts $commands_fh "  </custom_command>"
+    puts $commands_fh "</custom_commands>"
+# obselet generating .paini file
+#    set button_code ""
+#    if { $vivado_cmds_version == 1 } {
+#      set button_code "$questa_lint_command_index=Run%20Questa%20Lint"
+# 
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
  
-			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
- 
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_lint_script"
-      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^@ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+#      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^@ \"\" true 4"
+#      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+#      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
       ## set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20report_clock true"
-    } else {
-      set button_code "$questa_lint_command_index=$questa_lint_command_index Run%20Questa%20Lint Run%20Questa%20Lint"
+#      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20lint_run true"
+#    } else {
+#      set button_code "$questa_lint_command_index=$questa_lint_command_index Run%20Questa%20Lint Run%20Questa%20Lint"
        
-			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_cdc_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
                
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_lint_script"
-      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^ \"\" true 4"
-      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
-      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_lint_script.tcl;%20tclapp::mentor::questa_lint::write_questa_lint_script"
+#      set button_code "$button_code \"\" $questa_lint_logo \"\" \"\" true ^ \"\" true 4"
+#      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
+#      set button_code "$button_code Output%20Directory \"\" -output_directory%20QLint true"
       ## set button_code "$button_code Use%20Existing%20XDC \"\" -use_existing_xdc true"
-      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20report_clock true"
-    }
-    puts $commands_fh $button_code
+#      set button_code "$button_code Invoke%20Questa%20Lint%20Run \"\" -run%20lint_run true"
+#    }
+#    puts $commands_fh $button_code
+#    set OS [lindex $::tcl_platform(os) 0]
+#    if { $OS == "Linux" } {
+#      file delete -force "$::env(QHOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml"
+#    } else {
+#      file delete -force "$::env(QHOME)\\AppData\\Roaming\\Xilinx\\Vivado\\$vivado_version\\commands\\commands.xml"
+#    }
     close $commands_fh
+    ##################################################################################################
+    ## to delete the last line in the file equal to set a [catch {exec sed -i "\$d" $commands_file} b]
+    set op_file [open "$commands_file.tmp" w]
+
+    ## Read the original commands.xml file
+    set ip_file [open "$commands_file" r]
+    set ip_data [read $ip_file]
+    set ip_lines [split $ip_data "\n"]
+    
+    for {set i 0} {$i < [llength $ip_lines]} {incr i} { 
+      if {[lindex $ip_lines $i] == ""} {
+        continue
+      } elseif {[lindex $ip_lines $i] == "</custom_commands>"} {
+        continue
+      } else {
+        puts $op_file "[lindex $ip_lines $i]" 
+      }
+    }    
+    puts $op_file "</custom_commands>" 
+    close $ip_file
+    close $op_file
+
+    #file delete -force $commands_file
+    if { $OS == "Linux" } {
+       exec rm -rf $commands_file
+    } else {
+       file delete -force $commands_file
+    }
+    file rename ${commands_file}.tmp $commands_file
+    ##################################################################################################
     return $rc
   }
 
   ## Remove Vivado GUI button for Questa Lint
   if { $remove_button == 1 } {
-    set commands_file "$::env(HOME)/AppData/Roaming/Xilinx/Vivado/$vivado_version/commands/commands.paini"
+    set OS [lindex $::tcl_platform(os) 0]
+    if { $OS == "Linux" } {
+      set commands_file "$::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml"
+    } else {
+      set commands_file "$::env(HOME)\\AppData\\Roaming\\Xilinx\\Vivado\\$vivado_version\\commands\\commands.xml"
+    }
+    if { [file exist $commands_file] } {
     ## Temp file to write the modified file
     set op_file [open "$commands_file.tmp" w]
 
-    ## Read the original commands.paini file
+    ## Read the original commands.xml file
     set ip_file [open "$commands_file" r]
     set ip_data [read $ip_file]
     set ip_lines [split $ip_data "\n"]
-
     set questa_lint_command_found 0
-    foreach ip_line $ip_lines {
-      if { $ip_line == "" } {
-        continue
-      }
-      if { [regexp {Questa.*Lint.*write_questa_lint_script.tcl} $ip_line] } {
-        set questa_lint_command_found 1
-        continue
-      }
-      if { $questa_lint_command_found == 1 } {
-        regsub {(^\d+)=.*} $ip_line {\1} cmd_id
-        regsub {^\d+=(.*)} $ip_line {\1} cmd_text
-        incr cmd_id -1 
-        puts $op_file "$cmd_id=$cmd_text"        
+    set questa_lint_command_found_flag 0
+    set position 0
+
+    for {set i 0} {$i < [llength $ip_lines]} {incr i} {
+        if { $questa_lint_command_found_flag == 0 } {
+	  if { [regexp {\s\s\<custom_command\>} [lindex $ip_lines $i]]  && [regexp {\s\s\s\<name\>Run_Questa_Lint\</name\>} [lindex $ip_lines [expr $i + 2]]] } {
+	    regexp {<position>([0-9]+)\</position\>} [lindex $ip_lines [expr $i + 1]] m1 m2
+	    set position $m2
+            set questa_lint_command_found 1
+            set questa_lint_command_found_flag 1
+	    continue
+          }
+        } else {
+	  if { ! [regexp {\s\s\</custom_command\>} [lindex $ip_lines $i]] } {
+	    continue
+	  } else {
+  	    set questa_lint_command_found_flag 0
+	    continue
+	  }
+        }
+      
+      if {$questa_lint_command_found_flag == 0 && $questa_lint_command_found == 1 && [regexp {<position>([0-9]+)\</position\>} [lindex $ip_lines $i]]} {
+        puts $op_file "  <position>$position\</position\>"
+	incr position
       } else {
-        puts $op_file $ip_line
+          if {[lindex $ip_lines $i] == ""} {
+	    continue
+	  } else {
+	  puts $op_file "[lindex $ip_lines $i]"
+	}
       }
     }
     close $ip_file
     close $op_file
 
     ## Now, remove the old commands file and replace it with the new one
-    exec rm -f 
-    file delete $commands_file
+    #exec rm -f 
+    #file delete -force $commands_file
+    if { $OS == "Linux" } {
+       exec rm -rf $commands_file
+    } else {
+       file delete -force $commands_file
+    }
     file rename ${commands_file}.tmp $commands_file
     if { $questa_lint_command_found == 1 } {
       puts "INFO: Vivado GUI button for running Questa Lint is removed from $commands_file"
@@ -258,6 +408,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
       puts "INFO: Vivado GUI button for running Questa Lint wasn't found in $commands_file."
       puts "    : File has not been changed."
     }
+  } else {
+    puts "INFO: File $::env(HOME)/.Xilinx/Vivado/$vivado_version/commands/commands.xml not exist, cannot remove from unexisting file"
+  }
     return $rc
   }
 
@@ -273,14 +426,13 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
     file mkdir $userOD
   }
 
-  set qlintlint_ctrl "qlint_ctrl.tcl"
-  set run_makefile "Makefile.qlint"
-  set run_batfile "run_qlint.bat"
-  set run_sdcfile "qlint_sdc.tcl"
-  set qlint_ctrl "qlint_ctrl.tcl"
-  set qlint_compile_tcl "qlint_compile.tcl"
-  set run_script "qlint_run.sh"
-  set tcl_script "qlint_run.tcl"
+  set qlintlint_ctrl "questa_lint_ctrl.tcl"
+  set run_makefile "Makefile.questa_lint"
+  set run_batfile "run_questa_lint.bat"
+  set qlint_ctrl "questa_lint_ctrl.tcl"
+  set qlint_compile_tcl "questa_lint_compile.tcl"
+  set run_script "questa_lint_run.sh"
+  set tcl_script "questa_lint_run.tcl"
   set encrypted_lib "dummmmmy_lib"
 
   ## Vivado install dir
@@ -290,7 +442,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   ## If set to 1, will strictly respect file order - if lib files appear non-consecutively this order is maintained
   ## otherwise will respect only library order - if lib files appear non-consecutively they will still be merged into one compile command
   set resp_file_order 1
-
+##creating Verilog and VHDL keywords table
+  set keyword_table [dict create]
+  set keyword_table [sv_vhdl_keyword_table $keyword_table]
   ## Does VHDL file for default lib exist
   set vhdl_default_lib_exists 0
   ## Does Verilog file for default lib exist
@@ -320,14 +474,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   } else {
     set qlint_run_batfile_fh $result
     puts "INFO: Writing Questa lint run batfile to file $userOD/$run_batfile"
-  }
-  if { [catch {open $userOD/$run_sdcfile w} result] } {
-    puts stderr "ERROR: Could not open $run_sdcfile for writing\n$result"
-    set rc 2
-    return $rc
-  } else {
-    set qlint_run_sdcfile_fh $result
-    puts "INFO: Writing Questa lint run batfile to file $userOD/$run_sdcfile"
   }
   if { [catch {open $userOD/$run_script w} result] } {
     puts stderr "ERROR: Could not open $run_script for writing\n$result"
@@ -592,37 +738,44 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
       if {[string match $ft "Verilog"] || [string match $ft "Verilog Header"] || [string match $ft "SystemVerilog"] || [string match $ft "VHDL"] || [string match $ft "VHDL 2008"]} {
         if {[info exists lib_file_array($lib)]} { 
 
-	  set file_h [open $fn]
-	  set found_encrypted 1
-	  while {[gets $file_h line] >= 0} {
-	      if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY } $line all value] || [regexp {PACKAGE} $line all value] || [regexp {`protect} $line all value] || [regexp {define} $line all value]  || [regexp {function} $line all value] || [regexp {task} $line all value]      } {
-		  set found_encrypted 0
-	          break
-	      }
+            set file_h [open $fn]
+            set found_encrypted 1
+            while {[gets $file_h line] >= 0} {
+              foreach word [split $line] {
+                if { [ is_sv_vhdl_keyword $keyword_table $word ]  } {
+                  set found_encrypted 0
+                    break
+                }
+              }
+
               if {  [regexp $encrypted_lib $line ]    } {
-                   set found_encrypted 1
-                   break
-               }
-              
-	  }
-	  close $file_h
-	  if {$found_encrypted == "1"} {
-	   regsub ":.*" $lib {} encrypted_lib
-	  }  else {
-	    set lib_file_array($lib) [concat $lib_file_array($lib) " " $fn]
-          }
+                set found_encrypted 1
+                  break
+              }
+
+            }
+          close $file_h
+            if {$found_encrypted == "1"} {
+              regsub ":.*" $lib {} encrypted_lib
+            }  else {
+              set lib_file_array($lib) [concat $lib_file_array($lib) " " $fn]
+            }
         } else {
           set file_h [open $fn]
-          set found_encrypted 1
-          while {[gets $file_h line] >= 0} {
-              if {[regexp {library} $line all value] ||[regexp {module} $line all value] || [regexp {entity} $line all value] || [regexp {package} $line all value] || [regexp {ENTITY} $line all value] || [regexp {PACKAGE} $line all value]   || [regexp {`protect} $line all value] || [regexp {define} $line all value]   || [regexp {function} $line all value] || [regexp {task} $line all value]     } {
+            set found_encrypted 1
+            while {[gets $file_h line] >= 0} {
+
+              foreach word [split $line] {
+                if { [ is_sv_vhdl_keyword $keyword_table $word ]  } {
                   set found_encrypted 0
                   break
               }
-              if {  [regexp $encrypted_lib $line ]    } {
-                    set found_encrypted 1
-                    break
-                }
+            }
+
+            if {  [regexp $encrypted_lib $line ]    } {
+              set found_encrypted 1
+              break
+            }
           }
           close $file_h
           if {$found_encrypted == "1" } {
@@ -681,7 +834,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
 
     # For each library, list the files
     foreach lib $lib_file_order {
-      if {![info exists compiled_lib_list($lib)] || [matches_default_libs $lib]} {
+#      if {![info exists compiled_lib_list($lib)] || [matches_default_libs $lib]} {
         regsub ":.*" $lib {} lib_no_num
         puts "INFO: Obtaining list of files for design= $ip_ref, library= $lib"
         set lang $lib_file_lang($lib)
@@ -818,13 +971,14 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
           set line "\n"
           lappend compile_lines $line
         }
-      } else {
-        puts "INFO: Library $lib has already been compiled. Skipping it."
-      }
+#      } else {
+#        puts "INFO: Library $lib has already been compiled. Skipping it."
+#      }
     }
 
     ## Bookkeeping on which libraries are already compiled
     foreach lib $lib_file_order {
+      regsub ":.*" $lib {} lib
       set compiled_lib_list($lib) 1
     }
 
@@ -832,7 +986,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
     foreach subcore $lib_file_order {
       if {![info exists black_box_libs($subcore)]} {
         if {[regexp {^blk_mem_gen_v\d+_\d+} $subcore]} {
-          set line "#lint blackbox memory ${subcore}_synth"
           lappend black_box_lines $line
           set black_box_libs($subcore) 1
         }
@@ -857,7 +1010,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   puts $qlint_compile_tcl_fh "vlib $top_lib_dir"
   puts $qlint_compile_tcl_fh "vlib $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
-    regsub ":.*" $key {} key
     puts $qlint_compile_tcl_fh "vlib $top_lib_dir/$key"
   }
 
@@ -866,7 +1018,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   puts $qlint_compile_tcl_fh "#"
   puts $qlint_compile_tcl_fh "vmap work $top_lib_dir/xil_defaultlib"
   foreach key [array names compiled_lib_list] {
-    regsub ":.*" $key {} key
     puts $qlint_compile_tcl_fh "vmap $key $top_lib_dir/$key"
   }
 
@@ -914,7 +1065,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
 
   ## Print compile information
   puts $qlint_ctrl_fh "netlist fpga -vendor xilinx -version $vivado_version -library vivado"
-
+  puts $qlint_ctrl_fh "lint methodology fpga -goal start"
+  puts "INFO : Using Methodology FPGA with Goal start as default - User Can edit qlint_ctrl.tcl to Modify"
   if {$black_box_lines != ""} {
     puts $qlint_ctrl_fh "\n#"
     puts $qlint_ctrl_fh "# Black box blk_mem_gen"
@@ -928,12 +1080,16 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   ## Get the library names and append a '-L' to the library name
   array set qft_libs {}
   foreach lib [array names compiled_lib_list] {
-    regsub ":.*" $lib {} lib
     set qft_libs($lib) 1
   }
   set lib_args ""
   foreach lib [array names qft_libs] {
     set lib_args [concat $lib_args -L $lib]
+  }
+  
+  set lint_constraints_do ""
+  if {$lint_constraints != ""} {
+    set lint_constraints_do "do $lint_constraints;"
   }
 
 
@@ -947,7 +1103,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   puts $qlint_run_makefile_fh "\t\$(QHOME)/bin/qverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do \"\\"
   puts $qlint_run_makefile_fh "\tonerror {exit 1}; \\"
   puts $qlint_run_makefile_fh "\tdo $qlint_ctrl; \\"
-
+  puts $qlint_run_makefile_fh "\tdo $lint_constraints; \\"
   ## Get the constraints file
   ## if { $use_existing_xdc == 1 } {
   ##   puts "INFO : Using existing XDC files."
@@ -1012,7 +1168,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
   puts $qlint_run_batfile_fh "\texit /b"
   puts $qlint_run_batfile_fh ""
   puts $qlint_run_batfile_fh ":compile"
-  puts $qlint_run_batfile_fh "\tqverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do ^\"do $qlint_ctrl;do $qlint_compile_tcl;do $run_sdcfile^\""
+  puts $qlint_run_batfile_fh "\tqverify -c -licq -l qlint_${top_module}.log -od $lint_out_dir -do ^\"do $qlint_ctrl;$lint_constraints_do;do $qlint_compile_tcl;^\""
 
 
   ## Get the constraints file
@@ -1073,7 +1229,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
 
   puts $qlint_tcl_fh "onerror {exit 1}"
   puts $qlint_tcl_fh "do $qlint_ctrl"
-
+  puts $qlint_tcl_fh  $lint_constraints_do
   ## Get the constraints file
 #  if { $no_sdc == 0 } {
 #    if { $use_existing_xdc == 1 } {
@@ -1111,20 +1267,27 @@ proc ::tclapp::mentor::questa_cdc::write_questa_lint_script {args} {
 
   close $qlint_tcl_fh
   puts "INFO : Generation of running scripts for Questa Lint is done at [pwd]/$userOD"
-
+if { $run_questa_lint == "lint_run" } {
   ## Change permissions of the generated running script
-  ## exec chmod u+x $userOD/$run_script
-  puts "INFO : Running Questa Lint (Command: lint run), the UI will be invoked when the run is finished"
-  puts "     : Log can be found at $userOD/Lint_RESULTS/qverify.log"
-  ## exec /bin/sh -c "cd $userOD; sh qlint_run.sh"
-  puts "INFO : Questa Lint run is finished"
-  puts "INFO : Invoking Questa Lint UI for debugging."
-  exec qverify -l qverify_ui.log $userOD/Lint_RESULTS/lint.db &
-  return $rc
+	  set OS [lindex $::tcl_platform(os) 0]
+	  if { $OS == "Linux" } {
+	    exec chmod u+x $userOD/$run_script
+	  }
+	  puts "INFO : Running Questa Lint (Command: lint run), the UI will be invoked when the run is finished"
+	  puts "     : Log can be found at $userOD/Lint_RESULTS/qverify.log"
+	  set OS [lindex $::tcl_platform(os) 0]
+	  if { $OS == "Linux" } {
+	    exec /bin/sh -c "cd $userOD; sh questa_lint_run.sh"
+	  }
+	  puts "INFO : Questa Lint run is finished"
+	  puts "INFO : Invoking Questa Lint UI for debugging."
+	  exec qverify  $userOD/Lint_RESULTS/lint.db &
+	  return $rc
+	  }
 }
 
 ## Keep an environment variable with the path of the script
-#set env(QUESTA_Lint_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+set env(QUESTA_Lint_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa Lint script
-#namespace import tclapp::mentor::questa_cdc::*
+namespace import tclapp::mentor::questa_lint::*
