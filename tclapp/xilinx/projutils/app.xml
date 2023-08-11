@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for CR-1170160 (platform.ocl_inst_path is deprecated)</revision_history>
+      <revision_history>Fix for CR-1170726</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
