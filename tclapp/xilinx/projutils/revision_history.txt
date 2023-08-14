@@ -1,3 +1,4 @@
+3.554 Copy run fails to copy synthesis run settings for strategy
 3.553 Fix for CR-1170726
 3.552 Fix for CR-1170160 (platform.ocl_inst_path is deprecated)
 3.551 Fix for CR-1159634: Unknown file types causing rebuild errors for hw platform
