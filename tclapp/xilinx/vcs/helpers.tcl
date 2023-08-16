@@ -467,7 +467,11 @@ proc usf_set_systemc_library_path { simulator } {
   if { $a_sim_vars(b_int_systemc_mode) } {
     # set vcs system library
     set sys_link ""
-    set gcc_version [get_param "simulator.vcs.gcc.version"]
+    set gcc_version {}
+    [catch {set gcc_version [rdi::get_gcc_prod_version "vcs"]} err]
+    if { {} == $gcc_version } {
+      set gcc_version [get_param "simulator.vcs.gcc.version"]
+    }
     if { [info exists ::env(VG_GNU_PACKAGE)] } {
       set sys_link "$::env(VG_GNU_PACKAGE)/gcc-${gcc_version}"
     }

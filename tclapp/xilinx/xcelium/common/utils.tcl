@@ -5304,7 +5304,11 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
     set extn "so"
   }
   # simulator, gcc version, data dir
-  set sim_version [get_param "simulator.${simulator}.version"]
+  set sim_version {}
+  [catch {set sim_version [rdi::get_sim_prod_version ${simulator}]} err]
+  if { {} == $sim_version } {
+    set sim_version [get_param "simulator.${simulator}.version"]
+  }
 
   # prefix path
   set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"

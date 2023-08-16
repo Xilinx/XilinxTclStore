@@ -2278,7 +2278,11 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend arg_list "-stop comp"
     lappend arg_list "-nodep"
     lappend arg_list "-gnu"
-    set gcc_ver [get_param "simulator.xcelium.gcc.version"] 
+    set gcc_ver {}
+    [catch {set gcc_ver [rdi::get_gcc_prod_version "xcelium"]} err]
+    if { {} == $gcc_ver } {
+      set gcc_ver [get_param "simulator.xcelium.gcc.version"]
+    }
     set vers [split $gcc_ver "."]
     set major [lindex $vers 0]
     set minor [lindex $vers 1]
