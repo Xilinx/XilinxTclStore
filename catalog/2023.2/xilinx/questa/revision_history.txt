@@ -1,3 +1,4 @@
+2.292 fetch header files from compile order
 2.291 disable aie binding
 2.290 filter aie binding
 2.289 fixed copyright string
