@@ -25,7 +25,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   # Return Value:
   # 1 is returned when the passed library matches on of the names of the default libraries
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, siemens, questa_cdc
 
   regsub ":.*" $lib {} lib
   if {[string match -nocase $lib "xil_defaultlib"]} {
@@ -49,7 +49,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   # Return Value:
   # The name of the uniquified library is returned 
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, siemens, questa_cdc
 
 
   set new_lib ""
@@ -90,7 +90,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Return Value: Returns '0' on successful completion
 
-  # Categories: xilinxtclstore, mentor, questa_cdc
+  # Categories: xilinxtclstore, siemens, questa_cdc
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
