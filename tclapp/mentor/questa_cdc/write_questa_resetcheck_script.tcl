@@ -7,12 +7,12 @@
 #
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_resetcheck {
+namespace eval ::tclapp::mentor::questa_cdc {
   # Export procs that should be allowed to import into other namespaces
   namespace export write_questa_resetcheck_script
 }
 
-proc ::tclapp::mentor::questa_resetcheck::matches_default_libs {lib} {
+proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -22,7 +22,7 @@ proc ::tclapp::mentor::questa_resetcheck::matches_default_libs {lib} {
   # Return Value:
   # 1 is returned when the passed library matches on of the names of the default libraries
 
-  # Categories: xilinxtclstore, mentor, questa_resetcheck
+  # Categories: xilinxtclstore, siemens, questa_resetcheck
 
   regsub ":.*" $lib {} lib
   if {[string match -nocase $lib "xil_defaultlib"]} {
@@ -34,7 +34,7 @@ proc ::tclapp::mentor::questa_resetcheck::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_resetcheck::uniquify_lib {lib lang num} {
+proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -46,7 +46,7 @@ proc ::tclapp::mentor::questa_resetcheck::uniquify_lib {lib lang num} {
   # Return Value:
   # The name of the uniquified library is returned 
 
-  # Categories: xilinxtclstore, mentor, questa_resetcheck
+  # Categories: xilinxtclstore, siemens, questa_resetcheck
 
 
   set new_lib ""
@@ -58,7 +58,7 @@ proc ::tclapp::mentor::questa_resetcheck::uniquify_lib {lib lang num} {
   return $new_lib
 }
 
-proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} {
+proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
 
   # Summary : This proc generates the Questa ResetCheck script file
 
@@ -73,7 +73,7 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
 
   # Return Value: Returns '0' on successful completion
 
-  # Categories: xilinxtclstore, mentor, questa_resetcheck
+  # Categories: xilinxtclstore, siemens, questa_resetcheck
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
@@ -150,7 +150,7 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20ResetCheck tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script "" /home/iahmed/questa_resetcheck_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20ResetCheck%20Run "" -run true
+    ## 0=Run%20Questa%20ResetCheck tclapp::mentor::questa_cdc::write_questa_resetcheck_script "" /home/iahmed/questa_resetcheck_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20ResetCheck%20Run "" -run true
     ## -----------------------------------------
 
     set OS [lindex $::tcl_platform(os) 0]
@@ -227,7 +227,7 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
     puts $commands_fh "    <position>$questa_resetcheck_command_index</position>"
     puts $commands_fh "    <name>Run_Questa_ResetCheck</name>"
     puts $commands_fh "    <menu_name>Run Questa ResetCheck</menu_name>"
-    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl; tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script</command>"
+    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl; tclapp::mentor::questa_cdc::write_questa_resetcheck_script</command>"
     puts $commands_fh "    <toolbar_icon>$questa_resetcheck_logo</toolbar_icon>"
     puts $commands_fh "    <show_on_toolbar>true</show_on_toolbar>"
     puts $commands_fh "    <run_proc>true</run_proc>"
@@ -261,9 +261,9 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
 #    if { $vivado_cmds_version == 1 } {
 #      set button_code "$questa_resetcheck_command_index=Run%20Questa%20ResetCheck"
 
-#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
                
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
 #      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^@ \"\" true 4"
 #      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
 #      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
@@ -272,9 +272,9 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
 #    } else {
 #      set button_code "$questa_resetcheck_command_index=$questa_resetcheck_command_index Run%20Questa%20ResetCheck Run%20Questa%20ResetCheck"
        
-#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
                 
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_resetcheck_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_resetcheck_script"
 #      set button_code "$button_code \"\" $questa_resetcheck_logo \"\" \"\" true ^ \"\" true 4"
 #      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
 #      set button_code "$button_code Output%20Directory \"\" -output_directory%20QResetCheck true"
@@ -1290,4 +1290,4 @@ proc ::tclapp::mentor::questa_resetcheck::write_questa_resetcheck_script {args} 
 set env(QUESTA_ResetCheck_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa ResetCheck script
-namespace import tclapp::mentor::questa_resetcheck::*
+namespace import tclapp::mentor::questa_cdc::*

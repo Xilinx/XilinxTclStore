@@ -1,4 +1,4 @@
-# tclapp/mentor/questa_cdc/questa_cdc.tcl
+# tclapp/siemens/questa_cdc/questa_cdc.tcl
 package require Tcl 8.5
 
 namespace eval ::tclapp::mentor::questa_cdc {

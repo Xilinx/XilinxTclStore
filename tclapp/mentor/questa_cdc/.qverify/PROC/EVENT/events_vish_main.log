@@ -1,0 +1,9 @@
+# Version 2023.4-INTERNAL 5646389* linux_x86_64 18-Aug-2023
+# log created Sun Aug 20 22:10:49 2023 by banaks6g on orw-banaks6g-vm
+# timestamp-diff mem-used-diff mem-total-diff src-loc msg-level event-label annotation
+728880010884 0 477638656 --- 1 > log-init | thread: vish/main:0
+170 0 0 --- 1 + rtld-main | 
+8 0 0 --- 1 + rtld-init | 
+185030 0 6377472 --- 1 > log-ctrl | enabled restricted logging
+4559 0 4096 --- 1 - rtld-init | 
+15504026427 0 18784256 --- 1 - rtld-main | 
