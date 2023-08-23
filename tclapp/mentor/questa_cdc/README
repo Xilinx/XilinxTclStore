@@ -1,3 +1,3 @@
-Tcl App for Mentor Graphics Questa CDC.
+Tcl App for Siemens Questa Design Solutions 
 
-Generate script files to check clock domain crossings issues with Mentor Graphics Questa CDC.
+Generate script files to run CDC,RDC,LINT and Autocheck tools with Siemens Questa Design Solutions
