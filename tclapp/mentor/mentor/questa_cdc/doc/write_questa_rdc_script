@@ -1,0 +1,14 @@
+
+  Description: Write script to run Siemens Questa Design Solutions RDC tool.
+
+     A design in Vivado automatically picks up library files based on 
+     the FPGA Architecture settings. 
+     When the designer wants to analyse the design in an external tool,
+     it is very difficult to know all the library/setup files that should go with it.
+     This script solves that problem by generating the Questa RDC setup and run
+     files from the Vivado setup for the design.
+     Use the shell script file (qrdc_run.sh) to run Questa RDC for performing
+     Clock Domain Crossing (RDC) analysis for the design.
+  
+  Example:
+     write_questa_rdc_script <design-top> [-output_directory <output_directory_name>]
