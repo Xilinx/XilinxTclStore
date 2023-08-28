@@ -1,3 +1,4 @@
+12.4 fetch header files from compile order
 12.3 fetch production simulator version from API
 12.2 merged 2023.2 to 2024.1
 12.1 fixed copyright string
