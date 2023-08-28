@@ -3901,7 +3901,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
   set incl_dirs [list]
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -all -quiet -filter $c_filter] {
+  foreach file [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter] {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
@@ -5864,6 +5864,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     if { {aie} == $model_ver } {
       set aie_lib_dir "${model_ver}_cluster_v1_0_0"
     }
+    # disable AIE binding
     #append ld_path ":$tp/$aie_lib_dir"
 
     set xilinx_vitis     {}
