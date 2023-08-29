@@ -75,6 +75,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_resetcheck
 
+  # Keep an environment variable with the path of the script
+  set env(QUESTA_ResetCheck_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
  
@@ -1286,8 +1288,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_resetcheck_script {args} {
   return $rc
 }
 
-## Keep an environment variable with the path of the script
-set env(QUESTA_ResetCheck_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa ResetCheck script
 namespace import tclapp::mentor::questa_cdc::*

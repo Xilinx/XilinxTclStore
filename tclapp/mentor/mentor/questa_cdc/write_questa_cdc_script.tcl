@@ -64,18 +64,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
 
 proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
 
-     
-  # Summary: internally used routine to create a table containing verilog and VHDL keywords
-  
-  # Argument Usage:
-  # keyword_table  : table to store the keywords
-
-  # Return Value:
-  # The table accumulated with verilog and VHDL keywords is returned 
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
-
-    set keywords {library module entity package ENTITY PACKAGE `protect all define function task localparam interface `timescale  }
+     set keywords {library module entity package ENTITY PACKAGE `protect all define function task localparam interface `timescale  }
      foreach keyword $keywords {
        dict incr keyword_table $keyword
      }
@@ -83,18 +72,7 @@ proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
 }
 proc ::tclapp::mentor::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
      
-  # Summary: internally used routine to check if given word is a verilog or vhdl keyword 
-  
-  # Argument Usage:
-  # keyword_table  : Table containing vhdl and verilog keywords
-  # word           : input word
-
-  # Return Value:
-  # Boolean value representing if input word is a keyword or not is returned
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
- 
-  return [dict exists $keyword_table $word]
+     return [dict exists $keyword_table $word]
 }
 proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
@@ -114,9 +92,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_cdc
 
-  # Keep an environment variable with the path of the script
-  set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
-  
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
   set userOD "."
@@ -1303,6 +1278,8 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   return $rc
 }
 
+## Keep an environment variable with the path of the script
+set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
 namespace import tclapp::mentor::questa_cdc::*
