@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Considering -ignore_msg_control_rules option for write_project_tcl command</revision_history>
+      <revision_history>write_project_tcl should ignore generated files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
