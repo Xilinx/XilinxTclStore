@@ -62,13 +62,13 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
 proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
  
  # Summary: internally used routine to create a table containing verilog and VHDL keywords
- #
+ 
  # Argument Usage:
  # keyword_table  : table to store the keywords
- #
+ 
  # Return Value:
  # The table accumulated with verilog and VHDL keywords is returned 
- #
+ 
  # Categories: xilinxtclstore, siemens, questa_cdc
 
   set keywords {library module entity package ENTITY PACKAGE `protect all define function task localparam interface `timescale}
@@ -80,14 +80,14 @@ proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
 proc ::tclapp::mentor::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
 
   # Summary: internally used routine to check if given word is a verilog or vhdl keyword 
-  #
+  
   # Argument Usage:
   # keyword_table  : Table containing vhdl and verilog keywords
   # word           : input word
-  #
+  
   # Return Value:
   # Boolean value representing if input word is a keyword or not is returned
-  #
+  
   # Categories: xilinxtclstore, siemens, questa_cdc
   
   return [dict exists $keyword_table $word]
