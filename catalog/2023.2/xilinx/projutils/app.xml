@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Reverting old change</revision_history>
+      <revision_history>WPT should ignore generated files</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
