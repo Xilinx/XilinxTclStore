@@ -951,7 +951,7 @@ proc wr_bd_bc_specific {} {
 		set pDefs_size [llength $partitionDefs]
   }
 
-  if { $bc_filesets_size !=0 && $pDefs_size == 0} {
+  if { $bc_filesets_size == 0 && $pDefs_size == 0 } {
     return
   }
   
@@ -960,11 +960,16 @@ proc wr_bd_bc_specific {} {
     # we are assuming it as it is top level BD with BCs
     # TODO - Need to check whether this assumption works for all cases
 
-    set has_block_container [get_property has_block_container [get_files [list "$bd_file"]]]
-
-    if { $has_block_container && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
-      set filename [file tail $bd_file]
-      lappend l_script_data "generate_target all \[get_files \[list $filename\]\]\n"
+    set has_block_container [get_property has_block_container [get_files $bd_file]]
+    if { $has_block_container } {
+      if { $bc_filesets_size != 0 || $pDefs_size != 0 } {
+        set filename [file tail $bd_file]
+        lappend l_script_data "generate_target all \[get_files $filename\]\n"
+        
+        if { $pDefs_size == 0 } {
+          lappend l_script_data "create_ip_run \[get_files $filename\]\n"
+        }
+      }
     }
   }
 }
