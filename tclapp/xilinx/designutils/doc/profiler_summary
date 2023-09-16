@@ -1,0 +1,7 @@
+  Description: 
+
+     Save the profiling results from the latest call to xilinx::designutils::profiler_tcl.
+
+  Example:
+  
+      xilinx::designutils::profiler_summary -file profiler.log

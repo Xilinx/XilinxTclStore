@@ -5,6 +5,8 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2021.06.22 - Updated LUT/Net budgeting to add penalty for sequential loops (Versal)
+##            - Updated column "Cascaded LUTs" to LUT/Net budgeting detailed tables (Versal)
 ## 2021.05.07 - Added CSV files for LUT/Net budgeting detailed reports
 ##            - Added column "Cascaded LUTs" to LUT/Net budgeting detailed tables (Versal)
 ##            - Added support for -return_paths
@@ -423,7 +425,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2021.05.07}
+  variable version {2021.06.22}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -3339,7 +3341,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
 #             set refname [get_property -quiet REF_NAME $cell]
             set fanout [expr $flat_pin_count -1]
 
-            # append pathDescription [format {(%s) %s} $fanout $refname]
+            # Append pathDescription [format {(%s) %s} $fanout $refname]
             if {$architecture == {versal}} {
               # Cascaded LUTs are only for Versal
               set casc_mux {}
@@ -3543,6 +3545,22 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             }
             incr levels
           }
+
+          if {$architecture == {versal}} {
+            # Sequential loop when the startpoint and endpoints share the same clock pin: skew optimization
+            # is not possible => 1 logic level penalty
+            if {$spref == $epref} {
+              if {[get_property -quiet PARENT_CELL $sp] == [get_property -quiet PARENT_CELL $ep]} {
+                if {[get_property -quiet STARTPOINT_CLOCK $path] == [get_property -quiet ENDPOINT_CLOCK $path]} {
+                  if {$params(debug) && ($params(debug_level) >= 2)} {
+                    puts " -D- level increase: sequential loop"
+                  }
+                  incr levels
+                }
+              }
+            }
+          }
+
           if {$params(debug) && ($params(debug_level) >= 2)} {
             puts " -D- level calculation after startpoint/endpoint adjustment: $levels"
           }
@@ -3564,7 +3582,8 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
           # Debug table for LUT/Net budgeting
           set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
           if {$architecture == {versal}} {
-            set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay [format {%s / %s} $lutPairCASCCandidate $lutPairCASCMiss] $logic_levels $levels]
+            # Number of used cascaded LUTs: expr $lutPairCASCCandidate - $lutPairCASCMiss
+            set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay [format {%s / %s} [expr $lutPairCASCCandidate - $lutPairCASCMiss] $lutPairCASCCandidate ] $logic_levels $levels]
           } else {
             set row [list $group $slack $requirement $skew $uncertainty $datapath_delay $cell_delay $net_delay $logic_levels $levels]
           }
@@ -3737,7 +3756,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             }
             puts $FHLut "# Note: (*): failed the budgeting"
             if {$architecture == {versal}} {
-              puts $FHLut "# Note: Cascaded LUTs: opportunities / missed"
+              puts $FHLut "# Note: Cascaded LUTs: Used / Available"
             }
             puts $FHLut ""
             while {![eof $FH]} {
@@ -3775,7 +3794,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
             }
             puts $FHNet "# Note: (*): failed the budgeting"
             if {$architecture == {versal}} {
-              puts $FHNet "# Note: Cascaded LUTs: opportunities / missed"
+              puts $FHNet "# Note: Cascaded LUTs: Used / Available"
             }
             puts $FHNet ""
             while {![eof $FH]} {

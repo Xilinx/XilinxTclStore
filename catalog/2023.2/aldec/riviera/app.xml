@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT81535 - addsc: symbol lookup error: Zynq ultra scale RFSoC through SystemC TLM Flow</revision_history>
+      <revision_history>Add 2019 switch to compile.vhdl_syntax option</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

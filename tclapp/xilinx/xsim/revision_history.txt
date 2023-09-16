@@ -1,8 +1,13 @@
-2.456 prepend path to 9.3.0 std c++ libraries
-2.455 do not pass gcc switch
-2.454 remove gcc switch for default version
-2.453 pass gcc switch for 6.2.0
-2.452 skip xlnoc for synth from simulation fileset
+2.461 fetch header files from compile order
+2.460 disable aie binding
+2.459 filter aie binding
+2.458 fixed copyright string
+2.457 copyright message update
+2.456 sync utils
+2.455 AMD rebranding
+2.454 support for vhdl 2019
+2.453 detect shell env for script execution
+2.452 merged 2023.1 to 2023.2
 2.451 donot update xsim.ini if using local clibs
 2.450 pass --mt for XSC compilation jobs
 2.449 pass gcc version switch

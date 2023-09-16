@@ -316,6 +316,7 @@ proc usf_vcs_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -357,6 +358,7 @@ proc usf_vcs_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -577,7 +579,7 @@ proc usf_vcs_write_compile_script {} {
     send_msg_id USF-VCS-012 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
@@ -1352,7 +1354,7 @@ proc usf_vcs_write_elaborate_script {} {
     send_msg_id USF-VCS-013 ERROR "Failed to open file to write ($scr_file)\n"
     return 1
   }
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
@@ -1390,13 +1392,22 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
+
   if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
-    lappend arg_list {-debug_acc+pp+dmptf}
-    # view source code and debug the celldefines, library files and encrypted source code (user-controllable, if reqd)
-    #lappend arg_list {-debug_region+cell+encrypt}
-    # deprecated
-    #lappend arg_list {-debug_pp}
+    #
+    # -debug_acc+pp+dmptf (default)
+    #
+    set debug_vars {+pp+dmptf}
+    set dbg_sw "-debug_acc"
+
+    if { $a_sim_vars(b_int_perf_analysis) } {
+      # do not pass vars
+    } else {
+      append dbg_sw $debug_vars
+    }
+    lappend arg_list $dbg_sw
   }
+
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
 
   set path_delay 0
@@ -1479,19 +1490,20 @@ proc usf_vcs_write_elaborate_script {} {
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
           if { [regexp "^noc_v" $name] } {
             set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
-            set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+            if { [regexp "^noc_v1" $name] } {
+              set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+            }
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
-            #set model_ver [rdi::get_aie_config_type]
-            set model_ver "aie"
+            set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
             if { {aie} == $model_ver } {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
             } else {
               set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
             }
-            set arg_list [linsert $arg_list end "-L$lib_dir"]
-            set arg_list [linsert $arg_list end "-l$lib_name"]
+            #set arg_list [linsert $arg_list end "-L$lib_dir"]
+            #set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
 
@@ -1514,8 +1526,7 @@ proc usf_vcs_write_elaborate_script {} {
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
-            #set model_ver [rdi::get_aie_config_type]
-            set model_ver "aie"
+            set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
             if { {aie} == $model_ver } {
               set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
@@ -1595,7 +1606,7 @@ proc usf_vcs_write_elaborate_script {} {
   
         set aie_ip_obj [xcs_find_ip "ai_engine"]
         if { {} != $aie_ip_obj } {
-          lappend arg_list "-LDFLAGS -Wl,-undefined=_ZN7sc_core14sc_event_queueC1ENS_14sc_module_nameE"
+          lappend arg_list "-LDFLAGS -Wl,-undefined=_ZN7sc_core14sc_event_queueC1ENS_14sc_module_nameE,-undefined=_ZN5sc_dt12sc_concatref6m_poolE"
         }
       }
     }
@@ -1902,7 +1913,7 @@ proc usf_vcs_write_simulate_script {} {
     return 1
   }
  
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
@@ -2051,7 +2062,7 @@ proc usf_vcs_create_setup_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/sh -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "vcs"
 
   puts $fh_scr "\n# Script usage"
@@ -2181,7 +2192,8 @@ proc usf_vcs_create_setup_script {} {
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 4]
+  set copyright_1 [lindex $version_txt 5]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
   puts $fh_scr "# Script info"

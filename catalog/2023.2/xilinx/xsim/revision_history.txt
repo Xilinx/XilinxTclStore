@@ -1,4 +1,18 @@
-2.447 launch target simulator for scripts only
+2.461 fetch header files from compile order
+2.460 disable aie binding
+2.459 filter aie binding
+2.458 fixed copyright string
+2.457 copyright message update
+2.456 sync utils
+2.455 AMD rebranding
+2.454 support for vhdl 2019
+2.453 detect shell env for script execution
+2.452 merged 2023.1 to 2023.2
+2.451 donot update xsim.ini if using local clibs
+2.450 pass --mt for XSC compilation jobs
+2.449 pass gcc version switch
+2.448 print debug message for local IP compilation
+2.447 merged 2022.2 to 2023.1
 2.446 option for invoking simulator gui in scripts mode
 2.445 code cleanup for aie_cluster binding
 2.444 support for defines and generics for export flow
@@ -12,7 +26,7 @@
 2.436 donot prepend xv_ref_path and use full simmodel library path for non-precompile mode
 2.435 check for aie ml env and bind aie2
 2.434 support for toggle coverage type
-2.433 merged 2022.1-dev to 2022.2-dev
+2.433 delete src dir for non-precompile export flow
 2.432 remove gcc version for conditional decoupling
 2.431 pass gcc version for conditional decoupling
 2.430 find simulation model directory paths from rdi datadir env values
@@ -54,7 +68,7 @@
 2.393 updated help msg for coverage name and type
 2.392 Merged 2021.1-dev fixes to 2021.2-dev
 2.391 Extract IP file name from core-container to determine SV package libraries
-2.390 merged 2021.1-dev to 2021.2-dev
+2.390 compile sources for netlist functional simulation
 2.388 coverage option for database file storage
 2.387 replaced post sim code hook call for Vitis
 2.386 set chess dir env for xsim

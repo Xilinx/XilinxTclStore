@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fixed gtye5 to gt in help/comment</revision_history>
+      <revision_history>Added report_nets and Tcl profiler. Various enhancements (report_failfast)</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -53,6 +53,10 @@
         <proc>
           <name>get_data_through_pins</name>
           <summary>Return the data pins of a single timing path</summary>
+        </proc>
+        <proc>
+          <name>get_device_sll_nodes</name>
+          <summary>Get all device SLL nodes</summary>
         </proc>
         <proc>
           <name>get_host_platform</name>
@@ -111,6 +115,18 @@
           <summary>Utility to easily create and print tables</summary>
         </proc>
         <proc>
+          <name>profiler</name>
+          <summary>Tcl profiler (advanced)</summary>
+        </proc>
+        <proc>
+          <name>profiler_summary</name>
+          <summary>Generate the profiler summary from profiler_tcl</summary>
+        </proc>
+        <proc>
+          <name>profiler_tcl</name>
+          <summary>Profile Tcl script (recommended)</summary>
+        </proc>
+        <proc>
           <name>read_file_regexp</name>
           <summary>Returns all lines that match occurrence of a regular expression in the file</summary>
         </proc>
@@ -164,6 +180,10 @@ explicitly set to an IO Standard</summary>
         <proc>
           <name>report_hier_util</name>
           <summary>Report the cell utilization below hierarchical instances</summary>
+        </proc>
+        <proc>
+          <name>report_nets</name>
+          <summary>Generate a report for specified nets</summary>
         </proc>
         <proc>
           <name>report_parts</name>

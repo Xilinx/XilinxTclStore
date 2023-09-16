@@ -1,4 +1,15 @@
-2.280 skip xlnoc for synth from simulation fileset
+2.292 fetch header files from compile order
+2.291 disable aie binding
+2.290 filter aie binding
+2.289 fixed copyright string
+2.288 company name update
+2.287 QOR performance update
+2.286 copyright message update
+2.284 sync utils
+2.283 remove switch for vhdl 2019
+2.282 support for vhdl 2019
+2.281 detect shell env for script execution
+2.280 merged 2023.1 to 2023.2
 2.279 include obj file in archive during link
 2.278 support for sc_async_update property
 2.277 print debug message for local IP compilation

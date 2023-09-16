@@ -309,6 +309,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_perf_analysis]: Enable code for performance analysis (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -349,6 +350,7 @@ proc usf_xcelium_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -602,7 +604,7 @@ proc usf_xcelium_write_compile_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
@@ -1381,7 +1383,7 @@ proc usf_xcelium_write_elaborate_script {} {
   }
  
   variable a_shared_library_path_coln
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
@@ -1410,7 +1412,13 @@ proc usf_xcelium_write_elaborate_script {} {
 
   set tool "xmelab"
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
-  set arg_list [list "-relax -access +rwc -namemap_mixgen"]
+  set arg_list [list "-relax"]
+  set access_mode "rwc"
+  if { $a_sim_vars(b_int_perf_analysis) } {
+    set access_mode "r"
+  }
+  lappend arg_list "-access +$access_mode"
+  lappend arg_list "-namemap_mixgen"
 
   set path_delay 0
   set int_delay 0
@@ -1531,7 +1539,9 @@ proc usf_xcelium_write_elaborate_script {} {
           set shared_lib_name [file root $shared_lib_name]
           set shared_lib_name [string trimleft $shared_lib_name "lib"]
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
+          # filter protected
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          if { [regexp "^xsc_utility_v" $shared_lib_name] } { continue; }
           set arg_list [linsert $arg_list end "-libname" $shared_lib_name]
         }
       }
@@ -1641,12 +1651,44 @@ proc usf_xcelium_write_elaborate_script {} {
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
         lappend link_arg_list "$a_sim_vars(s_sim_top)_sc.so"
         lappend link_arg_list "\$gcc_objs"
+
+        # bind protected libs
+        set cpt_dir [rdi::get_data_dir -quiet -datafile "simmodels/xcelium"]
+        set sm_cpt_dir [xcs_get_simmodel_dir "xcelium" $a_sim_vars(s_gcc_version) "cpt"]
+        foreach {key value} [array get a_shared_library_path_coln] {
+          set name [file tail $value]
+          set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
+          if { [regexp "^noc_v" $name] } {
+            set name [string trimleft $key "lib"]
+            set name [string trimright $name ".so"]
+            lappend link_arg_list "-L$lib_dir -l$name"
+          }
+
+          if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
+            set model_ver [rdi::get_aie_config_type]
+            set lib_name "${model_ver}_cluster_v1_0_0"
+            if { {aie} == $model_ver } {
+              set lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
+            } else {
+              set lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
+            }
+            #lappend link_arg_list "-L$lib_dir -l$lib_name"
+          }
+        }
+
+        # bind sim-models
         set l_sm_lib_paths [list]
         foreach {library lib_dir} [array get a_shared_library_path_coln] {
+          set name [file tail $lib_dir]
+          if { ([regexp "^noc_v" $name]) || ([regexp "^aie_cluster" $name]) } {
+            continue;
+          }
+
           # don't bind static protobuf (simmodel will bind these during compilation)
           if { ("libprotobuf.a" == $library) } {
             continue;
           }
+          
           set sm_lib_dir [file normalize $lib_dir]
           set sm_lib_dir [regsub -all {[\[\]]} $sm_lib_dir {/}]
           set lib_name [string trimleft $library "lib"]
@@ -1825,7 +1867,7 @@ proc usf_xcelium_write_simulate_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
@@ -1989,7 +2031,7 @@ proc usf_xcelium_create_setup_script {} {
     return 1
   }
 
-  puts $fh_scr "#!/bin/bash -f"
+  puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "xcelium"
 
   puts $fh_scr "\n# Script usage"
@@ -2105,7 +2147,8 @@ proc usf_xcelium_create_setup_script {} {
 
   set version_txt [split [version] "\n"]
   set version     [lindex $version_txt 0]
-  set copyright   [lindex $version_txt 2]
+  set copyright   [lindex $version_txt 4]
+  set copyright_1 [lindex $version_txt 5]
   set product     [lindex [split $version " "] 0]
   set version_id  [join [lrange $version 1 end] " "]
 

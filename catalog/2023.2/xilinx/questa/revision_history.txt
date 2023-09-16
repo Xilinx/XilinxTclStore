@@ -1,4 +1,20 @@
-2.275 launch target simulator for scripts only
+2.292 fetch header files from compile order
+2.291 disable aie binding
+2.290 filter aie binding
+2.289 fixed copyright string
+2.288 company name update
+2.287 QOR performance update
+2.286 copyright message update
+2.284 sync utils
+2.283 remove switch for vhdl 2019
+2.282 support for vhdl 2019
+2.281 detect shell env for script execution
+2.280 merged 2023.1 to 2023.2
+2.279 include obj file in archive during link
+2.278 support for sc_async_update property
+2.277 print debug message for local IP compilation
+2.276 fixed bug with fetching c files for non-precompile mode
+2.275 merged 2022.2 to 2023.1
 2.274 option for invoking simulator gui in scripts mode
 2.273 code cleanup for aie_cluster binding
 2.272 support for defines and generics for export flow
@@ -9,7 +25,7 @@
 2.267 helpers for define and generic
 2.266 check for aie ml env and bind aie2
 2.265 suppress 10016 warning for vopt missing library option set for vlog
-2.264 merged 2022.1-dev to 2022.2-dev
+2.264 delete src dir for non-precompile export flow
 2.263 find simulation model directory paths from rdi datadir env values
 2.262 get and fix library path for VCS
 2.261 set ip repository directory name based on property
@@ -48,7 +64,7 @@
 2.227 check for leaf dir name wrt library name for linked library
 2.226 Merged 2021.1-dev fixes to 2021.2-dev
 2.225 Extract IP file name from core-container to determine SV package libraries
-2.224 merged 2021.1-dev to 2021.2-dev
+2.224 compile sources for netlist functional simulation
 2.223 pass vlog -mfsu to treat all sources as single compilation unit
 2.222 export chess library env
 2.221 bind noc_na for netlist simulation
