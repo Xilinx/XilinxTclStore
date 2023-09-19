@@ -1,8 +1,20 @@
-3.544 write_project_tcl should ignore generated files
-3.543 Considering -ignore_msg_control_rules option for write_project_tcl command
-3.542 Correct file path of sources from .gen directory which have imported_from property set
+3.557 Create run for Non-DFX BDC after generating target
+3.556 WPT should ignore generated files
+3.555 Reverting old change
+3.554 Copy run fails to copy synthesis run settings for strategy
+3.553 Fix for CR-1170726
+3.552 Fix for CR-1170160 (platform.ocl_inst_path is deprecated)
+3.551 Fix for CR-1159634: Unknown file types causing rebuild errors for hw platform
+3.550 Fix for CR-1159213 Unsupported IP
+3.549 CR-1164649 Copy run fails to work with error about lsf_name
+3.548 Fix for CR-1156820: incorrect tcl command when multiple options are added into more options of synthesis settings
+3.546 Fix for CR-1160609. Imported files path has 'imports' twice in its path causing errors
+3.545 ignoring deprecated properties retiming and no-retiming in project tcl
+3.544 Correct file path of sources from .gen directory which have imported_from property set
+3.543 Correct file path of sources from .gen directory which have imported_from property set
+3.542 write_project_tcl failing in the presence of space in file path. get_files should take a list and not a string
 3.541 Skip writing runs auto_incremental_checkpoint.directory and auto_rqs.directory properties if empty
-3.540 do not write xlnoc BD cell if -no_bd_xlnoc specified
+3.540 merged 2023.1 to 2023.2
 3.539 Do not write cluster configuration in write_project_tcl generated script
 3.538 generate_target for bd with block containers when needed
 3.537 BD(using BDC within) wrapper RTL as RM: write_project_tcl creation fails

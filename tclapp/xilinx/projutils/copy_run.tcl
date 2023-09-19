@@ -219,6 +219,14 @@ proc copy_run_ {} {
   # these should all be read-only == false (that's all we set)
   set ignore_properties     { ADD_STEP CONSTRSET DESCRIPTION FLOW NAME NEEDS_REFRESH PARENT PART SRCSET STRATEGY }
 
+  # If the cluster configuration mentioned in cluster_configuration property of the run does not exist then ignore the cluster_configuration while copying run
+  set runToCopyClusterConf  [get_property CLUSTER_CONFIGURATION $m_cpr_options(run_to_copy) -quiet]
+  if { $runToCopyClusterConf != {} } {
+    if { [get_cluster_configurations -quiet $runToCopyClusterConf] == {} } {
+      lappend ignore_properties "CLUSTER_CONFIGURATION"
+    }
+  }
+
   if { $m_cpr_options(verbose) } { 
     send_msg_id Vivado-projutils-409 INFO "Copying properties: ${all_property_names}\n"
   }
@@ -239,13 +247,9 @@ proc copy_run_ {} {
     set default_value [ list_property_value -default $property_name $new_run ]
     set old_value     [ get_property $property_name $m_cpr_options(run_to_copy) ]
 
-    if { [ string equal $default_value $old_value ] } {
-      if { $m_cpr_options(verbose) } { 
-        send_msg_id Vivado-projutils-405 INFO "'${property_name}' is default and will not be updated ('${default_value}').\n" 
-      }
-      continue; # property is default, skipping
-    }
-  
+    # Removing We should not ignore updating properties depending on default values as runs with non default run strategy use 
+    # non-default values for property, one might change it to default value before copying the run (CR- 1158888).
+
     if { $m_cpr_options(verbose) } { 
       send_msg_id Vivado-projutils-406 INFO "'${property_name}' will be updated to '${old_value}'.\n" 
     }

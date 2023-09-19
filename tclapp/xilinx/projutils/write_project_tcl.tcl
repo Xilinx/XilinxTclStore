@@ -93,7 +93,7 @@ proc write_project_tcl {args} {
       "-no_bd_xlnoc"          { set a_global_vars(b_arg_no_bd_xlnoc) 1 }
       "-internal"             { set a_global_vars(b_internal) 1 }
       "-validate"             { set a_global_vars(b_validate) 1 }
-      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 1 }
+      "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 0 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
       default {
         # is incorrect switch specified?
@@ -203,7 +203,7 @@ variable l_filetype_filter [list]
 # Setup filter for non-user-settable filetypes
 set l_filetype_filter { "ip" "ipx" "embedded design sources" "elf" "coefficient files" "configuration files"
                         "block diagrams" "block designs" "dsp design sources" "text"
-                        "design checkpoint" "waveform configuration file" "csv" }
+                        "design checkpoint" "waveform configuration file" "csv" "unknown" }
 # ip file extension types
 variable l_valid_ip_extns [list]
 set l_valid_ip_extns      [list ".xci" ".bd" ".slx"]
@@ -256,7 +256,7 @@ proc reset_global_vars {} {
     set a_global_vars(b_arg_use_bd_files) 1
   }
 
-  set a_global_vars(b_arg_no_bd_xlnoc)        0
+  set a_global_vars(b_arg_no_bd_xlnoc)        1
   set a_global_vars(excludePropDict)      [dict create]
 
   set l_script_data                       [list]
@@ -847,10 +847,10 @@ proc wr_bd_properties { file } {
     set cur_val \"$cur_val\"
 
     if { $a_global_vars(b_arg_all_props) } {
-      append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
+      append bd_prop_steps "set_property $prop $cur_val \[get_files [list "$bd_name"] \] \n"
     } else {
     if { $def_val ne $cur_val } {
-      append bd_prop_steps "set_property $prop $cur_val \[get_files $bd_name \] \n"
+      append bd_prop_steps "set_property $prop $cur_val \[get_files [list "$bd_name"] \] \n"
     }
   }
  }
@@ -875,7 +875,7 @@ proc add_references { sub_design } {
       write_bd_as_proc $file
     } else {
       # Skip adding file if it's already part of the project
-      lappend l_script_data "if { \[get_files [file tail $file]\] == \"\" } {"
+      lappend l_script_data "if { \[get_files \[list [file tail $file]\]\] == \"\" } {"
       lappend l_script_data "  import_files -quiet -fileset [current_fileset -srcset] $file\n}"
     }
   }  
@@ -951,7 +951,7 @@ proc wr_bd_bc_specific {} {
 		set pDefs_size [llength $partitionDefs]
   }
 
-  if { $bc_filesets_size !=0 && $pDefs_size == 0} {
+  if { $bc_filesets_size == 0 && $pDefs_size == 0 } {
     return
   }
   
@@ -961,10 +961,15 @@ proc wr_bd_bc_specific {} {
     # TODO - Need to check whether this assumption works for all cases
 
     set has_block_container [get_property has_block_container [get_files $bd_file]]
-
-    if { $has_block_container && ( $bc_filesets_size != 0 || $pDefs_size != 0 )} { 
-      set filename [file tail $bd_file]
-      lappend l_script_data "generate_target all \[get_files $filename\]\n"
+    if { $has_block_container } {
+      if { $bc_filesets_size != 0 || $pDefs_size != 0 } {
+        set filename [file tail $bd_file]
+        lappend l_script_data "generate_target all \[get_files $filename\]\n"
+        
+        if { $pDefs_size == 0 } {
+          lappend l_script_data "create_ip_run \[get_files $filename\]\n"
+        }
+      }
     }
   }
 }
@@ -981,10 +986,10 @@ proc wr_bd_wrapper {} {
       set design [lindex $fileset_designame_wrappername 1]
       set wrapper_name [lindex $fileset_designame_wrappername 2]
       
-      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse $design.bd\] \] == 1  \} \{"
+      lappend l_script_data "if \{ \[get_property IS_LOCKED \[ get_files -norecurse \[list $design.bd\]\] \] == 1  \} \{"
       lappend l_script_data "  import_files -fileset $fs_name $wrapper_name"
       lappend l_script_data "\} else \{"	  
-      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse $design.bd] -top\]"
+      lappend l_script_data "  set wrapper_path \[make_wrapper -fileset $fs_name -files \[ get_files -norecurse \[list $design.bd\]\] -top\]"
       lappend l_script_data "  add_files -norecurse -fileset $fs_name \$wrapper_path"
       lappend l_script_data "\}"
       lappend l_script_data ""
@@ -1396,7 +1401,11 @@ proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
         set cmd_str "  set_property -name \"$name\" -value \"$value\" -objects"
         set b_add_closing_brace 1
       } else {
-        set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
+        if { [ string first "more option" $name ] != -1 } {
+          set cmd_str "set_property -name \"$name\" -value \{$value\} -objects"
+        } else {
+          set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
+        }
       }
       if { [string equal $get_what "get_files"] } {
         lappend l_script_data "$cmd_str \$file_obj"
@@ -1695,7 +1704,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
           set local_constrs_file [string trimleft $local_constrs_file "/"]
           set local_constrs_file [string trimleft $local_constrs_file "\\"]
           set file $local_constrs_file
-          set proj_file_path "\[get_files *$local_constrs_file\]"
+          set proj_file_path "\[get_files \[list \"*$local_constrs_file\"\]\]"
         } else {
           if {[use_absolute_path $file]} {
             set proj_file_path "$file"
@@ -1899,6 +1908,9 @@ proc is_deprecated_property { property } {
        [string equal $property "platform.xocc_link_xp_switches_default"] ||
        [string equal $property "platform.xocc_compile_xp_switches_default"] ||
        [string equal $property "dsa"] ||
+       [string equal $property "steps.synth_design.args.retiming"] ||
+       [string equal $property "steps.synth_design.args.no_retiming"] ||
+       [string equal $property "platform.ocl_inst_path"] ||       
        [regexp {dsa\..*} $property ] } {
      return true
   }
@@ -2139,7 +2151,10 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           if { [is_ip_fileset $tcl_obj] } {
             lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
           } else {
-            lappend l_script_data "set imported_files \[import_files -fileset $tcl_obj \$files\]"
+            lappend l_script_data "set imported_files \"\""
+            lappend l_script_data "foreach f \$files {"
+            lappend l_script_data "  lappend imported_files \[import_files -fileset $tcl_obj \$f\]"
+            lappend l_script_data "}"
           }
        } else {
          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
@@ -3138,7 +3153,7 @@ proc wr_reconfigModules { proj_dir proj_name } {
   # associate a bd with rm to be used with write_specified_reconfig_module
   set bd_rm_map [dict create]
   foreach rm $reconfigModules {
-    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] [list "*.bd"]]
     foreach rm_bd1 $rm_bds {
       dict set bd_rm_map $rm_bd1 $rm
     }
@@ -3148,7 +3163,7 @@ proc wr_reconfigModules { proj_dir proj_name } {
   set done_bds [list]
   foreach rm $reconfigModules {
     # get the dependent bd for a rm and process it first, this is required for 2RP support
-    set rm_bds_dep [get_files -references -quiet -of_objects [get_reconfig_modules $rm] *.bd]
+    set rm_bds_dep [get_files -references -quiet -of_objects [get_reconfig_modules $rm] [list "*.bd"]]
     # collect rms for dependent bds and write rms once dependent bds are done
     set rms_todo [list]
     foreach rm_bd_dep $rm_bds_dep {
@@ -3171,7 +3186,7 @@ proc wr_reconfigModules { proj_dir proj_name } {
       }
     }
 
-    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] *.bd -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
+    set rm_bds [get_files -norecurse -quiet -of_objects [get_reconfig_modules $rm] [list "*.bd"] -filter "IS_BLOCK_CONTAINER_MANAGED == 0"]
     foreach rm_bd $rm_bds {
       # process bd only if it has not already been processed
       if {$rm_bd ni $done_bds} {
@@ -3386,7 +3401,7 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
   if {[llength $bd_list] > 0 } {
     foreach bd_file $bd_list {
       set filename [file tail $bd_file]
-      lappend l_script_data " move_files \[ get_files $filename \] -of_objects \[get_reconfig_modules $reconfigModule\]"
+      lappend l_script_data " move_files \[ get_files \[list $filename\] \] -of_objects \[get_reconfig_modules $reconfigModule\]"
     }
   }
  
@@ -3419,7 +3434,9 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
         lappend l_script_data " $ifile\\"
       }
       lappend l_script_data "\]"
-      lappend l_script_data "import_files -of_objects \[get_reconfig_modules $reconfigModule\] \$files"
+      lappend l_script_data "foreach f \$files {"
+      lappend l_script_data "  import_files -of_objects \[get_reconfig_modules $reconfigModule\] \$f"
+      lappend l_script_data "}"
       lappend l_script_data ""
     }
   }
@@ -3456,7 +3473,7 @@ proc add_reconfigmodule_subdesign_files { reconfigModule } {
       set path_dirs [split [string trim [file normalize [string map {\\ /} $fileObj ]]] "/"]
       set path [join [lrange $path_dirs end-1 end] "/"]
       set path [string trimleft $path "/"]
-      lappend l_script_data "move_files -of_objects \$obj \[get_files *$path\]"
+      lappend l_script_data "move_files -of_objects \$obj \[get_files \[list \"*$path\"\]\]"
       lappend l_script_data ""
     }
   }

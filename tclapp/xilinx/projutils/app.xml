@@ -2,11 +2,11 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>write_project_tcl should ignore generated files</revision_history>
+      <revision_history>Create run for Non-DFX BDC after generating target</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
-      <company_display>Xilinx, Inc.</company_display>
+      <company_display>Advanced Micro Devices, Inc.</company_display>
       <summary>This is a collection of scripts and utility application that are grouped by relevance to manipulation of projects.</summary>
       <display>Project Utilities</display>
       <procs>
