@@ -27,7 +27,7 @@
     <app>
       <name>designutils</name>
       <company>xilinx</company>
-      <commit_id>5ea911618ead5dc2ed37dbe316c1f680e14732b4</commit_id>
+      <commit_id>b197ff75b86605be0d8a1655b41ff8bf12be4cf2</commit_id>
       <revision>1.62</revision>
     </app>
     <app>
@@ -87,7 +87,7 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>5ea911618ead5dc2ed37dbe316c1f680e14732b4</commit_id>
+      <commit_id>b197ff75b86605be0d8a1655b41ff8bf12be4cf2</commit_id>
       <revision>3.557</revision>
     </app>
     <app>
