@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2023.2 to 2024.1</revision_history>
+      <revision_history>Create run for Non-DFX BDC after generating target</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
