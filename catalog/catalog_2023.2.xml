@@ -93,8 +93,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>b7a15fb7a181567c45d7957c526562d2301eaa27</commit_id>
-      <revision>3.557</revision>
+      <commit_id>519d654de4e3c32d0b9c2c0e045dfde67b12abaf</commit_id>
+      <revision>3.558</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -107,12 +107,6 @@
       <company>xilinx</company>
       <commit_id>9f751233f2f6e99105c8aceac5c3fdd0333f30f3</commit_id>
       <revision>2.292</revision>
-    </app>
-    <app>
-      <name>questa_cdc</name>
-      <company>mentor</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>1.1</revision>
     </app>
     <app>
       <name>riviera</name>
