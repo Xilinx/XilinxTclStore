@@ -1023,8 +1023,13 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
     if { [file exists $dir] } {
       return $dir
     } else {
-      set dir "$cxl_prop_dir/$library"
-      return $dir
+      set dir "$cxl_prop_dir/ip/$library"
+      if { [file exists $dir] } {
+        return $dir
+      } else {
+        set dir "$cxl_prop_dir/$library"
+        return $dir
+      }
     }
   }
 
@@ -1039,8 +1044,13 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
     if { [file exists $dir] } {
       return $dir
     } else {
-      set dir "$cxl_prop_dir/$library"
-      return $dir
+      set dir "$cxl_prop_dir/ip/$library"
+      if { [file exists $dir] } {
+        return $dir
+      } else {
+        set dir "$cxl_prop_dir/$library"
+        return $dir
+      }
     }
   }
 
