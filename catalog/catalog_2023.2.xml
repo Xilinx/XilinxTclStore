@@ -93,8 +93,8 @@
     <app>
       <name>projutils</name>
       <company>xilinx</company>
-      <commit_id>b7a15fb7a181567c45d7957c526562d2301eaa27</commit_id>
-      <revision>3.557</revision>
+      <commit_id>519d654de4e3c32d0b9c2c0e045dfde67b12abaf</commit_id>
+      <revision>3.558</revision>
     </app>
     <app>
       <name>protoip</name>
@@ -109,12 +109,6 @@
       <revision>2.292</revision>
     </app>
     <app>
-      <name>questa_cdc</name>
-      <company>mentor</company>
-      <commit_id>07a4bbe47d4b6b85103d804bd02e926ea6e37168</commit_id>
-      <revision>1.1</revision>
-    </app>
-    <app>
       <name>riviera</name>
       <company>aldec</company>
       <commit_id>eabe2019f543aba4ff0f7507860699c27e378a40</commit_id>
@@ -123,8 +117,8 @@
     <app>
       <name>spyglass</name>
       <company>synopsys</company>
-      <commit_id>b2cf985fa7aecfca79c22cb5cb37be32512ea4a3</commit_id>
-      <revision>1.6</revision>
+      <commit_id>ad3d7b4d2c2431f02d922948e68bbb62bee477b6</commit_id>
+      <revision>1.7</revision>
     </app>
     <app>
       <name>template</name>
