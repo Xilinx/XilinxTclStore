@@ -1,3 +1,4 @@
+1.36 SPT82247 - A fix is required to replace get_files with get_files -compile_order for 2023.2
 1.35 Add 2019 switch to compile.vhdl_syntax option
 1.34 Add support for VHDL2019
 1.33 BKO1750 - Add support for GUI mode when lauchning simulation with script_only
