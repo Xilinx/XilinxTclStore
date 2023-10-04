@@ -956,17 +956,19 @@ proc wr_bd_bc_specific {} {
   }
   
   foreach bd_file $bd_files {
-    # If BD has references and project has BC filesets, then 
-    # we are assuming it as it is top level BD with BCs
-    # TODO - Need to check whether this assumption works for all cases
-
     set has_block_container [get_property has_block_container [get_files $bd_file]]
+
     if { $has_block_container } {
-      if { $bc_filesets_size != 0 || $pDefs_size != 0 } {
+      set delivered_targets [lsearch [get_property delivered_targets [get_files $bd_file] ] Synthesis]
+      set stale_targets [lsearch [get_property stale_targets [get_files $bd_file] ] Synthesis]
+      set is_generated [expr {$delivered_targets != -1 && $stale_targets == -1}]
+
+      if { ($bc_filesets_size != 0 && $is_generated == 1) || $pDefs_size != 0 } {
         set filename [file tail $bd_file]
-        lappend l_script_data "generate_target all \[get_files $filename\]\n"
+        lappend l_script_data "generate_target all \[get_files $filename\]\n"        
+        set synth_mode [get_property synth_checkpoint_mode [get_files $bd_file]]
         
-        if { $pDefs_size == 0 } {
+        if { $pDefs_size == 0 && $synth_mode != {None} } {
           lappend l_script_data "create_ip_run \[get_files $filename\]\n"
         }
       }
