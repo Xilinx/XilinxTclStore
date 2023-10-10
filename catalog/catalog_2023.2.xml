@@ -109,6 +109,12 @@
       <revision>2.292</revision>
     </app>
     <app>
+      <name>questa_cdc</name>
+      <company>mentor</company>
+      <commit_id>6aa5269d88afeb3104914f54be736f6a70aa16d3</commit_id>
+      <revision>1.8</revision>
+    </app>
+    <app>
       <name>riviera</name>
       <company>aldec</company>
       <commit_id>eabe2019f543aba4ff0f7507860699c27e378a40</commit_id>
