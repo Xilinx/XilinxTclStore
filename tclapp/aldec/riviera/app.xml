@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Add 2019 switch to compile.vhdl_syntax option</revision_history>
+      <revision_history>SPT82247 - A fix is required to replace get_files with get_files -compile_order for 2023.2</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
