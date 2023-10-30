@@ -10,12 +10,12 @@
 # Vivado v2022.1
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::siemens::questa_cdc {
   # Export procs that should be allowed to import into other namespaces
   namespace export write_questa_cdc_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::siemens::questa_cdc::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -37,7 +37,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::siemens::questa_cdc::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -62,7 +62,7 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
 }
 
 
-proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
+proc ::tclapp::siemens::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
 
      
   # Summary: internally used routine to create a table containing verilog and VHDL keywords
@@ -81,7 +81,7 @@ proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
      }
      return $keyword_table
 }
-proc ::tclapp::mentor::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
+proc ::tclapp::siemens::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
      
   # Summary: internally used routine to check if given word is a verilog or vhdl keyword 
   
@@ -96,7 +96,7 @@ proc ::tclapp::mentor::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
  
   return [dict exists $keyword_table $word]
 }
-proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
+proc ::tclapp::siemens::questa_cdc::write_questa_cdc_script {args} {
 
   # Summary : This proc generates the Questa CDC script file
 
@@ -198,7 +198,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20CDC tclapp::mentor::questa_cdc::write_questa_cdc_script "" /home/iahmed/questa_cdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20CDC%20Run "" -run true
+    ## 0=Run%20Questa%20CDC tclapp::siemens::questa_cdc::write_questa_cdc_script "" /home/iahmed/questa_cdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20CDC%20Run "" -run true
     ## -----------------------------------------
 
     
@@ -273,7 +273,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
     puts $commands_fh "    <position>$questa_cdc_command_index</position>"
     puts $commands_fh "    <name>Run_Questa_CDC</name>"
     puts $commands_fh "    <menu_name>Run Questa CDC</menu_name>"
-    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl; tclapp::mentor::questa_cdc::write_questa_cdc_script</command>"
+    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_cdc_script.tcl; tclapp::siemens::questa_cdc::write_questa_cdc_script</command>"
     puts $commands_fh "    <toolbar_icon>$questa_cdc_logo</toolbar_icon>"
     puts $commands_fh "    <show_on_toolbar>true</show_on_toolbar>"
     puts $commands_fh "    <run_proc>true</run_proc>"
@@ -1305,4 +1305,4 @@ proc ::tclapp::mentor::questa_cdc::write_questa_cdc_script {args} {
 
 
 ## Auto-import the procs of the Questa CDC script
-namespace import tclapp::mentor::questa_cdc::*
+namespace import tclapp::siemens::questa_cdc::*

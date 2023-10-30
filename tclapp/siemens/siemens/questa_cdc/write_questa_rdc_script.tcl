@@ -8,12 +8,12 @@
 # Vivado v2022.1
 ###############################################################################
 
-namespace eval ::tclapp::mentor::questa_cdc {
+namespace eval ::tclapp::siemens::questa_cdc {
   # Export procs that should be allowed to import into other namespaces
   namespace export write_questa_rdc_script
 }
 
-proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
+proc ::tclapp::siemens::questa_cdc::matches_default_libs {lib} {
   
   # Summary: internally used routine to check if default libs used
   
@@ -35,7 +35,7 @@ proc ::tclapp::mentor::questa_cdc::matches_default_libs {lib} {
   }
 }
 
-proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
+proc ::tclapp::siemens::questa_cdc::uniquify_lib {lib lang num} {
   
   # Summary: internally used routine to uniquify libs
   
@@ -58,20 +58,41 @@ proc ::tclapp::mentor::questa_cdc::uniquify_lib {lib lang num} {
   }
   return $new_lib
 }
-proc ::tclapp::mentor::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
+proc ::tclapp::siemens::questa_cdc::sv_vhdl_keyword_table {keyword_table} {
 
+  # Summary: internally used routine to create a table containing verilog and VHDL keywords
+    
+  # Argument Usage:
+  # keyword_table  : table to store the keywords
+  
+  # Return Value:
+  # The table accumulated with verilog and VHDL keywords is returned 
+  
+  # Categories: xilinxtclstore, siemens, questa_cdc
+  
   set keywords {library module entity package ENTITY PACKAGE `protect all define function task localparam interface `timescale}
   foreach keyword $keywords {
     dict incr keyword_table $keyword
   }    
   return $keyword_table
 }
-proc ::tclapp::mentor::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
+proc ::tclapp::siemens::questa_cdc::is_sv_vhdl_keyword {keyword_table word} {
 
+    # Summary: internally used routine to check if given word is a verilog or vhdl keyword 
+    
+    # Argument Usage:
+    # keyword_table  : Table containing vhdl and verilog keywords
+    # word           : input word
+    
+    # Return Value:
+    # Boolean value representing if input word is a keyword or not is returned
+    
+    # Categories: xilinxtclstore, siemens, questa_cdc
+ 
   return [dict exists $keyword_table $word]
 }
 
-proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
+proc ::tclapp::siemens::questa_cdc::write_questa_rdc_script {args} {
 
   # Summary : This proc generates the Questa RDC script file
 
@@ -89,11 +110,11 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_rdc
 
+  # Keep an environment variable with the path of the script
+  set env(QUESTA_RDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+  
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
- 
-
-
   set userOD "."
   set top_module ""
   set use_existing_xdc 0
@@ -174,7 +195,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
   if { $add_button == 1 } {
     ## Example for code of the Vivado GUI button
     ## -----------------------------------------
-    ## 0=Run%20Questa%20RDC tclapp::mentor::questa_cdc::write_questa_rdc_script "" /home/iahmed/questa_rdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20RDC%20Run "" -run true
+    ## 0=Run%20Questa%20RDC tclapp::siemens::questa_cdc::write_questa_rdc_script "" /home/iahmed/questa_rdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20RDC%20Run "" -run true
     ## -----------------------------------------
 
     set OS [lindex $::tcl_platform(os) 0]
@@ -251,7 +272,7 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
     puts $commands_fh "    <position>$questa_rdc_command_index</position>"
     puts $commands_fh "    <name>Run_Questa_RDC</name>"
     puts $commands_fh "    <menu_name>Run Questa RDC</menu_name>"
-    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl; tclapp::mentor::questa_cdc::write_questa_rdc_script</command>"
+    puts $commands_fh "    <command>source \$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl; tclapp::siemens::questa_cdc::write_questa_rdc_script</command>"
     puts $commands_fh "    <toolbar_icon>$questa_rdc_logo</toolbar_icon>"
     puts $commands_fh "    <show_on_toolbar>true</show_on_toolbar>"
     puts $commands_fh "    <run_proc>true</run_proc>"
@@ -290,9 +311,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
 #    if { $vivado_cmds_version == 1 } {
 #      set button_code "$questa_rdc_command_index=Run%20Questa%20RDC"
 
-#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_rdc_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::siemens::questa_cdc::write_questa_rdc_script"
                
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_rdc_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::siemens::questa_cdc::write_questa_rdc_script"
 #      set button_code "$button_code \"\" $questa_rdc_logo \"\" \"\" true ^@ \"\" true 4"
 #      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
 #      set button_code "$button_code Output%20Directory \"\" -output_directory%20QRDC true"
@@ -301,9 +322,9 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
 #    } else {
 #      set button_code "$questa_rdc_command_index=$questa_rdc_command_index Run%20Questa%20RDC Run%20Questa%20RDC"
        
-#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_rdc_script"
+#			 set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::siemens::questa_cdc::write_questa_rdc_script"
                 
-#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::mentor::questa_cdc::write_questa_rdc_script"
+#      set button_code "$button_code source%20\$::env(QHOME)/share/fpga_libs/Xilinx/write_questa_rdc_script.tcl;%20tclapp::siemens::questa_cdc::write_questa_rdc_script"
 #      set button_code "$button_code \"\" $questa_rdc_logo \"\" \"\" true ^ \"\" true 4"
 #      set button_code "$button_code Top%20Module \"\" \[lindex%20\[find_top\]%200\] false"
 #      set button_code "$button_code Output%20Directory \"\" -output_directory%20QRDC true"
@@ -1331,8 +1352,6 @@ proc ::tclapp::mentor::questa_cdc::write_questa_rdc_script {args} {
   return $rc
 }
 
-## Keep an environment variable with the path of the script
-set env(QUESTA_RDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa RDC script
-namespace import tclapp::mentor::questa_cdc::*
+namespace import tclapp::siemens::questa_cdc::*
