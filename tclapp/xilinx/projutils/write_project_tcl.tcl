@@ -1461,7 +1461,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
   set match_str "${proj_name}/${proj_name}.${dir_suffix}"
   set proj_file_path [string map {\\ /} $proj_file_path]
   if { [regexp $match_str $proj_file_path] } {
-    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{_xil_proj_name_\}"]
+    set proj_file_path [regsub "${proj_name}/${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}/\$\{_xil_proj_name_\}\.${dir_suffix}"]    
   } else {
     set match_str "${proj_name}.${dir_suffix}"
     set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}\.${dir_suffix}"]
