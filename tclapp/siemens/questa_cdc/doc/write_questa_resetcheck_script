@@ -1,5 +1,5 @@
 
-  Description: Write script to run Mentor Graphics Questa ResetCheck tool.
+  Description: Write script to run Siemens Questa Design Solutions ResetCheck tool.
 
      A design in Vivado automatically picks up library files based on 
      the FPGA Architecture settings. 
