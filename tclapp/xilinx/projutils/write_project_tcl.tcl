@@ -1451,6 +1451,9 @@ proc align_project_properties { prop proj_name proj_file_path } {
       [string equal -nocase $prop "ip.user_files_dir"] ||
       [string equal -nocase $prop "sim.ipstatic.source_dir"] } {
     set dir_suffix "ip_user_files"
+  }
+  if {[string equal -nocase $prop "incremental_checkpoint"]} {
+    set dir_suffix "srcs"
   }}
 
   # skip other properties

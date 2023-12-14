@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fix incorrect behavior using absolute_path flag with same file names in directory</revision_history>
+      <revision_history>CR-1182093 handle incremental checkpoint correctly</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
