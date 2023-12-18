@@ -105,8 +105,8 @@
     <app>
       <name>questa_cdc</name>
       <company>siemens</company>
-      <commit_id>639c47f14460c7beb1ce0cde45c701e2b782fc84</commit_id>
-      <revision>1.9</revision>
+      <commit_id>5c829e666349706bff9d03098fd58ff0f8ffadc3</commit_id>
+      <revision>1.10</revision>
     </app>
     <app>
       <name>riviera</name>
