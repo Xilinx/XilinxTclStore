@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Mentor to Siemens Transition</revision_history>
+      <revision_history>Remove mentor files no longer needed</revision_history>
       <name>questa_cdc</name>
       <company>siemens</company>
       <company_display>Siemens</company_display>
@@ -11,7 +11,7 @@
       <procs>
         <proc>
           <name>write_questa_autocheck_script</name>
-          <summary>This proc generates the Questa Autocheck script file</summary>
+          <summary>This proc generates the Questa AutoCheck script file</summary>
         </proc>
         <proc>
           <name>write_questa_cdc_script</name>
