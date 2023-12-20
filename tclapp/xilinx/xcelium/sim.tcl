@@ -1564,7 +1564,9 @@ proc usf_xcelium_write_elaborate_script {} {
         set file_type  $value
         set file_name [file tail [file root $c_file]]
         if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
-          append file_name "_0"
+          if { [get_param "project.appendObjectDescriptorForXmsc"] } {
+            append file_name "_0"
+          }
         }
         append file_name ".o"
         if { [lsearch -exact $uniq_objs $file_name] == -1 } {
