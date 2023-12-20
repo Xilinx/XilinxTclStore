@@ -1,3 +1,4 @@
+11.145 append _0 descriptor for xmsc object files if param set
 11.144 fetch header files from compile order
 11.143 fetch production simulator version from API
 11.142 merged 2023.2 to 2024.1
