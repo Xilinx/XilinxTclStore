@@ -1555,31 +1555,8 @@ proc usf_xcelium_write_elaborate_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "# set gcc objects"
-      set objs_arg [list]
-      set uniq_objs [list]
+      usf_xcelium_write_gcc_objs $fh_scr
 
-      variable a_design_c_files_coln
-      foreach {key value} [array get a_design_c_files_coln] {
-        set c_file     $key
-        set file_type  $value
-        set file_name [file tail [file root $c_file]]
-        if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
-          if { [get_param "project.appendObjectDescriptorForXmsc"] } {
-            append file_name "_0"
-          }
-        }
-        append file_name ".o"
-        if { [lsearch -exact $uniq_objs $file_name] == -1 } {
-          if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
-            lappend objs_arg "$a_sim_vars(tmp_obj_dir)/xmsc_obj/$file_name"
-          } else {
-            lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
-          }
-          lappend uniq_objs $file_name
-        }
-      }
-      set objs_arg_str [join $objs_arg " "]
-      puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
       puts $fh_scr "# link simulator system libraries"
 
       set sys_libs [list]
@@ -1777,6 +1754,43 @@ proc usf_xcelium_write_elaborate_script {} {
   set cmd_str [join $arg_list " "]
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_xcelium_write_gcc_objs { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { [get_param "project.appendObjectDescriptorForXmsc"] } {
+    set objs_arg [list]
+    set uniq_objs [list]
+
+    variable a_design_c_files_coln
+    foreach {key value} [array get a_design_c_files_coln] {
+      set c_file     $key
+      set file_type  $value
+      set file_name [file tail [file root $c_file]]
+      if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
+        append file_name "_0"
+      }
+      append file_name ".o"
+      if { [lsearch -exact $uniq_objs $file_name] == -1 } {
+        if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/xmsc_obj/$file_name"
+        } else {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
+        }
+        lappend uniq_objs $file_name
+      }
+    }
+    set objs_arg_str [join $objs_arg " "]
+    puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
+  } else {
+    puts $fh_scr "obj_coln=\$(find c.obj/xmsc_obj -iname \"*.o\" 2>/dev/null)"
+    puts $fh_scr "gcc_objs=\${obj_coln\[*\]// /,}\n"
+  }
 }
 
 proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
