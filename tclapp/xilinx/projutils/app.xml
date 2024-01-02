@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>CR-1182093 handle incremental checkpoint correctly</revision_history>
+      <revision_history>Fix error DFX design with BDC</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

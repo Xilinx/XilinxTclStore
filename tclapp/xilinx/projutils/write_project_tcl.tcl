@@ -3287,7 +3287,7 @@ proc write_specified_prConfiguration { proj_dir proj_name prConfig } {
   set configObj   [$get_what $prConfig]
   set partition     [get_property "partition_cell_rms" $configObj] 
   set greyBoxCell     [get_property "greybox_cells" $configObj] 
-  variable options 
+  set options ""
   if {$partition ne ""} {
     set options "-partitions \[list $partition \]" 
   }
