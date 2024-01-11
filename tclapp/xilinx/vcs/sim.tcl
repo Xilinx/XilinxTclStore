@@ -1489,9 +1489,9 @@ proc usf_vcs_write_elaborate_script {} {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
           if { [regexp "^noc_v" $name] } {
-            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
+            set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/lib${name}.so"]
             if { [regexp "^noc_v1" $name] } {
-              set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+              set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/libnocbase_v1_0_0.a"]
             }
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
@@ -1528,19 +1528,24 @@ proc usf_vcs_write_elaborate_script {} {
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
+            set aie_lib_path ""
             if { {aie} == $model_ver } {
-              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
+              set aie_lib_path "\$xv_cpt_lib_path/$lib_name"
             } else {
-              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
+              set aie_lib_path "\$xv_cpt_lib_path/$model_ver"
             }
-            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_path"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           }
           if { [xcs_is_sc_library $shared_lib_name] } {
-            set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mlib=\$xv_cxl_lib_path/$shared_lib_name"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           } else {
-            set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
+            if { [regexp "^protobuf" $shared_lib_name] } {
+              set arg_list [linsert $arg_list end "-L\$xv_ext_lib_path/$shared_lib_name -l$shared_lib_name"]
+            } else {
+              set arg_list [linsert $arg_list end "-L\$xv_cxl_lib_path/$shared_lib_name -l$shared_lib_name"]
+            }
           }
         }
 

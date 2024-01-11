@@ -1640,7 +1640,7 @@ proc usf_xcelium_write_elaborate_script {} {
           if { [regexp "^noc_v" $name] } {
             set name [string trimleft $key "lib"]
             set name [string trimright $name ".so"]
-            lappend link_arg_list "-L$lib_dir -l$name"
+            lappend link_arg_list "-L\$xv_cpt_lib_path/$name -l$name"
           }
 
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
@@ -1682,7 +1682,7 @@ proc usf_xcelium_write_elaborate_script {} {
             }
           }
 
-          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
+          lappend link_arg_list "-L\$xv_cxl_lib_path/$name -l$name"
         }
 
         # link IP design libraries

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>fetch header files from compile order</revision_history>
+      <revision_history>use xv variables for pointing to compiled models</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

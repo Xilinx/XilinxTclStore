@@ -5922,6 +5922,11 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
 
   puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  if { ("elaborate" == $step) } {
+    set ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
+    set rdi_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+    puts $fh_scr "export xv_ext_lib_path=\"$rdi_dir/$ext_dir\""
+  }
   # for aie
   if { {} != $aie_ip_obj } {
     if { [info exists ::env(XILINX_VITIS)] } {
