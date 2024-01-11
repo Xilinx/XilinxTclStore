@@ -1,3 +1,4 @@
+2.464 use xv variables for pointing to compiled models
 2.463 print repository path for pre-compiled IPs
 2.462 use xsim/ip dir for base libs
 2.461 fetch header files from compile order

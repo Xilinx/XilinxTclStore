@@ -1,3 +1,4 @@
+11.147 use xv variables for pointing to compiled models
 11.146 find object files into collection if param false
 11.145 append _0 descriptor for xmsc object files if param set
 11.144 fetch header files from compile order
