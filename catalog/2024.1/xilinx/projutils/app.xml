@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix error DFX design with BDC</revision_history>
+      <revision_history>Updated DeprecationMsgPrinter with changed ngc2edif_ exec path</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,7 +12,7 @@
       <procs>
         <proc>
           <name>convert_ngc</name>
-          <summary>Convert all provided NGC files to a supported format</summary>
+          <summary/>
         </proc>
         <proc>
           <name>copy_run</name>

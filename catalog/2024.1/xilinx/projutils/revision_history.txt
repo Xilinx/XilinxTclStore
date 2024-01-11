@@ -1,3 +1,4 @@
+3.563 Updated DeprecationMsgPrinter with changed ngc2edif_ exec path
 3.562 Fix error DFX design with BDC
 3.561 CR-1182093 handle incremental checkpoint correctly
 3.560 fix incorrect behavior using absolute_path flag with same file names in directory

@@ -12,7 +12,7 @@
       <procs>
         <proc>
           <name>convert_ngc</name>
-          <summary>Convert all provided NGC files to a supported format</summary>
+          <summary/>
         </proc>
         <proc>
           <name>copy_run</name>
