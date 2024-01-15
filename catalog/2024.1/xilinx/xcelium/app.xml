@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>use xv variables for pointing to compiled models</revision_history>
+      <revision_history>filter noc_common_v and xsc_utility_v libs</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

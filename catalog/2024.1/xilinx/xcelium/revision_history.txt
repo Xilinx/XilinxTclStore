@@ -1,3 +1,4 @@
+11.148 filter noc_common_v and xsc_utility_v libs
 11.147 use xv variables for pointing to compiled models
 11.146 find object files into collection if param false
 11.145 append _0 descriptor for xmsc object files if param set
