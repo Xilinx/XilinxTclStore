@@ -1494,6 +1494,9 @@ proc usf_vcs_write_elaborate_script {} {
               set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/libnocbase_v1_0_0.a"]
             }
           }
+          if { ([regexp "^noc_common_v" $name]) || ([regexp "^xsc_utility_v" $name]) } {
+            set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/lib${name}.so"]
+          }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
             set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
@@ -1506,7 +1509,7 @@ proc usf_vcs_write_elaborate_script {} {
             #set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
-
+        # bind simmodels
         foreach {key value} [array get a_shared_library_path_coln] {
           set shared_lib_name $key
           set shared_lib_name [file root $shared_lib_name]
@@ -1524,7 +1527,11 @@ proc usf_vcs_write_elaborate_script {} {
           }
 
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
-          if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          if { ([regexp "^noc_v"         $shared_lib_name]) ||
+               ([regexp "^noc_common_v"  $shared_lib_name]) ||
+               ([regexp "^xsc_utility_v" $shared_lib_name]) } {
+            continue;
+          }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
