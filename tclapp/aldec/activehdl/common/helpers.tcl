@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.36
+package provide ::tclapp::aldec::common::helpers 1.37
 
 namespace eval ::tclapp::aldec::common {
 
@@ -841,7 +841,6 @@ proc usf_init_vars {} {
 	variable a_sim_cache_lib_type_info
 	variable a_shared_library_path_coln
 	
-	variable allDesignFiles
 	variable properties
 	variable generateLaibraryMode
 	variable userSetGlbl
@@ -933,7 +932,8 @@ proc usf_init_vars {} {
 	|| FILE_TYPE == \"STATIC MEMORY FILE\" \
 	|| FILE_TYPE == \"Memory Initialization Files\" \
 	|| FILE_TYPE == \"CSV\" \
-	|| FILE_TYPE == \"Coefficient Files\""
+	|| FILE_TYPE == \"Coefficient Files\" \
+	|| FILE_TYPE == \"Configuration Data Object\""
 
   # embedded file extension types 
   variable s_embedded_files_filter
@@ -2106,7 +2106,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   send_msg_id USF-[usf_aldec_getSimulatorName]-40 INFO "Finding include directories and verilog header directory paths..."
   set include_directories_options [list]
   set unique_directories [list]
-  #puts [usf_get_verilog_header_paths]
+
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths] [getVipIncludeDirs] ] {
     if { [lsearch -exact $unique_directories $dir] == -1 } {
       lappend unique_directories $dir
@@ -3053,38 +3053,23 @@ proc usf_export_data_files { data_files } {
 }
 
 proc usf_export_fs_data_files { filter } {
-  # Summary: Copy fileset IP data files to output directory
-  # Argument Usage:
-  # Return Value:
-
   variable properties
-  set fileset_object [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]
+
   set data_files [list]
-  # ip data files
-  set ips [get_files -all -quiet -filter "FILE_TYPE == \"IP\""]
-  foreach ip $ips {
-    set ip_name [file tail $ip]
-    foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
-      lappend data_files $file
-    }
+  
+  foreach ip_obj [ get_ips -quiet -all ] {
+    set data_files [ concat $data_files [ get_files -all -quiet -of_objects $ip_obj -filter $filter ] ]
   }
+
   set filesets [list]
+  lappend filesets [ get_filesets -filter "FILESET_TYPE == \"BlockSrcs\"" ]
+  lappend filesets [ current_fileset -srcset ]
+  lappend filesets [ get_filesets $properties(simset) ]
 
-  # block fileset data files
-  lappend filesets [get_filesets -filter "FILESET_TYPE == \"BlockSrcs\""]
-
-  # current source set fileset data files
-  lappend filesets [current_fileset -srcset]
-
-  # current simulation fileset data files
-  lappend filesets [get_filesets $properties(simset)]
-
-  # collect all fileset data files
-  foreach fileset_object $filesets {
-    foreach file [get_files -all -quiet -of_objects [get_filesets $fileset_object] -filter $filter] {
-      lappend data_files $file
-    }
+  foreach fs_obj $filesets {
+    set data_files [ concat $data_files [ get_files -all -quiet -of_objects $fs_obj -filter $filter ] ]
   }
+  
   usf_export_data_files $data_files
 }
 
@@ -3231,54 +3216,51 @@ proc usf_get_verilog_header_paths {} {
 }
 
 proc usf_get_header_include_paths { incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
   upvar $incl_header_paths_arg incl_header_paths
-  variable properties
-  set simset_obj     [get_filesets $properties(simset)]
-  set unique_paths   [list]
-  set linked_src_set [get_property "SOURCE_SET" $simset_obj]
-  if { {} != $linked_src_set } {
-    set srcset_obj [get_filesets $linked_src_set]
-    if { {} != $srcset_obj } {
-      usf_add_unique_incl_paths $srcset_obj unique_paths incl_header_paths
-    }
-  }
-  usf_add_unique_incl_paths $simset_obj unique_paths incl_header_paths
-  # add paths from block filesets
-  set filter "FILESET_TYPE == \"BlockSrcs\""
-  foreach blk_fileset_object [get_filesets -filter $filter] {
-    set fs_name [get_property "NAME" [get_filesets $blk_fileset_object]]
-    usf_add_unique_incl_paths $blk_fileset_object unique_paths incl_header_paths
-  }
+
+  usf_add_unique_incl_paths incl_header_paths
 }
 
-proc usf_add_unique_incl_paths { fileset_object unique_paths_arg incl_header_paths_arg } {
-  # Summary:
-  # Argument Usage:
-  # Return Value:
-
-  upvar $unique_paths_arg      unique_paths
-  upvar $incl_header_paths_arg incl_header_paths
+proc usf_add_unique_incl_paths { incl_header_paths_arg } {
   variable properties
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_bd_files
+
+  upvar $incl_header_paths_arg incl_header_paths
+
+  set unique_paths   [list]  
   set dir $properties(launch_directory)
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
   set vh_files [get_files -all -quiet -filter $filter]
+  
   foreach vh_file $vh_files {
-    set vh_file_obj [lindex [get_files -all -quiet [list "$vh_file"]] 0]
+    set vh_file_obj {}
+    if { [ info exists a_sim_cache_all_design_files_obj($vh_file) ] } {
+      set vh_file_obj $a_sim_cache_all_design_files_obj($vh_file)
+    } else {
+      set vh_file_obj [ lindex [ get_files -all -quiet $vh_file ] 0 ]
+    }
+
     if { [get_property "IS_GLOBAL_INCLUDE" $vh_file_obj] } {
       continue
     }
+
     # set vh_file [extract_files -files [list "$vh_file"] -base_dir $dir/ip_files]
     set vh_file [usf_xtract_file $vh_file]
     if { [get_param project.enableCentralSimRepo] } {
-      set b_is_bd [usf_is_bd_file $vh_file ]
-      set used_in_values [get_property "USED_IN" $vh_file_obj]
-      if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
+      set b_is_bd 0
+      if { [ info exists a_sim_cache_all_bd_files($vh_file) ] } {
+        set b_is_bd 1
+      } else {
+        set b_is_bd [usf_is_bd_file $vh_file]
+        if { $b_is_bd } {
+          set a_sim_cache_all_bd_files($vh_file) $b_is_bd
+        }
+      }
+      set used_in_values [get_property "USED_IN" $vh_file_obj] 
+	  if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
         set vh_file [usf_fetch_header_from_dynamic $vh_file $b_is_bd]
       } else {
         if { $b_is_bd } {
@@ -3900,17 +3882,6 @@ proc usf_get_global_include_file_cmdstr { incl_files_arg } {
   return [join $file_str " "]
 }
 
-proc findAllDesignFiles { } {
-	variable allDesignFiles
-
-	array unset allDesignFiles
-
-	foreach fileObject [ get_files -quiet -all ] {
-		set name [ get_property -quiet name $fileObject ]
-		set allDesignFiles($name) $fileObject
-	}
-}
-
 proc findCompileOrderFilesUniq { } {
 	variable l_compile_order_files
 	variable compileOrderFilesUniq
@@ -3920,7 +3891,7 @@ proc findCompileOrderFilesUniq { } {
 
 proc getFileCmdStr { file _fileType _xpm _globalFilesStr _includeDirsOptions { _xpmLibrary {} } { _xvLibrary {} } } {
     variable properties
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 
 	upvar $_includeDirsOptions includeDirsOptions
 
@@ -3929,8 +3900,8 @@ proc getFileCmdStr { file _fileType _xpm _globalFilesStr _includeDirsOptions { _
 	set commandStr {}
 	set fileObject {}
 
-	if { [ info exists allDesignFiles($file) ] } {
-		set fileObject $allDesignFiles($file)
+	if { [ info exists a_sim_cache_all_design_files_obj($file) ] } {
+		set fileObject $a_sim_cache_all_design_files_obj($file)
 	} else {
 		set fileObject [ lindex [ get_files -quiet -all [ list "$file" ] ] 0 ]
 	}
@@ -4006,7 +3977,7 @@ proc usf_get_file_cmd_str { \
 	{ _xpmLibrary {} } \
 } {
 	variable properties
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 
 	upvar $include_directories_options_arg include_directories_options
 
@@ -4014,8 +3985,9 @@ proc usf_get_file_cmd_str { \
 	set cmd_str {}
 	set associated_library $properties(associatedLibrary)
 
-  	if { [ info exists allDesignFiles($file) ] } {
-		set file_obj $allDesignFiles($file)
+	set file_obj {}
+  	if { [ info exists a_sim_cache_all_design_files_obj($file) ] } {
+		set file_obj $a_sim_cache_all_design_files_obj($file)
 	} else {
 		set file_obj [ lindex [ get_files -quiet -all [ list "$file" ] ] 0 ]
 	}
@@ -4057,13 +4029,6 @@ proc usf_get_file_cmd_str { \
 		set ip_file [ usf_get_top_ip_filename $file ]
 		set file [usf_get_ip_file_from_repo $ip_file $file $associated_library $properties(launch_directory) b_static_ip_file]
 	}
-
-	if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      # no op
-    } else {
-      # any spaces in file path, escape it?
-      # regsub -all { } $file {\\\\ } file
-    }
 	
 	set compiler [usf_get_compiler_name $file_type]
 	set arg_list [ list ]
@@ -4086,12 +4051,12 @@ proc usf_get_file_cmd_str { \
 }
 
 proc usf_get_top_ip_filename { src_file } {
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 
 	set top_ip_file {}
 
-   	if { [ info exists allDesignFiles($src_file) ] } {
-		set file_obj $allDesignFiles($src_file)
+   	if { [ info exists a_sim_cache_all_design_files_obj($src_file) ] } {
+		set file_obj $a_sim_cache_all_design_files_obj($src_file)
 	} else {
 		set file_obj [ lindex [ get_files -quiet -all [ list "$src_file" ] ] 0 ]
 	}
@@ -4399,7 +4364,7 @@ proc usf_get_ip_file_from_repo { ip_file src_file library launch_dir is_static_i
 proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg b_is_dynamic_arg } {
 	variable a_sim_cache_all_bd_files
 	variable properties
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 	variable compiledLibraries
 	variable localDesignLibraries
 
@@ -4428,8 +4393,8 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 	set full_src_file_path [ usf_find_file_from_compile_order $ip_name $src_file ]
 
 	set full_src_file_obj {}
-	if { [ info exists allDesignFiles($full_src_file_path) ] } {
-		set full_src_file_obj $allDesignFiles($full_src_file_path)
+	if { [ info exists a_sim_cache_all_design_files_obj($full_src_file_path) ] } {
+		set full_src_file_obj $a_sim_cache_all_design_files_obj($full_src_file_path)
 	} else {
 		set full_src_file_obj [ lindex [ get_files -all [ list "$full_src_file_path" ] ] 0 ]
 	}
@@ -4445,7 +4410,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 	if { [ lsearch -exact $used_in_values "ipstatic" ] == -1 } {
 		set b_found_in_repo 0
 
-		if { [ usf_is_core_container $ip_file $ip_name ] } {
+		if { [ usf_cache_result {usf_is_core_container $ip_file $ip_name} ] } {
 			set dst_cip_file [ usf_get_dynamic_sim_file_core_container $full_src_file_path ]
 		} else {
 			set dst_cip_file [ usf_get_dynamic_sim_file_core_classic $full_src_file_path ]
@@ -4544,7 +4509,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
 }
 
 proc usf_find_top_level_ip_file { _file } {
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 	variable a_sim_cache_parent_comp_files
 
 	set comp_file $_file
@@ -4555,8 +4520,8 @@ proc usf_find_top_level_ip_file { _file } {
 		incr count
 		if { $count > $MAX_PARENT_COMP_LEVELS } { break }
 
-		if { [ info exists allDesignFiles($comp_file) ] } {
-			set file_obj $allDesignFiles($comp_file)
+		if { [ info exists a_sim_cache_all_design_files_obj($comp_file) ] } {
+			set file_obj $a_sim_cache_all_design_files_obj($comp_file)
 		} else {
 			set file_obj [ lindex [ get_files -quiet -all [ list "$comp_file" ] ] 0 ]
 		}
@@ -4582,7 +4547,7 @@ proc usf_find_top_level_ip_file { _file } {
 }
 
 proc usf_is_bd_file { src_file } {
-	variable allDesignFiles
+	variable a_sim_cache_all_design_files_obj
 	variable a_sim_cache_parent_comp_files
 
 	set comp_file $src_file
@@ -4592,8 +4557,8 @@ proc usf_is_bd_file { src_file } {
 		incr count
 		if { $count > $MAX_PARENT_COMP_LEVELS } { break }
 		set file_obj {}
-		if { [ info exists allDesignFiles($comp_file) ] } {
-			set file_obj $allDesignFiles($comp_file)
+		if { [ info exists a_sim_cache_all_design_files_obj($comp_file) ] } {
+			set file_obj $a_sim_cache_all_design_files_obj($comp_file)
 		} else {
 			set file_obj [ lindex [ get_files -all [ list "$comp_file" ] ] 0 ]
 		}
@@ -4793,15 +4758,25 @@ proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   # Summary:
   # Argument Usage:
   # Return Value:
-
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_parent_comp_files
+  
   upvar $top_ip_file_name_arg top_ip_file_name
+   
   set comp_file $src_file
   set MAX_PARENT_COMP_LEVELS 10
   set count 0
   while (1) {
     incr count
     if { $count > $MAX_PARENT_COMP_LEVELS } { break }
-    set file_obj [lindex [get_files -all -quiet [list "$comp_file"]] 0]
+
+	set file_obj  {}
+    if { [ info exists a_sim_cache_all_design_files_obj($comp_file) ] } {
+      set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+    } else {
+      set file_obj [ lindex [get_files -all -quiet [ list "$comp_file" ] ] 0 ]
+    }
+
     set props [list_property $file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
@@ -4812,7 +4787,15 @@ proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   set top_ip_name [file root [file tail $comp_file]]
   set top_ip_file_name $comp_file
 
-  set root_comp_file_type [get_property file_type [lindex [get_files -all [list "$comp_file"]] 0]]
+  set file_obj  {}
+  if { [ info exists a_sim_cache_all_design_files_obj($comp_file) ] } {
+    set file_obj $a_sim_cache_all_design_files_obj($comp_file)
+  } else {
+    set file_obj [ lindex [get_files -all -quiet [ list "$comp_file" ] ] 0 ]
+  }
+
+  set root_comp_file_type [get_property file_type $file_obj]
+
   if { {Block Designs} == $root_comp_file_type } {
     set ip_output_dir [file dirname $comp_file]
   } else {
@@ -6198,6 +6181,15 @@ proc usf_write_launch_mode_for_vitis { _scriptFileHandle } {
   puts $_scriptFileHandle "elif \[ \$arg = \"gui\" \]; then"
   puts $_scriptFileHandle "  mode=\"-gui\""
   puts $_scriptFileHandle "fi\n"
+}
+
+proc cacheAllDesign { } {
+  variable a_sim_cache_all_design_files_obj
+
+  foreach fileName [ get_files -quiet -all ] {
+    set name [ get_property -quiet "name" $fileName ]
+    set a_sim_cache_all_design_files_obj($name) $fileName
+  }
 }
 
 }
