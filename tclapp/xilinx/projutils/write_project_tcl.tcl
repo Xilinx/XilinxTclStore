@@ -1442,6 +1442,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
     return $proj_file_path
   }
 
+  set l_srcs_filetype { "auto_incremental_checkpoint.directory" "noc_solution_file" "incremental_checkpoint" "auto_rqs.directory"}  
   # align project properties to have project name variable
   if {[string equal -nocase $prop "ip_output_repo"] ||
       [string equal -nocase $prop "sim.ipstatic.compiled_library_dir"] } {
@@ -1452,7 +1453,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
       [string equal -nocase $prop "sim.ipstatic.source_dir"] } {
     set dir_suffix "ip_user_files"
   }
-  if {[string equal -nocase $prop "incremental_checkpoint"]} {
+  if { [lsearch -nocase $l_srcs_filetype $prop ] != -1 } {  
     set dir_suffix "srcs"
   }}
 
@@ -1767,6 +1768,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
+            set tcl_file_path [regsub $srcs_dir $tcl_file_path "\$\{_xil_proj_name_\}\.srcs"]            
             set prop_entry "[string tolower $prop]$delim$tcl_file_path"
           }
         }
