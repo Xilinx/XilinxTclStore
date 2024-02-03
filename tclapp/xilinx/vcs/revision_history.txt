@@ -1,3 +1,4 @@
+12.7 refactored procs for fetching simmodel and ext dirs
 12.6 bind noc_common and xsc_utility libs
 12.5 use xv variables for pointing to compiled models
 12.4 fetch header files from compile order

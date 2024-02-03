@@ -1,3 +1,4 @@
+2.339 refactored procs for fetching simmodel and ext dirs
 2.338 use xv variables for pointing to compiled models
 2.337 fetch header files from compile order
 2.336 fetch production simulator version from API
