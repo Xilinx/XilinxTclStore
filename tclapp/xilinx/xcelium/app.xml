@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored procs for fetching simmodel and ext dirs</revision_history>
+      <revision_history>bind noc2</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

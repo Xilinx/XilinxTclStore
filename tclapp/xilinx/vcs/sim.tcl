@@ -1483,7 +1483,7 @@ proc usf_vcs_write_elaborate_script {} {
         foreach {key value} [array get a_shared_library_path_coln] {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
-          if { [regexp "^noc_v" $name] } {
+          if { ([regexp "^noc_v" $name]) || ([regexp "^noc2_v" $name]) } {
             set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/lib${name}.so"]
             if { [regexp "^noc_v1" $name] } {
               set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/libnocbase_v1_0_0.a"]
@@ -1523,6 +1523,7 @@ proc usf_vcs_write_elaborate_script {} {
 
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           if { ([regexp "^noc_v"         $shared_lib_name]) ||
+               ([regexp "^noc2_v"        $shared_lib_name]) ||
                ([regexp "^noc_common_v"  $shared_lib_name]) ||
                ([regexp "^xsc_utility_v" $shared_lib_name]) } {
             continue;
