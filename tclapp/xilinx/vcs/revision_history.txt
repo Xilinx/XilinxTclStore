@@ -1,3 +1,4 @@
+12.9 bind noc2
 12.8 remove 6.2.0
 12.7 refactored procs for fetching simmodel and ext dirs
 12.6 bind noc_common and xsc_utility libs
