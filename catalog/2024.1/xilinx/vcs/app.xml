@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>include NoC subcores for XPM_NOC</revision_history>
+      <revision_history>compile xpm NoC sources with the design</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

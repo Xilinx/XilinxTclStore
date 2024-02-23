@@ -1,3 +1,4 @@
+2.341 compile xpm NoC sources with the design
 2.340 include NoC subcores for XPM_NOC
 2.339 refactored procs for fetching simmodel and ext dirs
 2.338 use xv variables for pointing to compiled models
