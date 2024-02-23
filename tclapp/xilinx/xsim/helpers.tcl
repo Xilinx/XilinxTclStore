@@ -358,6 +358,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set b_compile_xpm_library 0
   }
 
+  # force xpm noc files compilation
+  if { !$b_compile_xpm_library } {
+    if { ([lsearch -exact [auto_detect_xpm -quiet -search_ips -no_set_property] "XPM_NOC"] != -1) } {
+      set b_compile_xpm_library 1
+    }
+  }
+
   if { $b_compile_xpm_library } {
     variable l_xpm_libraries
     set b_using_xpm_libraries false
