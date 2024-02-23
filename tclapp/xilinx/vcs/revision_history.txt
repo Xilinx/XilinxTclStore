@@ -1,3 +1,4 @@
+13.0 include NoC subcores for XPM_NOC
 12.9 bind noc2
 12.8 remove 6.2.0
 12.7 refactored procs for fetching simmodel and ext dirs

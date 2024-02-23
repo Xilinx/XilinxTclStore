@@ -1,3 +1,4 @@
+11.151 include NoC subcores for XPM_NOC
 11.150 bind noc2
 11.149 refactored procs for fetching simmodel and ext dirs
 11.148 filter noc_common_v and xsc_utility_v libs

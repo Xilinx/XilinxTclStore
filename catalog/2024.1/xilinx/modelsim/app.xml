@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>refactored procs for fetching simmodel and ext dirs</revision_history>
+      <revision_history>include NoC subcores for XPM_NOC</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

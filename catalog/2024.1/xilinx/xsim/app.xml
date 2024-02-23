@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>keep 6.2.0</revision_history>
+      <revision_history>include NoC subcores for XPM_NOC</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
