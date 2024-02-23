@@ -5119,11 +5119,11 @@ proc xcs_find_sm_dir { sm_dir type } {
   }
 
   #
-  # check if custom sim-model root specified for protected directory (not required for ext)
+  # check if custom sim-model root specified for local simmodel directory
   #
   set param "simulator.customSimModelRootDir"
-  if { "cpt" == $type } {
-    # return default install path to simulation model directory (protected or ext)
+  if { ("cpt" == $type) || ("ext" == $type) } {
+    # param value empty? return default install path to simulation model directory (protected or ext)
     set root_dir [get_param $param]
     if { {} == $root_dir } {
       return $pt_dir
@@ -5131,7 +5131,7 @@ proc xcs_find_sm_dir { sm_dir type } {
 
     set b_invalid_path 1
     # custom sim-model root path specified
-    if { [file exists $root_dir] } {
+    if { ([file exists $root_dir]) && ([file isdirectory $root_dir]) } {
       set dir "$root_dir/data"
       if { [file exists $dir] } {
         set pt_dir "$dir/$sm_dir"
@@ -5600,6 +5600,9 @@ proc xcs_get_design_libs { files {b_realign 0} } {
       set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
     }
   }
+
+  # dependency on NoC sub-cores
+  xcs_insert_noc_sub_cores uniq_libs
 
   return $uniq_libs
 }
@@ -6288,4 +6291,22 @@ proc xcs_copy_file_to_srcs { src_file launch_dir srcs_file_arg } {
     }
   }
   return 0
+}
+
+proc xcs_insert_noc_sub_cores { uniq_libs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_xpm_libraries
+
+  upvar $uniq_libs libs
+  if { [lsearch $l_xpm_libraries "XPM_NOC"] != -1 } {
+    set sub_cores [rdi::get_noc_subcores]
+    set i 1
+    foreach core [rdi::get_noc_subcores] {
+      set libs [linsert $libs $i $core]
+      incr i
+    }
+  }
 }
