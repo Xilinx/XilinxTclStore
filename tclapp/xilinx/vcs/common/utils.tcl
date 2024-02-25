@@ -3749,7 +3749,7 @@ proc xcs_get_xpm_libraries {} {
   set prop_xpm_libs [get_property -quiet "XPM_LIBRARIES" $proj_obj]
 
   # fetch xpm libraries from design graph
-  set dg_xpm_libs [auto_detect_xpm -quiet -search_ips -no_set_property]
+  set dg_xpm_libs [rdi::get_xpm_libraries]
 
   # join libraries and add unique to collection
   set all_xpm_libs [concat $prop_xpm_libs $dg_xpm_libs]
@@ -6301,7 +6301,7 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
   variable l_xpm_libraries
 
   upvar $uniq_libs libs
-  if { ([lsearch -exact [auto_detect_xpm -quiet -search_ips -no_set_property] "XPM_NOC"] != -1) } {
+  if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
     set sub_cores [rdi::get_noc_subcores]
     set i 1
     foreach core [rdi::get_noc_subcores] {

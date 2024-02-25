@@ -373,7 +373,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   # force xpm noc files compilation
   if { !$b_compile_xpm_library } {
-    if { ([lsearch -exact [auto_detect_xpm -quiet -search_ips -no_set_property] "XPM_NOC"] != -1) } {
+    if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
       set b_compile_xpm_library 1
     }
   }
