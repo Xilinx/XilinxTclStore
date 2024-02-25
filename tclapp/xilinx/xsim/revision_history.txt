@@ -1,3 +1,4 @@
+2.470 get xpm libraries from API
 2.469 compile xpm NoC sources with the design
 2.468 include NoC subcores for XPM_NOC
 2.467 keep 6.2.0

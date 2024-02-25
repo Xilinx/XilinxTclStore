@@ -1,3 +1,4 @@
+11.153 get xpm libraries from API
 11.152 compile xpm NoC sources with the design
 11.151 include NoC subcores for XPM_NOC
 11.150 bind noc2
