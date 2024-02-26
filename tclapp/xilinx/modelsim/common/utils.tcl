@@ -39,6 +39,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(b_batch)                    0
   set a_sim_vars(b_netlist_sim)              0
   set a_sim_vars(b_extract_ip_sim_files)     0
+  set a_sim_vars(b_dynamic_xpm_noc_compile)  0
   set a_sim_vars(b_int_sm_lib_ref_debug)     0
   set a_sim_vars(b_int_compile_glbl)         0
   set a_sim_vars(s_int_debug_mode)           0
@@ -5563,7 +5564,7 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_design_libs { files {b_realign 0} } {
+proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5601,8 +5602,10 @@ proc xcs_get_design_libs { files {b_realign 0} } {
     }
   }
 
-  # dependency on NoC sub-cores
-  xcs_insert_noc_sub_cores uniq_libs
+  if { $b_insert_xpm_noc_sub_cores } {
+    # dependency on NoC sub-cores
+    xcs_insert_noc_sub_cores uniq_libs
+  }
 
   return $uniq_libs
 }

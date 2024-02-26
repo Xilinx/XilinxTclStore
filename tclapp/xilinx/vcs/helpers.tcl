@@ -628,6 +628,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   # force xpm noc files compilation
   if { !$b_compile_xpm_library } {
     if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
+      set a_sim_vars(b_dynamic_xpm_noc_compile) 1
       set b_compile_xpm_library 1
     }
   }
@@ -750,6 +751,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
       }
+    }
+  }
+
+  if { ($a_sim_vars(b_use_static_lib)) && ($a_sim_vars(b_dynamic_xpm_noc_compile)) } {
+    variable l_local_design_libraries
+    if { [lsearch -exact $l_local_design_libraries "xpm"] == -1 } {
+      lappend l_local_design_libraries "xpm"
     }
   }
 
