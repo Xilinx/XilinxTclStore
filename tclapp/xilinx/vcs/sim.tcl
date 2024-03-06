@@ -180,11 +180,6 @@ proc usf_vcs_setup_simulation { args } {
   # find/copy synopsys_sim.setup file into run dir
   set a_sim_vars(s_clibs_dir) [usf_vcs_verify_compiled_lib]
 
-  # set systemC version
-  if { {6.2.0} == $a_sim_vars(s_gcc_version) } {
-    set a_sim_vars(sysc_ver) "232"
-  }
-
   # verify GCC version from CLIBs (make sure it matches, else throw critical warning)
   xcs_verify_clibs_gcc_version $a_sim_vars(s_clibs_dir) $a_sim_vars(s_gcc_version) "vcs"
 
@@ -470,7 +465,7 @@ proc usf_vcs_write_setup_files {} {
     }
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) } { continue; }
@@ -1488,11 +1483,14 @@ proc usf_vcs_write_elaborate_script {} {
         foreach {key value} [array get a_shared_library_path_coln] {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
-          if { [regexp "^noc_v" $name] } {
-            set arg_list [linsert $arg_list end "$lib_dir/lib${name}.so"]
+          if { ([regexp "^noc_v" $name]) || ([regexp "^noc2_v" $name]) } {
+            set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/lib${name}.so"]
             if { [regexp "^noc_v1" $name] } {
-              set arg_list [linsert $arg_list end "$lib_dir/libnocbase_v1_0_0.a"]
+              set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/libnocbase_v1_0_0.a"]
             }
+          }
+          if { ([regexp "^noc_common_v" $name]) || ([regexp "^xsc_utility_v" $name]) } {
+            set arg_list [linsert $arg_list end "\$xv_cpt_lib_path/${name}/lib${name}.so"]
           }
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
             set model_ver [rdi::get_aie_config_type]
@@ -1506,7 +1504,7 @@ proc usf_vcs_write_elaborate_script {} {
             #set arg_list [linsert $arg_list end "-l$lib_name"]
           }
         }
-
+        # bind simmodels
         foreach {key value} [array get a_shared_library_path_coln] {
           set shared_lib_name $key
           set shared_lib_name [file root $shared_lib_name]
@@ -1524,23 +1522,33 @@ proc usf_vcs_write_elaborate_script {} {
           }
 
           #if { [regexp "^protobuf" $shared_lib_name] } { continue; }
-          if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          if { ([regexp "^noc_v"         $shared_lib_name]) ||
+               ([regexp "^noc2_v"        $shared_lib_name]) ||
+               ([regexp "^noc_common_v"  $shared_lib_name]) ||
+               ([regexp "^xsc_utility_v" $shared_lib_name]) } {
+            continue;
+          }
           if { [regexp "^aie_xtlm_" $shared_lib_name] } {
             set model_ver [rdi::get_aie_config_type]
             set lib_name "${model_ver}_cluster_v1_0_0"
+            set aie_lib_path ""
             if { {aie} == $model_ver } {
-              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$lib_name"
+              set aie_lib_path "\$xv_cpt_lib_path/$lib_name"
             } else {
-              set aie_lib_dir "$cpt_dir/$sm_cpt_dir/$model_ver"
+              set aie_lib_path "\$xv_cpt_lib_path/$model_ver"
             }
-            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mlib=$aie_lib_path"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           }
           if { [xcs_is_sc_library $shared_lib_name] } {
-            set arg_list [linsert $arg_list end "-Mlib=$sm_lib_dir"]
+            set arg_list [linsert $arg_list end "-Mlib=\$xv_cxl_lib_path/$shared_lib_name"]
             set arg_list [linsert $arg_list end "-Mdir=$a_sim_vars(tmp_obj_dir)/_xil_csrc_"]
           } else {
-            set arg_list [linsert $arg_list end "-L$sm_lib_dir -l$shared_lib_name"]
+            if { [regexp "^protobuf" $shared_lib_name] } {
+              set arg_list [linsert $arg_list end "-L\$xv_ext_lib_path/$shared_lib_name -l$shared_lib_name"]
+            } else {
+              set arg_list [linsert $arg_list end "-L\$xv_cxl_lib_path/$shared_lib_name -l$shared_lib_name"]
+            }
           }
         }
 
@@ -2082,7 +2090,7 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "vcs"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)

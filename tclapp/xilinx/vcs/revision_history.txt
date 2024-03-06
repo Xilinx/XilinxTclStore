@@ -1,7 +1,15 @@
-12.5 fetch header files from compile order
-12.4 pass undefined ldflag
-12.3 disable aie binding
-12.2 filter aie binding
+13.3 realign local xpm compiled library mapping
+13.2 get xpm libraries from API
+13.1 compile xpm NoC sources with the design
+13.0 include NoC subcores for XPM_NOC
+12.9 bind noc2
+12.8 remove 6.2.0
+12.7 refactored procs for fetching simmodel and ext dirs
+12.6 bind noc_common and xsc_utility libs
+12.5 use xv variables for pointing to compiled models
+12.4 fetch header files from compile order
+12.3 fetch production simulator version from API
+12.2 merged 2023.2 to 2024.1
 12.1 fixed copyright string
 12.0 bind nocbase for noc_v1
 11.9 performance fix

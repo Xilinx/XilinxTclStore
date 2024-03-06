@@ -1442,6 +1442,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
     return $proj_file_path
   }
 
+  set l_srcs_filetype { "auto_incremental_checkpoint.directory" "noc_solution_file" "incremental_checkpoint" "auto_rqs.directory"}  
   # align project properties to have project name variable
   if {[string equal -nocase $prop "ip_output_repo"] ||
       [string equal -nocase $prop "sim.ipstatic.compiled_library_dir"] } {
@@ -1451,6 +1452,9 @@ proc align_project_properties { prop proj_name proj_file_path } {
       [string equal -nocase $prop "ip.user_files_dir"] ||
       [string equal -nocase $prop "sim.ipstatic.source_dir"] } {
     set dir_suffix "ip_user_files"
+  }
+  if { [lsearch -nocase $l_srcs_filetype $prop ] != -1 } {  
+    set dir_suffix "srcs"
   }}
 
   # skip other properties
@@ -1461,7 +1465,7 @@ proc align_project_properties { prop proj_name proj_file_path } {
   set match_str "${proj_name}/${proj_name}.${dir_suffix}"
   set proj_file_path [string map {\\ /} $proj_file_path]
   if { [regexp $match_str $proj_file_path] } {
-    set proj_file_path [regsub -all "${proj_name}" $proj_file_path "\$\{_xil_proj_name_\}"]
+    set proj_file_path [regsub "${proj_name}/${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}/\$\{_xil_proj_name_\}\.${dir_suffix}"]    
   } else {
     set match_str "${proj_name}.${dir_suffix}"
     set proj_file_path [regsub "${proj_name}\.${dir_suffix}" $proj_file_path "\$\{_xil_proj_name_\}\.${dir_suffix}"]
@@ -1764,6 +1768,7 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
                 set tcl_file_path "\[file normalize \"\$origin_dir/$rel_file_path\"\]"
               }
             }
+            set tcl_file_path [regsub $srcs_dir $tcl_file_path "\$\{_xil_proj_name_\}\.srcs"]            
             set prop_entry "[string tolower $prop]$delim$tcl_file_path"
           }
         }
@@ -3284,7 +3289,7 @@ proc write_specified_prConfiguration { proj_dir proj_name prConfig } {
   set configObj   [$get_what $prConfig]
   set partition     [get_property "partition_cell_rms" $configObj] 
   set greyBoxCell     [get_property "greybox_cells" $configObj] 
-  variable options 
+  set options ""
   if {$partition ne ""} {
     set options "-partitions \[list $partition \]" 
   }

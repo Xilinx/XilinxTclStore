@@ -486,7 +486,7 @@ proc usf_xcelium_write_setup_files {} {
     }
   }
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -1449,7 +1449,7 @@ proc usf_xcelium_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 1]
 
   set arg_list [list]
   # add simulation libraries
@@ -1541,7 +1541,9 @@ proc usf_xcelium_write_elaborate_script {} {
           if { [regexp "^protobuf" $shared_lib_name] } { continue; }
           # filter protected
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
+          if { [regexp "^noc2_v" $shared_lib_name] } { continue; }
           if { [regexp "^xsc_utility_v" $shared_lib_name] } { continue; }
+          if { [regexp "^noc_common_v" $shared_lib_name] } { continue; }
           set arg_list [linsert $arg_list end "-libname" $shared_lib_name]
         }
       }
@@ -1555,29 +1557,8 @@ proc usf_xcelium_write_elaborate_script {} {
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "# set gcc objects"
-      set objs_arg [list]
-      set uniq_objs [list]
+      usf_xcelium_write_gcc_objs $fh_scr
 
-      variable a_design_c_files_coln
-      foreach {key value} [array get a_design_c_files_coln] {
-        set c_file     $key
-        set file_type  $value
-        set file_name [file tail [file root $c_file]]
-        if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
-          append file_name "_0"
-        }
-        append file_name ".o"
-        if { [lsearch -exact $uniq_objs $file_name] == -1 } {
-          if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
-            lappend objs_arg "$a_sim_vars(tmp_obj_dir)/xmsc_obj/$file_name"
-          } else {
-            lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
-          }
-          lappend uniq_objs $file_name
-        }
-      }
-      set objs_arg_str [join $objs_arg " "]
-      puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
       puts $fh_scr "# link simulator system libraries"
 
       set sys_libs [list]
@@ -1658,10 +1639,13 @@ proc usf_xcelium_write_elaborate_script {} {
         foreach {key value} [array get a_shared_library_path_coln] {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
-          if { [regexp "^noc_v" $name] } {
+          if { ([regexp "^noc_v" $name]) ||
+               ([regexp "^noc2_v" $name]) ||
+               ([regexp "^noc_common_v" $name]) ||
+               ([regexp "^xsc_utility_v" $name]) } {
             set name [string trimleft $key "lib"]
             set name [string trimright $name ".so"]
-            lappend link_arg_list "-L$lib_dir -l$name"
+            lappend link_arg_list "-L\$xv_cpt_lib_path/$name -l$name"
           }
 
           if { ([regexp "^aie_cluster" $name]) || ([regexp "^aie_xtlm" $name]) } {
@@ -1680,7 +1664,11 @@ proc usf_xcelium_write_elaborate_script {} {
         set l_sm_lib_paths [list]
         foreach {library lib_dir} [array get a_shared_library_path_coln] {
           set name [file tail $lib_dir]
-          if { ([regexp "^noc_v" $name]) || ([regexp "^aie_cluster" $name]) } {
+          if { ([regexp "^noc_v" $name])        ||
+               ([regexp "^noc2_v" $name])       ||
+               ([regexp "^aie_cluster" $name])  ||
+               ([regexp "^noc_common_v" $name]) ||
+               ([regexp "^xsc_utility_v" $name]) } {
             continue;
           }
 
@@ -1703,7 +1691,7 @@ proc usf_xcelium_write_elaborate_script {} {
             }
           }
 
-          lappend link_arg_list "-L$sm_lib_dir -l$lib_name"
+          lappend link_arg_list "-L\$xv_cxl_lib_path/$name -l$name"
         }
 
         # link IP design libraries
@@ -1775,6 +1763,43 @@ proc usf_xcelium_write_elaborate_script {} {
   set cmd_str [join $arg_list " "]
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_xcelium_write_gcc_objs { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { [get_param "project.appendObjectDescriptorForXmsc"] } {
+    set objs_arg [list]
+    set uniq_objs [list]
+
+    variable a_design_c_files_coln
+    foreach {key value} [array get a_design_c_files_coln] {
+      set c_file     $key
+      set file_type  $value
+      set file_name [file tail [file root $c_file]]
+      if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
+        append file_name "_0"
+      }
+      append file_name ".o"
+      if { [lsearch -exact $uniq_objs $file_name] == -1 } {
+        if { ($a_sim_vars(b_optimizeForRuntime) && ("SystemC" == $file_type)) } {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/xmsc_obj/$file_name"
+        } else {
+          lappend objs_arg "$a_sim_vars(tmp_obj_dir)/$file_name"
+        }
+        lappend uniq_objs $file_name
+      }
+    }
+    set objs_arg_str [join $objs_arg " "]
+    puts $fh_scr "gcc_objs=\"$objs_arg_str\"\n"
+  } else {
+    puts $fh_scr "obj_coln=\$(find c.obj/xmsc_obj -iname \"*.o\" 2>/dev/null)"
+    puts $fh_scr "gcc_objs=\${obj_coln\[*\]// /,}\n"
+  }
 }
 
 proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
@@ -2051,7 +2076,7 @@ proc usf_xcelium_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "xcelium"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)
@@ -2278,7 +2303,11 @@ proc usf_xcelium_write_systemc_compile_options { fh_scr } {
     lappend arg_list "-stop comp"
     lappend arg_list "-nodep"
     lappend arg_list "-gnu"
-    set gcc_ver [get_param "simulator.xcelium.gcc.version"] 
+    set gcc_ver {}
+    [catch {set gcc_ver [rdi::get_gcc_prod_version "xcelium"]} err]
+    if { {} == $gcc_ver } {
+      set gcc_ver [get_param "simulator.xcelium.gcc.version"]
+    }
     set vers [split $gcc_ver "."]
     set major [lindex $vers 0]
     set minor [lindex $vers 1]

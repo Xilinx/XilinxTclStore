@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>BDC generate_target and create_ip_run issue fix</revision_history>
+      <revision_history>Fix for CR:1184178 Adding a pre-synth TCL script as part of XSA causes VPL error</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

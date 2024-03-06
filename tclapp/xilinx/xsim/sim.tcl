@@ -921,11 +921,46 @@ proc usf_copy_ini_file { dir } {
       return 1
     } else {
       send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
+
+      # print IP repo info from clibs dir
+      xcs_print_ip_repo_info $dir $a_sim_vars(b_int_sm_lib_ref_debug)
+
       return 0
     }
   }
 
   return 0
+}
+
+proc xcs_print_ip_repo_info { clibs_dir {b_int_sm_lib_ref_debug 0} } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set info_dir "$clibs_dir/ip"
+  set info_file_path "$info_dir/.cxl.repo.info"
+
+  if { ![file exists $info_file_path] } {
+    return
+  }
+
+  set fh 0
+  if { [catch {open $info_file_path r} fh]} {
+    return
+  }
+  set repo_data [split [read $fh] "\n"]
+  close $fh
+
+  foreach repo_path $repo_data {
+    if { {} == $repo_path } { continue }
+    if { $b_int_sm_lib_ref_debug } {
+      puts "(DEBUG) - repo_path: $repo_path"
+    }
+    if { [regexp {data/ip/xilinx} $repo_path] } {
+      send_msg_id SIM-utils-082 INFO "Catalog repository used for pre-compiled IPs: '$repo_path'\n"
+      break
+    }
+  }
 }
 
 proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
@@ -1023,8 +1058,13 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
     if { [file exists $dir] } {
       return $dir
     } else {
-      set dir "$cxl_prop_dir/$library"
-      return $dir
+      set dir "$cxl_prop_dir/ip/$library"
+      if { [file exists $dir] } {
+        return $dir
+      } else {
+        set dir "$cxl_prop_dir/$library"
+        return $dir
+      }
     }
   }
 
@@ -1039,8 +1079,13 @@ proc usf_resolve_compiled_library_dir { cxl_prop_dir library } {
     if { [file exists $dir] } {
       return $dir
     } else {
-      set dir "$cxl_prop_dir/$library"
-      return $dir
+      set dir "$cxl_prop_dir/ip/$library"
+      if { [file exists $dir] } {
+        return $dir
+      } else {
+        set dir "$cxl_prop_dir/$library"
+        return $dir
+      }
     }
   }
 
@@ -1080,7 +1125,7 @@ proc usf_xsim_write_setup_file {} {
       puts $fh "uvm=$uvm_lib"
     }
   }
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -2151,7 +2196,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
