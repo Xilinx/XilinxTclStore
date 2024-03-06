@@ -5,6 +5,10 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 ########################################################################################
+## 2023.09.14 - Fixed issue with average fanout
+##            - Runtime optimization for average fanout calculation
+##            - Added metric "Max Average Fanout for modules > 100k cells"
+## 2023.07.26 - Improved support for non-standard Vivado version numbers
 ## 2021.06.22 - Updated LUT/Net budgeting to add penalty for sequential loops (Versal)
 ##            - Updated column "Cascaded LUTs" to LUT/Net budgeting detailed tables (Versal)
 ## 2021.05.07 - Added CSV files for LUT/Net budgeting detailed reports
@@ -425,7 +429,7 @@ set help_message [format {
 # Trick to silence the linter
 eval [list namespace eval ::tclapp::xilinx::designutils::report_failfast {
   namespace export report_failfast
-  variable version {2021.06.22}
+  variable version {2023.09.14}
   variable script [info script]
   variable SUITE_INTEGRATION 0
   variable params
@@ -498,7 +502,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::report_failfast {args} {
   # Other alternatives seen in the field: v2020.1_(AR75369_AR75386)
 #   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_AR[0-9]+$} [version -short] {}] {0}]
 #   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {(_AR[0-9]+)} [version -short] {}] {}] {0}]
-  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {([_\(\)]*AR[0-9\(\)]+)} [version -short] {}] {}] {0}]
+#   set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {([_\(\)]*AR[0-9\(\)]+)} [version -short] {}] {}] {0}]
+  set params(vivado_version) [regsub -all {[a-zA-Z]} [regsub {_[A-Za-z]+$} [regsub -all {([_\(\)]*[a-zA-Z]+[0-9\(\)]+)} [version -short] {}] {}] {0}]
   # Versal
   set params(lutPairCASCMissed) 0
   set params(lutPairCASCCandidate) 0
@@ -1443,6 +1448,7 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   }
 
   if {[lsearch $skipChecks {average_fanout}] != -1} {
+    catch { array unset guidelines design.cells.avgfo* }
     catch { array unset guidelines design.cells.maxavgfo* }
   }
 
@@ -2813,48 +2819,51 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
       set stepStartTime [clock seconds]
       # Make the 100K threshold as a parameter
       set limit $guidelines(design.cells.maxavgfo.limit)
-      addMetric {design.cells.maxavgfo}   "Average Fanout for modules > [expr $limit / 1000]k cells"
+      addMetric {design.cells.maxavgfo}   "Max Average Fanout for modules > [expr $limit / 1000]k cells"
+      addMetric {design.cells.avgfo}      "Average Fanout for modules > [expr $limit / 1000]k cells"
 
       catch {unset data}
       # Key '-' holds the list of average fanout for modules > 100K ($limit)
       set data(-) [list 0]
       # Key '@' holds the list of hierarchical cells that have an average fanout for modules > 100K ($limit)
       set data(@) [list]
+      set avgFO {n/a}
       switch $reportMode {
         pblockAndTop {
-          calculateAvgFanoutTop . $limit
+          set avgFO [calculateAvgFanoutTop . $limit]
         }
         pblockAndCell {
-          calculateAvgFanoutTop $prCell $limit
+          set avgFO [calculateAvgFanoutTop $prCell $limit]
         }
         pblockOnly {
           # NOT SUPPORTED
         }
         regionAndTop {
-          calculateAvgFanoutTop . $limit
+          set avgFO [calculateAvgFanoutTop . $limit]
         }
         regionAndCell {
-          calculateAvgFanoutTop $prCell $limit
+          set avgFO [calculateAvgFanoutTop $prCell $limit]
         }
         regionOnly {
           # NOT SUPPORTED
         }
         slrAndTop {
-          calculateAvgFanoutTop . $limit
+          set avgFO [calculateAvgFanoutTop . $limit]
         }
         slrAndCell {
-          calculateAvgFanoutTop $prCell $limit
+          set avgFO [calculateAvgFanoutTop $prCell $limit]
         }
         slrOnly {
           # NOT SUPPORTED
         }
         default {
-          calculateAvgFanoutTop . $limit
+          set avgFO [calculateAvgFanoutTop . $limit]
         }
       }
       set maxfo [lindex [lsort -decreasing -real $data(-)] 0]
 
       setMetric {design.cells.maxavgfo}  $maxfo
+      setMetric {design.cells.avgfo}     $avgFO
       set stepStopTime [clock seconds]
       puts " -I- average fanout metrics completed in [expr $stepStopTime - $stepStartTime] seconds ([expr [llength $data(-)] -1] modules)"
 
@@ -4083,9 +4092,13 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   generateTableRow tbl {design.dont_touch}              {DONT_TOUCH (cells/nets)}
   generateTableRow tbl {design.mark_debug}              {MARK_DEBUG (nets)}
   generateTableRow tbl {utilization.ctrlsets.uniq}      {Control Sets}
+  if {[llength [array names guidelines design.cells.avgfo]] == 1} {
+#     generateTableRow tbl {design.cells.avgfo}      {Average Fanout for modules > 100k cells}
+    generateTableRow tbl {design.cells.avgfo}         "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells"
+  }
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
-#     generateTableRow tbl {design.cells.maxavgfo}      {Average Fanout for modules > 100k cells}
-    generateTableRow tbl {design.cells.maxavgfo}      "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells"
+#     generateTableRow tbl {design.cells.maxavgfo}      {Max Average Fanout for modules > 100k cells}
+    generateTableRow tbl {design.cells.maxavgfo}      "Max Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells"
   }
   if {[llength [array names guidelines design.nets.nonfdhfn*]] == 2} {
 #     generateTableRow tbl {design.nets.nonfdhfn}       {Non-FD high fanout nets > 10k loads}
@@ -4187,8 +4200,11 @@ set cmd [lsearch -all -inline -not -exact $cmdLine {-by_slr_new}]
   $tblcsv addrow [list {utilization.ctrlsets.uniq}      {Control Sets}       [getMetric {utilization.ctrlsets.uniq}] ]
   $tblcsv addrow [list {design.dont_touch}              {DONT_TOUCH(#)}      [getMetric {design.dont_touch}] ]
   $tblcsv addrow [list {design.mark_debug}              {MARK_DEBUG(#)}      [getMetric {design.mark_debug}] ]
+  if {[llength [array names guidelines design.cells.avgfo]] == 1} {
+    $tblcsv addrow [list {design.cells.avgfo}         "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells" [getMetric {design.cells.avgfo}] ]
+  }
   if {[llength [array names guidelines design.cells.maxavgfo*]] == 2} {
-    $tblcsv addrow [list {design.cells.maxavgfo}      "Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells" [getMetric {design.cells.maxavgfo}] ]
+    $tblcsv addrow [list {design.cells.maxavgfo}      "Max Average Fanout for modules > [expr $guidelines(design.cells.maxavgfo.limit) / 1000]k cells" [getMetric {design.cells.maxavgfo}] ]
   }
   if {[llength [array names guidelines design.nets.nonfdhfn*]] == 2} {
     $tblcsv addrow [list {design.nets.nonfdhfn}       "Non-FD high fanout nets > [expr $guidelines(design.nets.nonfdhfn.limit) / 1000]k loads"     [getMetric {design.nets.nonfdhfn}] ]
@@ -4343,11 +4359,14 @@ proc ::tclapp::xilinx::designutils::report_failfast::config {} {
   # Threshold (PASS) for MARK_DEBUG properties
   set guidelines(design.mark_debug)               "=0"
 
-  # Limit for 'Average Fanout for modules > ...k cells' calculation
+  # Limit for 'Max Average Fanout for modules > ...k cells' calculation
   set guidelines(design.cells.maxavgfo.limit)     {100000}
 
-  # Threshold (PASS) for Average Fanout for modules > 100k cells
+  # Threshold (PASS) for Max Average Fanout for modules > 100k cells
   set guidelines(design.cells.maxavgfo)           {<=4}
+
+  # Threshold (PASS) for Average Fanout for modules > 100k cells
+  set guidelines(design.cells.avgfo)              {<=4}
 
   # Limit for 'Non-FD high fanout nets > ...k loads' calculation
   set guidelines(design.nets.nonfdhfn.limit)      {10000}
@@ -4421,6 +4440,7 @@ proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanout {cell mi
   # Return Value:
   # Categories: xilinxtclstore, designutils
 
+# puts "entering calculateAvgFanout ([clock format [clock seconds]]): $cell"
   variable data
   variable dbgtbl
   variable params
@@ -4431,13 +4451,44 @@ proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanout {cell mi
     current_instance -quiet
     current_instance -quiet $cell
     set hierCells [lsort [get_cells -quiet -filter {!IS_PRIMITIVE}]]
+    # All the primitives from this level down
+    set hierPrimitives [get_cells -quiet -hier -filter "(IS_PRIMITIVE && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND)"]
+    set count 0
+    set skipped 0
     foreach c $hierCells {
+      incr count
+      # For runtime optimization, extract the list of primitives for the hierachical module $c
+      # set primitives [get_cells -quiet -hier -filter "NAME=~$c/* && (IS_PRIMITIVE && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND)"]
+      # set primitives [filter -quiet $hierPrimitives "NAME=~$c/*"]
+      set primitives [lsearch -all -inline -glob $hierPrimitives $c/*]
+      # For runtime optimization, if the sub-hierarchy $c has less primitives than $minCellCount,
+      # then compute the stats for the module without diving into it. This is a major runtime saving
+      # when the module has 1000s of very small sub-hierarchies
+      if {[llength $primitives] < $minCellCount} {
+        set opins [get_pins -quiet -of $primitives -filter {!IS_CLOCK && DIRECTION == OUT && IS_CONNECTED}]
+        set nets [get_nets -quiet -of $opins -segments -top_net_of_hierarchical_group -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
+        set numPins [llength $opins]
+        set data(${c}:PIN_COUNT) 0
+        catch { set data(${c}:PIN_COUNT) [expr [join [get_property -quiet FLAT_PIN_COUNT $nets] +] ] }
+        set data(${c}:OPINS) $numPins
+        set data(${c}:PRIMITIVES) [llength $primitives]
+        set data(${c}:AVG_FANOUT) 0.0
+        catch { set data(${c}:AVG_FANOUT) [format {%.2f} [expr ((1.0 * $data(${c}:PIN_COUNT) - $numPins) / $numPins ] ] }
+        set data(${c}:FLAT_PIN_COUNT) $data(${c}:PIN_COUNT)
+        set data(${c}:FLAT_OPINS) $data(${c}:OPINS)
+        set data(${c}:FLAT_PRIMITIVES) $data(${c}:PRIMITIVES)
+        set data(${c}:FLAT_AVG_FANOUT) $data(${c}:AVG_FANOUT)
+        incr skipped
+        # Skip this hierarchical module
+        continue
+      }
       calculateAvgFanout $c $minCellCount
     }
 
     set primitives [get_cells -quiet -filter {IS_PRIMITIVE && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND}]
     set opins [get_pins -quiet -of $primitives -filter {!IS_CLOCK && DIRECTION == OUT && IS_CONNECTED}]
-    set nets [get_nets -quiet -of $opins -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
+    # Uniquify the nets
+    set nets [get_nets -quiet -of $opins -segments -top_net_of_hierarchical_group -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
     set avgFanout 0.0
     set totalFlatPinCount 0
     set numPins [llength $opins]
@@ -4481,7 +4532,6 @@ proc ::tclapp::xilinx::designutils::report_failfast::calculateAvgFanout {cell mi
     set data(${cell}:FLAT_OPINS) $numPins
     set data(${cell}:FLAT_PRIMITIVES) $numPrimitives
     set data(${cell}:FLAT_AVG_FANOUT) $avgFanout
-
     # Save data from current cell inside the debug table
     if {$params(debug) && ($params(debug_level) == 2)} {
       if {$numPrimitives > $minCellCount} {
@@ -4529,7 +4579,8 @@ proc ::tclapp::xilinx::designutils::report_failfast::getAvgFanout {cell} {
   current_instance -quiet $cell
   set primitives [get_cells -quiet -hierarchical -filter {IS_PRIMITIVE && PRIMITIVE_LEVEL != MACRO && REF_NAME !~ BUFG* && REF_NAME !~ VCC && REF_NAME !~ GND}]
   set opins [get_pins -quiet -of $primitives -filter {!IS_CLOCK && DIRECTION == OUT && IS_CONNECTED && IS_LEAF}]
-  set nets [get_nets -quiet -of $opins -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
+  # Uniquify the nets
+  set nets [get_nets -quiet -of $opins -segments -top_net_of_hierarchical_group -filter {(FLAT_PIN_COUNT > 1) && (TYPE == SIGNAL)}]
 #   set avgFanout {N/A}
   set avgFanout 0.0
   if {[llength $nets] != 0} {
