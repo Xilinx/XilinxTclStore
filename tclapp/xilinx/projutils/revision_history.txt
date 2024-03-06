@@ -1,4 +1,4 @@
-3.564 Fix for CR:1184178 Adding a pre-synth TCL script as part of XSA causes VPL error
+3.564 merged 2024.1 to 2024.2
 3.563 Updated DeprecationMsgPrinter with changed ngc2edif_ exec path
 3.562 Fix error DFX design with BDC
 3.561 CR-1182093 handle incremental checkpoint correctly

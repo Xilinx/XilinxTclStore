@@ -1,4 +1,4 @@
-2.471 realign local xpm compiled library mapping
+2.471 merged 2024.1 to 2024.2
 2.470 get xpm libraries from API
 2.469 compile xpm NoC sources with the design
 2.468 include NoC subcores for XPM_NOC
