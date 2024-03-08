@@ -1542,8 +1542,6 @@ proc usf_xcelium_write_elaborate_script {} {
           # filter protected
           if { [regexp "^noc_v" $shared_lib_name] } { continue; }
           if { [regexp "^noc2_v" $shared_lib_name] } { continue; }
-          if { [regexp "^xsc_utility_v" $shared_lib_name] } { continue; }
-          if { [regexp "^noc_common_v" $shared_lib_name] } { continue; }
           set arg_list [linsert $arg_list end "-libname" $shared_lib_name]
         }
       }
@@ -1640,9 +1638,7 @@ proc usf_xcelium_write_elaborate_script {} {
           set name [file tail $value]
           set lib_dir "$cpt_dir/$sm_cpt_dir/$name"
           if { ([regexp "^noc_v" $name]) ||
-               ([regexp "^noc2_v" $name]) ||
-               ([regexp "^noc_common_v" $name]) ||
-               ([regexp "^xsc_utility_v" $name]) } {
+               ([regexp "^noc2_v" $name]) } {
             set name [string trimleft $key "lib"]
             set name [string trimright $name ".so"]
             lappend link_arg_list "-L\$xv_cpt_lib_path/$name -l$name"
@@ -1666,9 +1662,7 @@ proc usf_xcelium_write_elaborate_script {} {
           set name [file tail $lib_dir]
           if { ([regexp "^noc_v" $name])        ||
                ([regexp "^noc2_v" $name])       ||
-               ([regexp "^aie_cluster" $name])  ||
-               ([regexp "^noc_common_v" $name]) ||
-               ([regexp "^xsc_utility_v" $name]) } {
+               ([regexp "^aie_cluster" $name]) } {
             continue;
           }
 
