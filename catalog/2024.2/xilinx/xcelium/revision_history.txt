@@ -1,3 +1,4 @@
+11.155 remove xsc_utility, noc_common binding
 11.154 merged 2024.1 to 2024.2
 11.153 get xpm libraries from API
 11.152 compile xpm NoC sources with the design
