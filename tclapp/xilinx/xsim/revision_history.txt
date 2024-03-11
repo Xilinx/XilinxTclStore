@@ -1,3 +1,4 @@
+2.472 compile xpm noc sources locally in xpm_noc library
 2.471 merged 2024.1 to 2024.2
 2.470 get xpm libraries from API
 2.469 compile xpm NoC sources with the design
