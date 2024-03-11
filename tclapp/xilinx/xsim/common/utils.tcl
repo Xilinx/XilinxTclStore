@@ -6305,7 +6305,6 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
 
   upvar $uniq_libs libs
   if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
-    set sub_cores [rdi::get_noc_subcores]
     set i 1
     foreach core [rdi::get_noc_subcores] {
       set libs [linsert $libs $i $core]
