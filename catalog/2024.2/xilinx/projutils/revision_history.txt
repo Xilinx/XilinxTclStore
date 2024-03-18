@@ -1,3 +1,4 @@
+3.565 Property FEATURE_SET is deprecated
 3.564 merged 2024.1 to 2024.2
 3.563 Updated DeprecationMsgPrinter with changed ngc2edif_ exec path
 3.562 Fix error DFX design with BDC
