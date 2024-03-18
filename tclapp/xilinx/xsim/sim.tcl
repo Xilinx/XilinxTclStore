@@ -2199,6 +2199,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
+    if {[string first "noc_hbm_nmu_sim_v" $lib] != -1} { continue; }
     lappend args_list "-L $lib"
   }
   

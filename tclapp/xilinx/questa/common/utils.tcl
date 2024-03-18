@@ -4881,6 +4881,7 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
     }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
+puts lion_1:$path
       #set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
@@ -6305,7 +6306,6 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
 
   upvar $uniq_libs libs
   if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
-    set sub_cores [rdi::get_noc_subcores]
     set i 1
     foreach core [rdi::get_noc_subcores] {
       set libs [linsert $libs $i $core]
