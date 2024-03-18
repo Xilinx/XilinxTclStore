@@ -1,3 +1,4 @@
+11.155 compile xpm noc sources locally in xpm_noc library
 11.154 realign local xpm compiled library mapping
 11.153 get xpm libraries from API
 11.152 compile xpm NoC sources with the design

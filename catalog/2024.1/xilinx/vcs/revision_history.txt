@@ -1,3 +1,4 @@
+13.4 compile xpm noc sources locally in xpm_noc library
 13.3 realign local xpm compiled library mapping
 13.2 get xpm libraries from API
 13.1 compile xpm NoC sources with the design
