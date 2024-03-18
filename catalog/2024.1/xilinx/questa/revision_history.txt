@@ -1,3 +1,4 @@
+2.300 removed debug msg
 2.299 compile xpm noc sources locally in xpm_noc library
 2.298 realign local xpm compiled library mapping
 2.297 get xpm libraries from API
