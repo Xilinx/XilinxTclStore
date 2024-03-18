@@ -4881,7 +4881,6 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
     }
     # iterate over target paths to search for this library name
     foreach path $target_paths {
-puts lion_1:$path
       #set path [file normalize $path]
       set path [regsub -all {[\[\]]} $path {/}]
       foreach lib_dir [glob -nocomplain -directory $path *] {
