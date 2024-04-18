@@ -6301,14 +6301,26 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
   # Argument Usage:
   # Return Value:
 
-  variable l_xpm_libraries
-
   upvar $uniq_libs libs
   if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
-    set i 1
-    foreach core [rdi::get_noc_subcores] {
-      set libs [linsert $libs $i $core]
-      incr i
+    # get NoC comp types from traffic spec
+    set comp_types [rdi::get_noc_comp_types]
+
+    # get available NoC sub-cores
+    set sub_cores [rdi::get_noc_subcores]
+
+    # comp_types empty? bind all sub-cores
+    if { [llength $comp_types] == 0 } {
+      set i 1
+      foreach core $sub_cores {
+        set libs [linsert $libs $i $core]
+        incr i
+      }
+    } else {
+      # bind respective sub-core library based on comp type
+      if { [lsearch -exact $comp_types "PL_NMU" ] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NSU" ] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
     }
   }
 }
