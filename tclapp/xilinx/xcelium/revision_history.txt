@@ -1,3 +1,4 @@
+11.157 remove noc_common xsc_utility bindings
 11.156 bind NoC sub-core library based on comp type
 11.155 compile xpm noc sources locally in xpm_noc library
 11.154 realign local xpm compiled library mapping
