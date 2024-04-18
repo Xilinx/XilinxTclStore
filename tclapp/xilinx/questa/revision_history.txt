@@ -1,3 +1,4 @@
+2.300 bind NoC sub-core library based on comp type
 2.299 compile xpm noc sources locally in xpm_noc library
 2.298 merged 2024.1 to 2024.2
 2.297 get xpm libraries from API

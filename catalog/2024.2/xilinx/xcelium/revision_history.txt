@@ -1,3 +1,4 @@
+11.157 bind NoC sub-core library based on comp type
 11.156 compile xpm noc sources locally in xpm_noc library
 11.155 remove xsc_utility, noc_common binding
 11.154 merged 2024.1 to 2024.2
