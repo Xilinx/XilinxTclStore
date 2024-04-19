@@ -1,5 +1,11 @@
+3.565 Property FEATURE_SET is deprecated
+3.564 Fix for CR:1184178 Adding a pre-synth TCL script as part of XSA causes VPL error
+3.563 Updated DeprecationMsgPrinter with changed ngc2edif_ exec path
+3.562 Fix error DFX design with BDC
+3.561 CR-1182093 handle incremental checkpoint correctly
+3.560 fix incorrect behavior using absolute_path flag with same file names in directory
 3.559 BDC generate_target and create_ip_run issue fix
-3.558 Fix for CR-1177031
+3.558 Consider ignoring message rules
 3.557 Create run for Non-DFX BDC after generating target
 3.556 WPT should ignore generated files
 3.555 Reverting old change

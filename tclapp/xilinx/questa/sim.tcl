@@ -617,7 +617,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
 
   if { $a_sim_vars(b_compile_simmodels) } {
     # get the design simmodel compile order
@@ -1456,7 +1456,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 1]
+  set design_libs [xcs_get_design_libs $design_files 1 1]
 
   # add simulation libraries
   set arg_list [list]

@@ -17,6 +17,16 @@ namespace eval ::tclapp::xilinx::projutils {
 namespace eval ::tclapp::xilinx::projutils {
 
 proc convert_ngc args {
+  send_msg_id Vivado-projutils-325 "INFO" "
+ ###################################### IMPORTANT ######################################
+ # Important: NGC format files are not supported in the Vivado Design Suite for        #
+ # UltraScale devices. It is recommended that you regenerate the IP using the Vivado   #
+ # Design Suite IP customization tools with native output products. Alternatively, you #
+ # can use the NGC2EDIF command to migrate the NGC file to EDIF format for importing.  #
+ # However, Xilinx recommends using native Vivado IP rather than XST-generated         #
+ # XST-generated NGC format files going forward.                                       #
+ #######################################################################################
+ "
   # Summary: 
   # Convert all provided NGC files to a supported format
 
@@ -415,11 +425,15 @@ proc convert_ngc_to_edif_ { _sNgcFile _sOutputDir _bForce } {
   }
 
   # build command
-  set command "ngc2edif"
+  set command "_ngc2edif"
 
   set commandPath [ auto_execok $command ] 
   if { [ string length $commandPath ] == 0 } {
-    send_msg_id Vivado-projutils-315 ERROR "Failed to find the ngc2edif executable. Check to see if ngc2edif works from the Vivado shell.\n"
+    set command "ngc2edif"
+    set commandPath [ auto_execok $command ]
+    if { [ string length $commandPath ] == 0 } { 
+      send_msg_id Vivado-projutils-315 ERROR "Failed to find the ngc2edif executable. Check to see if ngc2edif works from the Vivado shell.\n"
+    }
   }
 
   if { $_bForce } {

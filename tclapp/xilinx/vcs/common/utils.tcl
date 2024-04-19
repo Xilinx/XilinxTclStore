@@ -39,6 +39,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(b_batch)                    0
   set a_sim_vars(b_netlist_sim)              0
   set a_sim_vars(b_extract_ip_sim_files)     0
+  set a_sim_vars(b_dynamic_xpm_noc_compile)  0
   set a_sim_vars(b_int_sm_lib_ref_debug)     0
   set a_sim_vars(b_int_compile_glbl)         0
   set a_sim_vars(s_int_debug_mode)           0
@@ -3749,7 +3750,7 @@ proc xcs_get_xpm_libraries {} {
   set prop_xpm_libs [get_property -quiet "XPM_LIBRARIES" $proj_obj]
 
   # fetch xpm libraries from design graph
-  set dg_xpm_libs [auto_detect_xpm -quiet -search_ips -no_set_property]
+  set dg_xpm_libs [rdi::get_xpm_libraries]
 
   # join libraries and add unique to collection
   set all_xpm_libs [concat $prop_xpm_libs $dg_xpm_libs]
@@ -5119,18 +5120,19 @@ proc xcs_find_sm_dir { sm_dir type } {
   }
 
   #
-  # check if custom sim-model root specified for protected directory (not required for ext)
+  # check if custom sim-model root specified for local simmodel directory
   #
-  if { "cpt" == $type } {
-    # return default install path to simulation model directory (protected or ext)
-    set root_dir [get_param "simulator.customSimModelRootDir"]
+  set param "simulator.customSimModelRootDir"
+  if { ("cpt" == $type) || ("ext" == $type) } {
+    # param value empty? return default install path to simulation model directory (protected or ext)
+    set root_dir [get_param $param]
     if { {} == $root_dir } {
       return $pt_dir
     }
 
     set b_invalid_path 1
     # custom sim-model root path specified
-    if { [file exists $root_dir] } {
+    if { ([file exists $root_dir]) && ([file isdirectory $root_dir]) } {
       set dir "$root_dir/data"
       if { [file exists $dir] } {
         set pt_dir "$dir/$sm_dir"
@@ -5147,6 +5149,55 @@ proc xcs_find_sm_dir { sm_dir type } {
   return $pt_dir
 }
 
+proc xcs_get_cpt_dir { simulator gcc_version clibs_dir b_int_sm_lib_ref_debug target_paths } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $target_paths tgt_paths
+
+  set sp_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected sub-dir  (default): $sp_sub_dir"
+  }
+  set sp_dir [xcs_find_sm_dir $sp_sub_dir "cpt"]
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected lib path (default): $sp_dir"
+  }
+  if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
+    lappend tgt_paths $sp_dir
+  } else {
+    # fallback
+    if { "xsim" == $simulator } {
+      set sp_dir [file dirname $clibs_dir]
+      set sp_dir "$sp_dir/$sp_sub_dir"
+      if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
+        if { $b_int_sm_lib_ref_debug } {
+          puts "(DEBUG) - protected lib path (clibdir): $sp_dir"
+        }
+        lappend tgt_paths $sp_dir
+      }
+    }
+  }
+  return $sp_dir
+}
+
+proc xcs_get_ext_dir { simulator gcc_version b_int_sm_lib_ref_debug target_paths } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $target_paths tgt_paths
+
+  set ext_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
+  set ext_dir     [xcs_find_sm_dir $ext_sub_dir "ext"]
+  if { $b_int_sm_lib_ref_debug } {
+    puts "(DEBUG) - protected ext path (default): $ext_dir"
+  }
+  lappend tgt_paths "$ext_dir"
+  return $ext_dir 
+}
+
 proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir b_int_sm_lib_ref_debug sp_cpt_dir_arg sp_ext_dir_arg } {
   # Summary:
   # Argument Usage:
@@ -5160,40 +5211,13 @@ proc xcs_get_target_sm_paths { simulator gcc_version clibs_dir custom_sm_lib_dir
   #
   # 1. find protected dir and append to target paths to search for
   #
-  set sp_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "cpt"]
-  if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected sub-dir  (default): $sp_sub_dir"
-  }
-  set sp_dir [xcs_find_sm_dir $sp_sub_dir "cpt"]
-  if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected lib path (default): $sp_dir"
-  }
-  if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
-    lappend target_paths $sp_dir
-  } else {
-    # fallback
-    if { "xsim" == $simulator } {
-      set sp_dir [file dirname $clibs_dir]
-      set sp_dir "$sp_dir/$sp_sub_dir"
-      if { ([file exists $sp_dir]) && ([file isdirectory $sp_dir]) } {
-        if { $b_int_sm_lib_ref_debug } {
-          puts "(DEBUG) - protected lib path (clibdir): $sp_dir"
-        }
-        lappend target_paths $sp_dir
-      }
-    }
-  }
+  set sp_dir [xcs_get_cpt_dir $simulator $gcc_version $clibs_dir $b_int_sm_lib_ref_debug target_paths]
   set sp_cpt_dir $sp_dir
   
   #
   # 2. find ext dir and append to target paths to search for
   #
-  set ext_sub_dir [xcs_get_simmodel_dir $simulator $gcc_version "ext"]
-  set ext_dir     [xcs_find_sm_dir $ext_sub_dir "ext"]
-  if { $b_int_sm_lib_ref_debug } {
-    puts "(DEBUG) - protected ext path (default): $ext_dir"
-  }
-  lappend target_paths "$ext_dir"
+  set ext_dir [xcs_get_ext_dir $simulator $gcc_version $b_int_sm_lib_ref_debug target_paths]  
   set sp_ext_dir "$ext_dir"
 
   #
@@ -5304,7 +5328,11 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
     set extn "so"
   }
   # simulator, gcc version, data dir
-  set sim_version [get_param "simulator.${simulator}.version"]
+  set sim_version {}
+  [catch {set sim_version [rdi::get_sim_prod_version ${simulator}]} err]
+  if { {} == $sim_version } {
+    set sim_version [get_param "simulator.${simulator}.version"]
+  }
 
   # prefix path
   set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
@@ -5536,7 +5564,7 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_design_libs { files {b_realign 0} } {
+proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5572,6 +5600,11 @@ proc xcs_get_design_libs { files {b_realign 0} } {
     if { $b_contains_default_lib } {
       set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
     }
+  }
+
+  if { $b_insert_xpm_noc_sub_cores } {
+    # dependency on NoC sub-cores
+    xcs_insert_noc_sub_cores uniq_libs
   }
 
   return $uniq_libs
@@ -5918,6 +5951,11 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
 
   puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  if { ("elaborate" == $step) } {
+    set ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
+    set rdi_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
+    puts $fh_scr "export xv_ext_lib_path=\"$rdi_dir/$ext_dir\""
+  }
   # for aie
   if { {} != $aie_ip_obj } {
     if { [info exists ::env(XILINX_VITIS)] } {
@@ -6256,4 +6294,33 @@ proc xcs_copy_file_to_srcs { src_file launch_dir srcs_file_arg } {
     }
   }
   return 0
+}
+
+proc xcs_insert_noc_sub_cores { uniq_libs } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $uniq_libs libs
+  if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
+    # get NoC comp types from traffic spec
+    set comp_types [rdi::get_noc_comp_types]
+
+    # get available NoC sub-cores
+    set sub_cores [rdi::get_noc_subcores]
+
+    # comp_types empty? bind all sub-cores
+    if { [llength $comp_types] == 0 } {
+      set i 1
+      foreach core $sub_cores {
+        set libs [linsert $libs $i $core]
+        incr i
+      }
+    } else {
+      # bind respective sub-core library based on comp type
+      if { [lsearch -exact $comp_types "PL_NMU" ] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NSU" ] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
+    }
+  }
 }

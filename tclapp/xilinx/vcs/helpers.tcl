@@ -467,7 +467,11 @@ proc usf_set_systemc_library_path { simulator } {
   if { $a_sim_vars(b_int_systemc_mode) } {
     # set vcs system library
     set sys_link ""
-    set gcc_version [get_param "simulator.vcs.gcc.version"]
+    set gcc_version {}
+    [catch {set gcc_version [rdi::get_gcc_prod_version "vcs"]} err]
+    if { {} == $gcc_version } {
+      set gcc_version [get_param "simulator.vcs.gcc.version"]
+    }
     if { [info exists ::env(VG_GNU_PACKAGE)] } {
       set sys_link "$::env(VG_GNU_PACKAGE)/gcc-${gcc_version}"
     }
@@ -610,10 +614,10 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   if { $b_reference_xpm_library } {
     if { $a_sim_vars(b_use_static_lib) } {
       if { ([lsearch -exact $l_compiled_libraries "xpm"] == -1) } {
-        set b_reference_xpm_library 0
+        set b_reference_xpm_library 0 ; # for pre-compile, xpm lib not found from clibs so don't reference and compile it locally
       }
     } else {
-      set b_reference_xpm_library 0
+      set b_reference_xpm_library 0 ; # non pre-compile flow, don't reference and compile it locally
     }
   }
 
@@ -625,6 +629,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     variable l_xpm_libraries
     set b_using_xpm_libraries false
     foreach library $l_xpm_libraries {
+      if { "XPM_NOC" == $library } { continue; }
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
@@ -652,6 +657,21 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
             lappend l_compile_order_files $file
           }
         }
+      }
+    }
+  }
+
+  # force xpm noc files compilation
+  if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
+    set a_sim_vars(b_dynamic_xpm_noc_compile) 1
+    set xpm_library "xpm_noc"
+    foreach file [rdi::get_xpm_files -library_name "XPM_NOC"] {
+      set file_type "SystemVerilog"
+      set g_files $global_files_str
+      set cmd_str [usf_get_file_cmd_str $file $file_type true $g_files l_incl_dirs_opts l_dummy_incl_dirs_opts $xpm_library]
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
       }
     }
   }
@@ -739,6 +759,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         lappend files $cmd_str
         lappend l_compile_order_files $file
       }
+    }
+  }
+
+  if { ($a_sim_vars(b_use_static_lib)) && ($a_sim_vars(b_dynamic_xpm_noc_compile)) } {
+    variable l_local_design_libraries
+    if { [lsearch -exact $l_local_design_libraries "xpm"] == -1 } {
+      lappend l_local_design_libraries "xpm"
     }
   }
 

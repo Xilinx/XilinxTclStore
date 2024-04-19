@@ -1,6 +1,14 @@
+2.345 bind NoC sub-core library based on comp type
+2.344 compile xpm noc sources locally in xpm_noc library
+2.343 realign local xpm compiled library mapping
+2.342 get xpm libraries from API
+2.341 compile xpm NoC sources with the design
+2.340 include NoC subcores for XPM_NOC
+2.339 refactored procs for fetching simmodel and ext dirs
+2.338 use xv variables for pointing to compiled models
 2.337 fetch header files from compile order
-2.336 disable aie binding
-2.335 filter aie binding
+2.336 fetch production simulator version from API
+2.335 merged 2023.2 to 2024.1
 2.334 fixed copyright string
 2.333 company name update
 2.332 copyright message update

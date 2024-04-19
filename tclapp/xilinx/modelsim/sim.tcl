@@ -523,7 +523,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib modelsim_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files)]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -819,7 +819,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files]
+  set design_libs [xcs_get_design_libs $design_files 0 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1019,7 +1019,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 1]
+  set design_libs [xcs_get_design_libs $design_files 1 1]
 
   # add simulation libraries
   set arg_list [list]

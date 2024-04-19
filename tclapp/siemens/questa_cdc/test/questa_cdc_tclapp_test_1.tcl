@@ -13,5 +13,5 @@ open_run synth_1
 source $test_dir/../write_questa_cdc_script.tcl
 
 set design_top [find_top]
-puts "::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out"
-::tclapp::mentor::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out
+puts "::tclapp::siemens::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out"
+::tclapp::siemens::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out
