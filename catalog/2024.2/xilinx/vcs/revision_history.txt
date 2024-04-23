@@ -1,3 +1,4 @@
+13.7 disable nocbase binding for NoC-V1
 13.6 bind NoC sub-core library based on comp type
 13.5 compile xpm noc sources locally in xpm_noc library
 13.4 remove xsc_utility, noc_common binding
