@@ -1,8 +1,25 @@
-2.456 prepend path to 9.3.0 std c++ libraries
-2.455 do not pass gcc switch
-2.454 remove gcc switch for default version
-2.453 pass gcc switch for 6.2.0
-2.452 skip xlnoc for synth from simulation fileset
+2.473 bind NoC sub-core library based on comp type
+2.472 compile xpm noc sources locally in xpm_noc library
+2.471 realign local xpm compiled library mapping
+2.470 get xpm libraries from API
+2.469 compile xpm NoC sources with the design
+2.468 include NoC subcores for XPM_NOC
+2.467 keep 6.2.0
+2.466 remove 6.2.0
+2.465 refactored procs for fetching simmodel and ext dirs
+2.464 use xv variables for pointing to compiled models
+2.463 print repository path for pre-compiled IPs
+2.462 use xsim/ip dir for base libs
+2.461 fetch header files from compile order
+2.460 fetch production simulator version from API
+2.459 merged 2023.2 to 2024.1
+2.458 fixed copyright string
+2.457 copyright message update
+2.456 sync utils
+2.455 AMD rebranding
+2.454 support for vhdl 2019
+2.453 detect shell env for script execution
+2.452 merged 2023.1 to 2023.2
 2.451 donot update xsim.ini if using local clibs
 2.450 pass --mt for XSC compilation jobs
 2.449 pass gcc version switch

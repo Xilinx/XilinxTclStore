@@ -1,4 +1,28 @@
-11.2 skip xlnoc for synth from simulation fileset
+13.7 disable nocbase binding for NoC-V1
+13.6 remove noc_common xsc_utility bindings
+13.5 bind NoC sub-core library based on comp type
+13.4 compile xpm noc sources locally in xpm_noc library
+13.3 realign local xpm compiled library mapping
+13.2 get xpm libraries from API
+13.1 compile xpm NoC sources with the design
+13.0 include NoC subcores for XPM_NOC
+12.9 bind noc2
+12.8 remove 6.2.0
+12.7 refactored procs for fetching simmodel and ext dirs
+12.6 bind noc_common and xsc_utility libs
+12.5 use xv variables for pointing to compiled models
+12.4 fetch header files from compile order
+12.3 fetch production simulator version from API
+12.2 merged 2023.2 to 2024.1
+12.1 fixed copyright string
+12.0 bind nocbase for noc_v1
+11.9 performance fix
+11.8 company name update
+11.7 copyright message update
+11.5 sync utils
+11.4 support for vhdl 2019
+11.3 detect shell env for script execution
+11.2 merged 2023.1 to 2023.2
 11.1 include obj file in archive during link
 11.0 add_wave for vitis context only
 10.7 merged 2022.2 to 2023.1

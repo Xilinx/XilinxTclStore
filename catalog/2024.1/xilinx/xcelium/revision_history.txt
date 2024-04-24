@@ -1,4 +1,30 @@
-11.130 skip xlnoc for synth from simulation fileset
+11.157 remove noc_common xsc_utility bindings
+11.156 bind NoC sub-core library based on comp type
+11.155 compile xpm noc sources locally in xpm_noc library
+11.154 realign local xpm compiled library mapping
+11.153 get xpm libraries from API
+11.152 compile xpm NoC sources with the design
+11.151 include NoC subcores for XPM_NOC
+11.150 bind noc2
+11.149 refactored procs for fetching simmodel and ext dirs
+11.148 filter noc_common_v and xsc_utility_v libs
+11.147 use xv variables for pointing to compiled models
+11.146 find object files into collection if param false
+11.145 append _0 descriptor for xmsc object files if param set
+11.144 fetch header files from compile order
+11.143 fetch production simulator version from API
+11.142 merged 2023.2 to 2024.1
+11.141 fixed copyright string
+11.140 filter protected libs from design libs collection
+11.139 filter xcs_utility from design libs collection
+11.138 performance fix
+11.137 bind aie_cluster
+11.136 company name update
+11.135 copyright message update
+11.133 sync utils
+11.132 support for vhdl 2019
+11.131 detect shell env for script execution
+11.130 merged 2023.1 to 2023.2
 11.129 comments for IP library processing logistics
 11.128 print debug message for local IP compilation
 11.127 merged 2022.2 to 2023.1
