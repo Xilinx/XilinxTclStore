@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Property FEATURE_SET is deprecated</revision_history>
+      <revision_history>Fix for CR-1121058</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
