@@ -62,7 +62,7 @@ proc write_project_tcl {args} {
   # process options
   for {set i 0} {$i < [llength $args]} {incr i} {
     set option [string trim [lindex $args $i]]
-    switch -regexp -- $option {
+    switch -exact -- $option {
       "-paths_relative_to" { 
         incr i;
         if { [regexp {^-} [lindex $args $i]] } {
