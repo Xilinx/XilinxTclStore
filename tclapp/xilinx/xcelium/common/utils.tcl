@@ -47,6 +47,8 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(b_int_is_gui_mode)          0
   set a_sim_vars(b_int_export_source_files)  0
 
+  set a_sim_vars(b_use_legacy_noc)           0
+
   #
   # project, simset object setting
   #
@@ -4078,6 +4080,7 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
   set ref_libs            [list]
@@ -4104,6 +4107,9 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
         foreach lib [get_property -quiet $prop_name $ip_obj] {
           if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
             lappend uniq_ref_libs $lib
+            if { ("noc_sc_v1_0_0" == $lib) && $a_sim_vars(b_use_legacy_noc) } {
+              set lib "noc_sc_v1_0_0_legacy"
+            }
             lappend ref_libs $lib
           }
         }
@@ -5098,6 +5104,20 @@ proc xcs_is_c_library { library } {
     }
   }
   return 0
+}
+
+proc xcs_bind_legacy_noc { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set b_bind_legacy_noc 0
+  [catch {set b_bind_legacy_noc [get_param project.bindLegacyNoCForSystemSimulation]} err]
+  if { $b_bind_legacy_noc || [info exists ::env(USE_LEGACY_NOC)] } {
+    set a_sim_vars(b_use_legacy_noc) 1
+    send_msg_id SIM-utils-002 INFO "*** Using legacy NoC model for system simulation ***"
+  }
 }
 
 proc xcs_find_sm_dir { sm_dir type } {

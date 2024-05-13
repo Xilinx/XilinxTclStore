@@ -38,6 +38,11 @@ proc setup { args } {
   # read simulation command line args and set global variables
   usf_questa_setup_args $args
 
+  # set NoC binding type
+  if { $a_sim_vars(b_int_system_design) } {
+    xcs_bind_legacy_noc
+  }
+
   # perform initial simulation tasks
   if { [usf_questa_setup_simulation] } {
     return 1
