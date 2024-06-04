@@ -1,3 +1,4 @@
+2.302 disable perf analysis
 2.301 bind NoC legacy if param or env set
 2.300 bind NoC sub-core library based on comp type
 2.299 compile xpm noc sources locally in xpm_noc library
