@@ -1431,6 +1431,8 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { {None} == $acc } {
     # no val
   } else {
+    # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
+    set a_sim_vars(b_int_perf_analysis) 0
     if { $a_sim_vars(b_int_perf_analysis) } {
       if { ("acc=npr" == $acc) } {
         lappend arg_list "-access=r+/."
