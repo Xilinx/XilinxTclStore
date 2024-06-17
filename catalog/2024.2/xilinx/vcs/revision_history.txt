@@ -1,3 +1,4 @@
+13.9 append paths to find installed libs
 13.8 bind NoC legacy if param or env set
 13.7 disable nocbase binding for NoC-V1
 13.6 bind NoC sub-core library based on comp type
