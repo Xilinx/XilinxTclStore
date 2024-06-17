@@ -5856,6 +5856,11 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   upvar $l_link_sysc_libs_arg l_link_sysc_libs
   upvar $l_link_c_libs_arg    l_link_c_libs
 
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
   puts $fh_scr "# set library search order"
 
   set l_sm_lib_paths [list]
@@ -5897,10 +5902,15 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
 
   set ld_path "LD_LIBRARY_PATH=."
+  set xilinx_vitis {}
 
   # for aie
   set aie_ip_obj [xcs_find_ip "ai_engine"]
   if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+    }
+
     set sm_ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
     set sm_cpt_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "cpt"]
     set sm_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
@@ -5916,11 +5926,23 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     # disable AIE binding
     #append ld_path ":$tp/$aie_lib_dir"
 
-    set xilinx_vitis     {}
     set cardano_api_path {}
 
-    if { [info exists ::env(XILINX_VITIS)] } {
-      set xilinx_vitis $::env(XILINX_VITIS)
+    if { {} != $xilinx_vitis } {
+      if { [info exists ::env(RDI_DATADIR)] } {
+        foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+          set lpath [file normalize "$data_dir/../lib/lnx64.o"]
+          if { [file exists $lpath] } {
+            append ld_path ":$lpath"
+            break;
+          }
+        }
+      }
+      set aietools_lib_path "$xilinx_vitis/aietools/lib/lnx64.o"
+      append ld_path ":$aietools_lib_path"
+    }
+
+    if { {} != $xilinx_vitis } {
       set cardano_api_path "$xilinx_vitis/aietools/lib/${simulator}64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
@@ -5978,9 +6000,8 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
   # for aie
   if { {} != $aie_ip_obj } {
-    if { [info exists ::env(XILINX_VITIS)] } {
+    if { {} != $xilinx_vitis } {
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
-      set xilinx_vitis $::env(XILINX_VITIS)
       set cardano "$xilinx_vitis/aietools"
       set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
       #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind NoC legacy if param or env set</revision_history>
+      <revision_history>append paths to find installed libs</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
