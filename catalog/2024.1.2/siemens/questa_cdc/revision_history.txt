@@ -1,0 +1,11 @@
+1.10 Remove mentor files no longer needed
+1.9 Mentor to Siemens Transition
+1.8 Bug Fixes 
+1.7 Adding RDC/Autocheck/LINT
+1.6 Using new commands for creating GUI custom commands and add procs for install and uninstall 
+1.5 Handle VERSION '2' of the Vivado Tcl custom commands 
+1.4 Disable loading of liberty files in Questa CDC runs, as the cells will be already loaded in Questa CDC run using 'netlist fpga' command 
+1.3 Fix to get the Questa CDC logo from the Questa CDC installation if it is not found in the directory of the Tcl script 
+1.2 Fix for company name
+1.1 support to add button in Vivado UI for Questa CDC
+1.0 Initial version
