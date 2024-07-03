@@ -305,6 +305,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_dpi_mode]: DPI mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
@@ -349,6 +350,7 @@ proc usf_xcelium_setup_args { args } {
       "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
       "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
+      "-int_dpi_mode"             { set a_sim_vars(b_int_dpi_mode)             1                 }
       "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
       "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
       "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
@@ -1617,7 +1619,11 @@ proc usf_xcelium_write_elaborate_script {} {
       # workaround for xmelab performance issue
       lappend arg_list "-work xil_defaultlib"
       #
-      lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
+      if { $a_sim_vars(b_int_dpi_mode) } {
+        lappend arg_list "-loadsc libdpi"
+      } else {
+        lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
+      }
     }
   }
 
@@ -1633,7 +1639,11 @@ proc usf_xcelium_write_elaborate_script {} {
         puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
-        lappend link_arg_list "$a_sim_vars(s_sim_top)_sc.so"
+        if { $a_sim_vars(b_int_dpi_mode) } {
+          lappend link_arg_list "libdpi.so"
+        } else {
+          lappend link_arg_list "$a_sim_vars(s_sim_top)_sc.so"
+        }
         lappend link_arg_list "\$gcc_objs"
 
         # bind protected libs
