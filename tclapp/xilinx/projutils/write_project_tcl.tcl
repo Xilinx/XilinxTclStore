@@ -1131,7 +1131,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
     }
   
     # is this a IP block fileset? if yes, do not write block fileset properties (block fileset doesnot exist in new project)
-    if { [is_ip_fileset $tcl_obj] } {
+    if { [is_ip_fileset $tcl_obj] || [is_inactive_block_fileset $tcl_obj] } {
       # do not write ip fileset properties
     } else {
       lappend l_script_data "# Set '$tcl_obj' fileset properties"
@@ -2904,6 +2904,31 @@ proc is_bc_managed_fileset { fileset } {
 
   return false
 }
+
+proc is_inactive_block_fileset { fileset } {
+  # Summary: Determine if the fileset is inactive/not used
+  # Argument Usage:
+  # fileset: fileset name
+  # Return Value:
+  # true (1) if the fileset with only one file which is not HDL and not getting used anywhere, false (0) otherwise
+
+  # make sure fileset is block fileset type
+  if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+    return false
+  }
+  
+  set ip_filter "FILE_TYPE == \"IP\" || FILE_TYPE==\"Block Designs\"" 
+  set current_fs_files [get_files -quiet -of_objects [get_filesets $fileset] -norecurse -filter $ip_filter]
+  if { [llength $current_fs_files] == 1 } {
+    set only_file_in_fs [lindex $current_fs_files 0]
+    set used_in [get_property USED_IN $only_file_in_fs]
+    if { [get_property "USED_IN" $only_file_in_fs] == "" } {
+          return true
+        }
+    }
+  return false
+}
+
 
 proc is_proxy_ip_fileset { fileset } {
   # Summary: Determine if the fileset is an OOC run for a proxy IP that has a parent composite
