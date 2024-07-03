@@ -1,3 +1,4 @@
+11.160 generate and bind dpi shared library
 11.159 append paths to find installed libs
 11.158 bind NoC legacy if param or env set
 11.157 bind NoC sub-core library based on comp type
