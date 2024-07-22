@@ -1,3 +1,4 @@
+2.477 disable vivado/vitis lib path for LD_LIBRARY_PATH
 2.476 reference hard-block library
 2.475 append paths to find installed libs
 2.474 bind NoC legacy if param or env set
