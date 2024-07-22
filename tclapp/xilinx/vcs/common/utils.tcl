@@ -5933,13 +5933,13 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
         foreach data_dir [split $::env(RDI_DATADIR) $sep] {
           set lpath [file normalize "$data_dir/../lib/lnx64.o"]
           if { [file exists $lpath] } {
-            append ld_path ":$lpath"
+            #append ld_path ":$lpath"
             break;
           }
         }
       }
       set aietools_lib_path "$xilinx_vitis/aietools/lib/lnx64.o"
-      append ld_path ":$aietools_lib_path"
+      #append ld_path ":$aietools_lib_path"
     }
 
     if { {} != $xilinx_vitis } {
