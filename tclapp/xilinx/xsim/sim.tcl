@@ -339,6 +339,11 @@ proc usf_xsim_setup_simulation { args } {
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
+  # get hard-blocks
+  variable l_hard_blocks
+  set l_hard_blocks [list]
+  set retval [catch {set l_hard_blocks [rdi::get_hard_blocks]} error_log]
+
   # initialize compiled design library
   if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
     set a_sim_vars(compiled_design_lib) "xsim_lib"
@@ -482,6 +487,11 @@ proc usf_xsim_setup_simulation { args } {
 
   if { $b_create_default_ini } {
     usf_xsim_write_setup_file
+  }
+
+  if { [llength $l_hard_blocks] > 0 } {
+    # add ap_lib libs
+    usf_add_ap_lib_mappings
   }
 
   return 0
@@ -2207,6 +2217,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-L $lib"
   }
   
+  # add ap lib
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set ap_lib_name "ap_${hb}"
+    lappend args_list "-L $ap_lib_name"
+  }
+  
   # add uvm
   if { $a_sim_vars(b_contain_sv_srcs) } {
     lappend args_list "-L uvm"
@@ -2331,6 +2348,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-pulse_int_r $int_delay"
     lappend args_list "-pulse_e $path_delay"
     lappend args_list "-pulse_int_e $int_delay"
+  }
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend args_list "$hb_wrapper"
   }
 
   # add top's
@@ -3304,6 +3327,23 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
       }
     }
   }
+ 
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
+      set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+      foreach hb $l_hard_blocks {
+        set wrapper_file "${hb}_sim_wrapper.v"
+        set wrapper_file_path [get_files -all -quiet $wrapper_file]
+        if { {} != $wrapper_file_path } {
+          set hb_wrapper_file "[xcs_get_relative_file_path $wrapper_file_path $a_sim_vars(s_launch_dir)]"
+          puts $fh_vlog "\n# compile simulation wrapper"
+          puts $fh_vlog "verilog $top_lib \\"
+          puts $fh_vlog "\"${hb_wrapper_file}\""
+        }
+      }
+    }
+  }
 
   set glbl_file "glbl.v"
   if { $a_sim_vars(b_absolute_path) } {
@@ -3873,6 +3913,70 @@ proc usf_xsim_write_simmodel_prj { fh_scr } {
   }
 }
 
+proc usf_add_ap_lib_mappings { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  # file should be present by now
+  set ini_file "$a_sim_vars(s_launch_dir)/xsim.ini"
+  if { ![file exists $ini_file] } {
+    return
+  }
+
+  # read xsim.ini contents
+  set fh 0
+  if {[catch {open $ini_file r} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to read ($ini_file)\n"
+    return 1
+  }
+  set data [split [read $fh] "\n"]
+  close $fh
+
+  # get current_mappings
+  set l_current_mappings  [list]
+  set l_current_libraries [list]
+  foreach line $data {
+    set line [string trim $line]
+    if { [string length $line] == 0 } {
+      continue;
+    }
+    lappend l_current_mappings $line
+
+    set library [string trim [lindex [split $line "="] 0]]
+    lappend l_current_libraries $library
+  }
+
+  # find ap lib mappings to add
+  set l_new_mappings [list]
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    set clib_dir [usf_xsim_get_compiled_library_dir]
+    set mapping "unisims_ver=$clib_dir/unisims_ver"
+    lappend l_new_mappings $mapping
+
+    foreach hb $l_hard_blocks {
+      set ap_lib_name "ap_${hb}"
+      set mapping "$ap_lib_name=$clib_dir/$ap_lib_name"
+      lappend l_new_mappings $mapping
+    }
+  }
+
+  # delete xsim.ini
+  [catch {file delete -force $ini_file} error_msg]
+
+  # create fresh updated copy
+  set fh 0
+  if {[catch {open $ini_file w} fh]} {
+    send_msg_id USF-XSim-011 ERROR "Failed to open file to write ($ini_file)\n"
+    return
+  }
+  foreach line $l_new_mappings     { puts $fh $line }
+  foreach line $l_current_mappings { puts $fh $line }
+  close $fh
+}
 proc usf_add_simmodel_mappings { simmodel_compile_order } {
   # Summary:
   # Argument Usage:
