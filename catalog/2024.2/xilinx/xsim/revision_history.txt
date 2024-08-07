@@ -1,3 +1,4 @@
+2.478 fetch hard-blocks from api
 2.477 disable vivado/vitis lib path for LD_LIBRARY_PATH
 2.476 reference hard-block library
 2.475 append paths to find installed libs
