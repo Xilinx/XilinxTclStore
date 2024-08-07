@@ -342,7 +342,10 @@ proc usf_xsim_setup_simulation { args } {
   # get hard-blocks
   variable l_hard_blocks
   set l_hard_blocks [list]
-  set retval [catch {set l_hard_blocks [rdi::get_hard_blocks]} error_log]
+  foreach hb [rdi::get_hard_blocks] {
+    set hb [string tolower $hb]
+    lappend l_hard_blocks $hb
+  }
 
   # initialize compiled design library
   if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
@@ -3954,13 +3957,10 @@ proc usf_add_ap_lib_mappings { } {
   variable l_hard_blocks
   if { [llength $l_hard_blocks] > 0 } {
     set clib_dir [usf_xsim_get_compiled_library_dir]
-    set mapping "unisims_ver=$clib_dir/unisims_ver"
-    lappend l_new_mappings $mapping
-
     foreach hb $l_hard_blocks {
       set ap_lib_name "ap_${hb}"
       set mapping "$ap_lib_name=$clib_dir/$ap_lib_name"
-      lappend l_new_mappings $mapping
+      #lappend l_new_mappings $mapping
     }
   }
 
