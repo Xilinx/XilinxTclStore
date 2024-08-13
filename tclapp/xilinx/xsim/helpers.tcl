@@ -364,6 +364,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set b_using_xpm_libraries false
     foreach library $l_xpm_libraries {
       if { "XPM_NOC" == $library } { continue; }
+      if { "AP_LIB" == $library } { continue; }
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
