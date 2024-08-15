@@ -57,8 +57,8 @@
     <app>
       <name>modelsim</name>
       <company>xilinx</company>
-      <commit_id>0e068cf56712c2f34a1ecb90a3c2c4d555854eea</commit_id>
-      <revision>2.348</revision>
+      <commit_id>57fd763148a2755ad0000d6dba98befa3401eecc</commit_id>
+      <revision>2.349</revision>
     </app>
     <app>
       <name>myapp</name>
