@@ -1909,6 +1909,62 @@ proc xcs_get_common_xpm_vhdl_files {} {
   return $files
 }
 
+proc xcs_get_hard_blocks {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_hard_blocks
+  set l_hard_blocks [list]
+  foreach hb [rdi::get_hard_blocks] {
+    lappend l_hard_blocks [string tolower $hb]
+  }
+}
+
+proc xcs_add_hard_block_wrapper { fh simulator opts run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable l_hard_blocks
+  if { ([llength $l_hard_blocks] == 0) || ({behav_sim} != $a_sim_vars(s_simulation_flow)) } {
+    return
+  }
+
+  set compiler "verilog"
+  switch -exact -- $simulator {
+    {questa}  { set compiler "vlog"   }
+    {xcelium} { set compiler "xmvlog" }
+    {vcs}     { set compiler "vlogan" }
+  }
+
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+  foreach hb $l_hard_blocks {
+    set wrapper_file "${hb}_sim_wrapper.v"
+    set wrapper_file_path [get_files -all -quiet $wrapper_file]
+    if { {} != $wrapper_file_path } {
+      set hb_wrapper_file "[xcs_get_relative_file_path $wrapper_file_path $run_dir]"
+      switch -exact -- $simulator {
+        {xsim}  {
+          puts $fh "\n$compiler $top_lib \\"
+          puts $fh "\"${hb_wrapper_file}\""
+        }
+        {questa}  {
+          puts $fh "\n$compiler $opts -work $top_lib \\"
+          puts $fh "\"${hb_wrapper_file}\""
+        }
+        {xcelium} -
+        {vcs} {
+          puts $fh "\n\$bin_path/$compiler \$${compiler}_opts -work $top_lib \\"
+          puts $fh "\"\$origin_dir/${hb_wrapper_file}\" \\"
+          puts $fh "2>&1 | tee -a compile.log; cat .tmp_log >> ${compiler}.log 2>/dev/null"
+        }
+      }
+    }
+  }
+}
+
 proc xcs_get_path_from_data {path_from_data} {
   # Summary:
   # Argument Usage:

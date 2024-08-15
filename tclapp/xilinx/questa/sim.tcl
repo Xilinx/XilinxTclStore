@@ -162,6 +162,9 @@ proc usf_questa_setup_simulation { args } {
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
+  # get hard-blocks
+  xcs_get_hard_blocks
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -783,6 +786,8 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   if { (!$b_redirect) || (!$b_appended) } {
     puts $fh ""
   }
+
+  xcs_add_hard_block_wrapper $fh "questa" "-64 -incr -mfcu" $a_sim_vars(s_launch_dir)
 
   set glbl_file "glbl.v"
   if { $a_sim_vars(b_absolute_path) } {
@@ -1570,6 +1575,12 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
+  # add ap lib
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    lappend arg_list "-L aph"
+  }
+
   lappend arg_list "-work"
   lappend arg_list $a_sim_vars(default_top_library)
   
@@ -1578,6 +1589,13 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
+  }
+
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   set top_level_inst_names {}

@@ -67,6 +67,7 @@ proc usf_init_vars {} {
   variable l_systemc_incl_dirs               [list]
   variable l_ip_static_libs                  [list]
   variable l_xpm_libraries                   [list]
+  variable l_hard_blocks                     [list]
   variable l_system_sim_incl_dirs            [list]
   variable a_sim_sv_pkg_libs                 [list]
  

@@ -168,6 +168,9 @@ proc usf_xcelium_setup_simulation { args } {
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
 
+  # get hard-blocks
+  xcs_get_hard_blocks
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -700,6 +703,8 @@ proc usf_xcelium_write_compile_script {} {
   } else {
     usf_xcelium_write_compile_order_files $fh_scr
   }
+
+  xcs_add_hard_block_wrapper $fh_scr "xcelium" "" $a_sim_vars(s_launch_dir)
 
   # write glbl compile
   usf_xcelium_write_glbl_compile $fh_scr
@@ -1537,6 +1542,12 @@ proc usf_xcelium_write_elaborate_script {} {
     }
   }
 
+  # add ap lib
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    lappend arg_list "-libname aph"
+  }
+
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
@@ -1629,6 +1640,13 @@ proc usf_xcelium_write_elaborate_script {} {
 
   lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
+  }
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 

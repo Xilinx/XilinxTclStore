@@ -163,6 +163,9 @@ proc usf_vcs_setup_simulation { args } {
 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
+ 
+  # get hard-blocks
+  xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -671,7 +674,9 @@ proc usf_vcs_write_compile_script {} {
   } else {
     usf_vcs_write_compile_order_files $fh_scr
   }
-
+ 
+  xcs_add_hard_block_wrapper $fh_scr "vcs" "+v2k" $a_sim_vars(s_launch_dir)
+ 
   # write glbl compile
   usf_vcs_write_glbl_compile $fh_scr
 
@@ -1713,6 +1718,12 @@ proc usf_vcs_write_elaborate_script {} {
     if { $a_sim_vars(b_system_sim_design) } {
       #lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
     }
+  }
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
