@@ -1,3 +1,4 @@
+2.306 bind noc2 sub-cores
 2.305 support for sys-config simulation
 2.304 disable vivado/vitis lib path for LD_LIBRARY_PATH
 2.303 append paths to find installed libs

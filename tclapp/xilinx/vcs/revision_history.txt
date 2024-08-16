@@ -1,3 +1,4 @@
+14.2 bind noc2 sub-cores
 14.1 support for sys-config simulation
 14.0 disable vivado/vitis lib path for LD_LIBRARY_PATH
 13.9 append paths to find installed libs
