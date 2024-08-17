@@ -2490,6 +2490,7 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
   set prev_lib         {}
   set prev_file_type   {}
   set redirect_cmd_str "2>&1 | tee"
+  set cmd_str          {}
 
   set n_file_group       1
   set n_vhd_file_group   0
@@ -2543,7 +2544,23 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
     # write xmsc cmd
     set gcc_cmd "\$bin_path/$cmd_str"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
-      set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      if { "xmsc_run" == $compiler } {
+        set compiler_path "$a_sim_vars(s_tool_bin_path)/$compiler"
+        if { [file exists $compiler_path] } {
+          set gcc_cmd "\$bin_path/$cmd_str"
+        } else {
+          set xcl_tool_path "$a_sim_vars(s_tool_bin_path)"
+          set parent_dir [file dirname $xcl_tool_path]
+          set parent_dir [file dirname $parent_dir]
+          set compiler_path "$parent_dir/bin/$compiler"
+          if { [file exists $compiler_path] } {
+            set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+          }
+        }
+      } else {
+        set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+      }
     }
     append gcc_cmd "$redirect_cmd_str $a_sim_vars(clog) &"
     incr n_file_group

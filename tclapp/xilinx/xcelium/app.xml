@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind noc2 sub-cores</revision_history>
+      <revision_history>resolve xmsc_run path from install</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
