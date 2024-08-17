@@ -1,3 +1,4 @@
+2.351 append aietools lib path for designs containing AIE
 2.350 bind noc2 sub-cores
 2.349 support for sys-config simulation
 2.348 disable vivado/vitis lib path for LD_LIBRARY_PATH
