@@ -1,3 +1,4 @@
+3.568 Classic SoC Boot is a deprecated feature
 3.567 WPT should not write orphan inactive filesets from previous runs
 3.566 Fix for CR-1121058
 3.565 Property FEATURE_SET is deprecated
