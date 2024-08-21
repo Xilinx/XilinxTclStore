@@ -1,3 +1,4 @@
+2.302 bind NoC2 sub-core library during elab based on comp type
 2.301 bind NoC sub-core library based on comp type
 2.300 removed debug msg
 2.299 compile xpm noc sources locally in xpm_noc library

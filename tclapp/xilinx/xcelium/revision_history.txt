@@ -1,3 +1,4 @@
+11.158 bind NoC2 sub-core library during elab based on comp type
 11.157 remove noc_common xsc_utility bindings
 11.156 bind NoC sub-core library based on comp type
 11.155 compile xpm noc sources locally in xpm_noc library

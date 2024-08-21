@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>bind NoC sub-core library based on comp type</revision_history>
+      <revision_history>bind NoC2 sub-core library during elab based on comp type</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

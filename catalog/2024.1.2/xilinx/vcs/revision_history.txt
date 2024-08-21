@@ -1,3 +1,4 @@
+13.8 bind NoC2 sub-core library during elab based on comp type
 13.7 disable nocbase binding for NoC-V1
 13.6 remove noc_common xsc_utility bindings
 13.5 bind NoC sub-core library based on comp type
