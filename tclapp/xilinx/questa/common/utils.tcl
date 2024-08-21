@@ -6319,7 +6319,9 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
     } else {
       # bind respective sub-core library based on comp type
       if { [lsearch -exact $comp_types "PL_NMU" ] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NMU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nmu_sim_v1_0_0"]     }
       if { [lsearch -exact $comp_types "PL_NSU" ] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NSU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nsu_sim_v1_0_0"]     }
       if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
     }
   }
