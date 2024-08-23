@@ -696,7 +696,6 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     if { {All} == $a_sim_vars(src_mgmt_mode) } {
       send_msg_id USF-VCS-102 INFO "Fetching design files from '$target_obj'..."
       foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $target_obj]] {
-puts foo:$file
         if { [xcs_is_global_include_file $global_files_str $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
