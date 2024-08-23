@@ -1,3 +1,4 @@
+2.308 add files from simulation fileset compile order for manual hierarchy mode
 2.307 append aietools lib path for designs containing AIE
 2.306 bind noc2 sub-cores
 2.305 support for sys-config simulation
