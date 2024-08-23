@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>WPT should not write orphan inactive filesets from previous runs</revision_history>
+      <revision_history>Classic SoC Boot is a deprecated feature</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
