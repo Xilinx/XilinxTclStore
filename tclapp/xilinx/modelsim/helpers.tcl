@@ -415,7 +415,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     if { $b_add_sim_files } {
       # add additional files from simulation fileset
       send_msg_id USF-ModelSim-111 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
-      foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+      foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
