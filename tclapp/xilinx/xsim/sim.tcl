@@ -1376,6 +1376,11 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
 
     xcs_write_pipe_exit $fh_scr
+    if { ($a_sim_vars(b_scripts_only)) && [file exists $a_sim_vars(s_clibs_dir)] } {
+      puts $fh_scr "\n# resolve compiled library path in xsim.ini"
+      set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
+      puts $fh_scr "export RDI_DATADIR=\"$data_dir\"\n"
+    }
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set aie_ip_obj [xcs_find_ip "ai_engine"]
@@ -3210,6 +3215,11 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_pipe_exit $fh_scr
+    if { ($a_sim_vars(b_scripts_only)) && [file exists $a_sim_vars(s_clibs_dir)] } {
+      puts $fh_scr "\n# resolve compiled library path in xsim.ini"
+      set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
+      puts $fh_scr "export RDI_DATADIR=\"$data_dir\"\n"
+    }
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
         puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)]\""
