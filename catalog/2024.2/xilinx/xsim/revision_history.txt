@@ -1,3 +1,4 @@
+2.484 export RDI_DATADIR for scripts only mode
 2.483 add files from simulation fileset compile order for manual hierarchy mode
 2.482 append aietools lib path for designs containing AIE
 2.481 bind noc2 sub-cores
