@@ -2147,8 +2147,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set cc_lib      [get_property "xsim.elaborate.coverage.library"    $a_sim_vars(fs_obj)]
   set cc_cell_def [get_property "xsim.elaborate.coverage.celldefine" $a_sim_vars(fs_obj)]
 
-  if { {} != $cc_name } { lappend args_list "-cc_db $cc_name" }
-  if { {} != $cc_dir  } { lappend args_list "-cc_dir $cc_dir" }
+  if { {} != $cc_name } { lappend args_list "-cov_db_name $cc_name" }
+  if { {} != $cc_dir  } { lappend args_list "-cov_db_dir $cc_dir" }
 
   if { $cc_lib        } { lappend args_list "-cc_libs"        }
   if { $cc_cell_def   } { lappend args_list "-cc_celldefines" }
