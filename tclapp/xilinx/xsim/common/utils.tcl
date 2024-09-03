@@ -2390,6 +2390,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   set netlist_cmd_args [xcs_get_netlist_writer_cmd_args $s_simset $s_type $extn]
   set sdf_cmd_args     [xcs_get_sdf_writer_cmd_args $s_simset]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
+  set design_in_memory {}
 
   # check run results status
   switch -regexp -- $s_simulation_flow {
@@ -2415,11 +2416,13 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
+          set design_in_memory [current_design]
         } else {
           if { [catch {open_run $synth_run -name $netlist} open_err] } {
             #send_msg_id SIM-utils-022 WARNING "open_run failed:$open_err"
           } else {
             current_design $netlist
+            set design_in_memory [current_design]
           }
         }
       } elseif { {GateLvl} == $design_mode } {
@@ -2430,42 +2433,47 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
+          set design_in_memory [current_design]
         } else {
           # open the design
           link_design -name $netlist
+          set design_in_memory [current_design]
         }
       } else {
         send_msg_id SIM-utils-023 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return $s_netlist_file
       }
 
-      set design_in_memory [current_design]
-      send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-
-      # write netlist/sdf
-      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $s_type } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $s_type } {
-        set wv_args "-mode timesim $wv_args"
-      }
-
-      if { {.v} == $extn } {
-        send_msg_id SIM-utils-025 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
+      if { {} == $design_in_memory } {
+        [catch {send_msg_id SIM-utils-069 ERROR "No open design in memory! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console before running post-synthesis netlist simulation."} err]
       } else {
-        send_msg_id SIM-utils-026 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
+        send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
-      if { {timing} == $s_type } {
-        send_msg_id SIM-utils-027 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id SIM-utils-028 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
+        # write netlist/sdf
+        set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
+        set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+        if { {functional} == $s_type } {
+          set wv_args "-mode funcsim $wv_args"
+        } elseif { {timing} == $s_type } {
+          set wv_args "-mode timesim $wv_args"
+        }
+
+        if { {.v} == $extn } {
+          send_msg_id SIM-utils-025 INFO "write_verilog $wv_args"
+          eval "write_verilog $wv_args"
+        } else {
+          send_msg_id SIM-utils-026 INFO "write_vhdl $wv_args"
+          eval "write_vhdl $wv_args"
+        }
+
+        if { {timing} == $s_type } {
+          send_msg_id SIM-utils-027 INFO "Writing SDF file..."
+          set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+          send_msg_id SIM-utils-028 INFO "write_sdf $ws_args"
+          eval "write_sdf $ws_args"
+        }
+        set s_netlist_file $net_file
       }
-      set s_netlist_file $net_file
     }
     {post_impl_sim} {
       set impl_run [current_run -implementation]
@@ -2483,42 +2491,47 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       if { {} != $impl_design } {
         # design already opened, set it current
         current_design $impl_design
+        set design_in_memory [current_design]
       } else {
         if { [catch {open_run $impl_run -name $netlist} open_err] } {
           #send_msg_id SIM-utils-030 WARNING "open_run failed:$open_err"
         } else {
           current_design $impl_run
+          set design_in_memory [current_design]
         }
       }
 
-      set design_in_memory [current_design]
-      send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-
-      # write netlist/sdf
-      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $s_type } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $s_type } {
-        set wv_args "-mode timesim $wv_args"
-      }
-
-      if { {.v} == $extn } {
-        send_msg_id SIM-utils-032 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
+      if { {} == $design_in_memory } {
+        [catch {send_msg_id SIM-utils-069 ERROR "No open design in memory! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console before running post-implementation netlist simulation."} err]
       } else {
-        send_msg_id SIM-utils-033 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
+        send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
-      if { {timing} == $s_type } {
-        send_msg_id SIM-utils-034 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id SIM-utils-035 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
-      }
+        # write netlist/sdf
+        set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
+        set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+        if { {functional} == $s_type } {
+          set wv_args "-mode funcsim $wv_args"
+        } elseif { {timing} == $s_type } {
+          set wv_args "-mode timesim $wv_args"
+        }
+  
+        if { {.v} == $extn } {
+          send_msg_id SIM-utils-032 INFO "write_verilog $wv_args"
+          eval "write_verilog $wv_args"
+        } else {
+          send_msg_id SIM-utils-033 INFO "write_vhdl $wv_args"
+          eval "write_vhdl $wv_args"
+        }
+  
+        if { {timing} == $s_type } {
+          send_msg_id SIM-utils-034 INFO "Writing SDF file..."
+          set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+          send_msg_id SIM-utils-035 INFO "write_sdf $ws_args"
+          eval "write_sdf $ws_args"
+        }
 
-      set s_netlist_file $net_file
+        set s_netlist_file $net_file
+      }
     }
   }
 
