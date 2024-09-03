@@ -1,3 +1,4 @@
+2.487 set current design in memory if design opened
 2.486 check for LD_LIBRARY_PATH env before appending
 2.485 fixed coverage option names
 2.484 export RDI_DATADIR for scripts only mode

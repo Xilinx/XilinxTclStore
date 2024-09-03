@@ -1,3 +1,4 @@
+11.168 set current design in memory if design opened
 11.167 check for LD_LIBRARY_PATH env before appending
 11.166 add files from simulation fileset compile order for manual hierarchy mode
 11.165 append aietools lib path for designs containing AIE
