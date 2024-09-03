@@ -6035,7 +6035,10 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   if { {} != $aietools_lib_path } {
     append ld_path ":$aietools_lib_path"
   }
-  append ld_path ":\$LD_LIBRARY_PATH"
+
+  if { [info exists ::env(LD_LIBRARY_PATH)] } {
+    append ld_path ":\$LD_LIBRARY_PATH"
+  }
 
   if { ("vcs" == $simulator) && (("elaborate" == $step) || ("simulate" == $step)) } {
     set lb [string trimright [rdi::get_rdi_library_path] {:}]
