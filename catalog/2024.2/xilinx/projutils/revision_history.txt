@@ -1,3 +1,4 @@
+3.569 nextgen_versal is deprecated property.
 3.568 Classic SoC Boot is a deprecated feature
 3.567 WPT should not write orphan inactive filesets from previous runs
 3.566 Fix for CR-1121058

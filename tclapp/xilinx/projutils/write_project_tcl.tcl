@@ -1920,6 +1920,7 @@ proc is_deprecated_property { property } {
        [string equal $property "platform.ocl_inst_path"] ||       
        [string equal $property "feature_set"] ||
        [string equal $property "classic_soc_boot"] ||
+       [string equal $property "nextgen_versal"] ||       
        [regexp {dsa\..*} $property ] } {
      return true
   }
