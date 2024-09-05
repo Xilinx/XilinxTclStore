@@ -6160,9 +6160,9 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
           set key_val_pair [split $element "="]
           set name [lindex $key_val_pair 0]
           set val  [lindex $key_val_pair 1]
-          set str "$name="
+          set str "$name"
           if { [string length $val] > 0 } {
-            set str "$str$val"
+            set str "$str=$val"
           }
           lappend args "-d \"$str\""
         }

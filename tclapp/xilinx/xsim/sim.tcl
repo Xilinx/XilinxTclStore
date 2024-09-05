@@ -2112,19 +2112,19 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   #}
 
   # -d (verilog macros)
-  set v_defines [get_property "verilog_define" $a_sim_vars(fs_obj)]
-  if { [llength $v_defines] > 0 } {
-    foreach element $v_defines {
-      set key_val_pair [split $element "="]
-      set name [lindex $key_val_pair 0]
-      set val  [lindex $key_val_pair 1]
-      set str "$name="
-      if { [string length $val] > 0 } {
-        set str "$str$val"
-      }
-      lappend args_list "-d \"$str\""
-    }
-  }
+  #set v_defines [get_property "verilog_define" $a_sim_vars(fs_obj)]
+  #if { [llength $v_defines] > 0 } {
+  #  foreach element $v_defines {
+  #    set key_val_pair [split $element "="]
+  #    set name [lindex $key_val_pair 0]
+  #    set val  [lindex $key_val_pair 1]
+  #    set str "$name"
+  #    if { [string length $val] > 0 } {
+  #      set str "$str=$val"
+  #    }
+  #    lappend args_list "-d \"$str\""
+  #  }
+  #}
 
   # -generic_top (verilog macros)
   set v_generics [get_property "generic" $a_sim_vars(fs_obj)]

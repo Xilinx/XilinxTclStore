@@ -252,9 +252,9 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
-      set str "$name="
+      set str "$name"
       if { [string length $val] > 0 } {
-        set str "$str$val"
+        set str "$str=$val"
       }
       lappend opts "-d \"$str\""
     }
