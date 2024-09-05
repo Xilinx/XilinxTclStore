@@ -1,3 +1,4 @@
+2.489 set RDI_DATADIR to compiled library path
 2.488 remove equal sign for empty define value
 2.487 set current design in memory if design opened
 2.486 check for LD_LIBRARY_PATH env before appending
