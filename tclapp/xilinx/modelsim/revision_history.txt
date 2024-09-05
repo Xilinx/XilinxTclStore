@@ -1,3 +1,4 @@
+2.355 remove equal sign for empty define value
 2.354 set current design in memory if design opened
 2.353 check for LD_LIBRARY_PATH env before appending
 2.352 add files from simulation fileset compile order for manual hierarchy mode

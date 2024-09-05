@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>set current design in memory if design opened</revision_history>
+      <revision_history>remove equal sign for empty define value</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

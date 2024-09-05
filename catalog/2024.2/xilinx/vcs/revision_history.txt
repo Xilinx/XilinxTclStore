@@ -1,3 +1,4 @@
+14.8 remove equal sign for empty define value
 14.7 set current design in memory if design opened
 14.6 check for LD_LIBRARY_PATH env before appending
 14.5 remove debug msg
