@@ -712,7 +712,7 @@ proc usf_xsim_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
       "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
       "-int_rtl_kernel_mode"      { set a_sim_vars(b_int_rtl_kernel_mode)      1                 }

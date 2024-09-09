@@ -351,7 +351,7 @@ proc usf_vcs_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
       "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
