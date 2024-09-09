@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>remove equal sign for empty define value</revision_history>
+      <revision_history>reset scripts only mode for exec mode</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

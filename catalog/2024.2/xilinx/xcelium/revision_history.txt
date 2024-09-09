@@ -1,3 +1,4 @@
+11.170 reset scripts only mode for exec mode
 11.169 remove equal sign for empty define value
 11.168 set current design in memory if design opened
 11.167 check for LD_LIBRARY_PATH env before appending
