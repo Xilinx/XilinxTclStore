@@ -2502,6 +2502,11 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       }
 
       if { {} == $design_in_memory } {
+        # intermediate stage before impl? (link/opt)
+        set design_in_memory [current_design]
+      }
+
+      if { {} == $design_in_memory } {
         [catch {send_msg_id SIM-utils-069 ERROR "No open design in memory! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console before running post-implementation netlist simulation."} err]
       } else {
         send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
