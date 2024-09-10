@@ -10,8 +10,8 @@ launch_runs synth_1
 wait_on_run synth_1
 open_run synth_1
 
-source $test_dir/../write_questa_cdc_script.tcl
+source $test_dir/../questa_ds_vivado_script.tcl
 
 set design_top [find_top]
-puts "::tclapp::siemens::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out"
-::tclapp::siemens::questa_cdc::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out
+puts "::tclapp::siemens::questa_ds::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out"
+::tclapp::siemens::questa_ds::write_questa_cdc_script $design_top -output_directory $test_dir/test2_out
