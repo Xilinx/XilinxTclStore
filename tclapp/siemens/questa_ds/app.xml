@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Remove mentor files no longer needed</revision_history>
+      <revision_history>Unification of CDC RDC Lint and Autocheck scripts</revision_history>
       <name>questa_cdc</name>
       <company>siemens</company>
       <company_display>Siemens</company_display>
