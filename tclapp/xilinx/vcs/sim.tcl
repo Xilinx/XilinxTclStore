@@ -1397,7 +1397,8 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
-
+ 
+  set b_debug_pp_set 0
   if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
     #
     # -debug_acc+pp+dmptf (default)
@@ -1411,6 +1412,15 @@ proc usf_vcs_write_elaborate_script {} {
       append dbg_sw $debug_vars
     }
     lappend arg_list $dbg_sw
+    send_msg_id USF-VCS-002 INFO "Property 'vcs.elaborate.debug_pp' is deprecated and will be removed in the next Vivado release. Please use 'vcs.elaborate.debug_acc' instead."
+    set b_debug_pp_set 1
+  }
+
+  if { [get_property "vcs.elaborate.debug_acc" $a_sim_vars(fs_obj)] } {
+    if { !$b_debug_pp_set } {
+      set dbg_sw "-debug_acc"
+      lappend arg_list $dbg_sw
+    }
   }
 
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
