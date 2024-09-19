@@ -1,7 +1,21 @@
-11.157 remove noc_common xsc_utility bindings
-11.156 bind NoC sub-core library based on comp type
-11.155 compile xpm noc sources locally in xpm_noc library
-11.154 realign local xpm compiled library mapping
+11.171 merged 2024.2 to 2025.1
+11.170 reset scripts only mode for exec mode
+11.169 remove equal sign for empty define value
+11.168 set current design in memory if design opened
+11.167 check for LD_LIBRARY_PATH env before appending
+11.166 add files from simulation fileset compile order for manual hierarchy mode
+11.165 append aietools lib path for designs containing AIE
+11.164 resolve xmsc_run path from install
+11.163 bind noc2 sub-cores
+11.162 support for sys-config simulation
+11.161 disable vivado/vitis lib path for LD_LIBRARY_PATH
+11.160 generate and bind dpi shared library
+11.159 append paths to find installed libs
+11.158 bind NoC legacy if param or env set
+11.157 bind NoC sub-core library based on comp type
+11.156 compile xpm noc sources locally in xpm_noc library
+11.155 remove xsc_utility, noc_common binding
+11.154 merged 2024.1 to 2024.2
 11.153 get xpm libraries from API
 11.152 compile xpm NoC sources with the design
 11.151 include NoC subcores for XPM_NOC

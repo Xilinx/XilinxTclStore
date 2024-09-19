@@ -1,3 +1,14 @@
+2.356 merged 2024.2 to 2025.1
+2.355 remove equal sign for empty define value
+2.354 set current design in memory if design opened
+2.353 check for LD_LIBRARY_PATH env before appending
+2.352 add files from simulation fileset compile order for manual hierarchy mode
+2.351 append aietools lib path for designs containing AIE
+2.350 bind noc2 sub-cores
+2.349 support for sys-config simulation
+2.348 disable vivado/vitis lib path for LD_LIBRARY_PATH
+2.347 append paths to find installed libs
+2.346 bind NoC legacy if param or env set
 2.345 bind NoC sub-core library based on comp type
 2.344 compile xpm noc sources locally in xpm_noc library
 2.343 realign local xpm compiled library mapping

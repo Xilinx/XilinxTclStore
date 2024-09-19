@@ -1,4 +1,4 @@
-11.171 check current design for intermediate impl stage
+11.171 merged 2024.2 to 2025.1
 11.170 reset scripts only mode for exec mode
 11.169 remove equal sign for empty define value
 11.168 set current design in memory if design opened

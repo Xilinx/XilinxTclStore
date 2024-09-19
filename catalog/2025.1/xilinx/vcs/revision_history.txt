@@ -1,3 +1,17 @@
+15.1 merged 2024.2 to 2025.1
+15.0 check current design for intermediate impl stage
+14.9 reset scripts only mode for exec mode
+14.8 remove equal sign for empty define value
+14.7 set current design in memory if design opened
+14.6 check for LD_LIBRARY_PATH env before appending
+14.5 remove debug msg
+14.4 add files from simulation fileset compile order for manual hierarchy mode
+14.3 append aietools lib path for designs containing AIE
+14.2 bind noc2 sub-cores
+14.1 support for sys-config simulation
+14.0 disable vivado/vitis lib path for LD_LIBRARY_PATH
+13.9 append paths to find installed libs
+13.8 bind NoC legacy if param or env set
 13.7 disable nocbase binding for NoC-V1
 13.6 remove noc_common xsc_utility bindings
 13.5 bind NoC sub-core library based on comp type

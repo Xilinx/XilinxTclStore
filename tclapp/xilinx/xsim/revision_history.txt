@@ -1,4 +1,4 @@
-2.491 check current design for intermediate impl stage
+2.491 merged 2024.2 to 2025.1
 2.490 reset scripts only mode for exec mode
 2.489 set RDI_DATADIR to compiled library path
 2.488 remove equal sign for empty define value
