@@ -65,6 +65,7 @@ proc usf_init_vars {} {
   variable l_systemc_incl_dirs               [list]
   variable l_ip_static_libs                  [list]
   variable l_xpm_libraries                   [list]
+  variable l_hard_blocks                     [list]
   variable a_sim_sv_pkg_libs                 [list]
 
   variable a_sim_cache_result
@@ -251,9 +252,9 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
       set key_val_pair [split $element "="]
       set name [lindex $key_val_pair 0]
       set val  [lindex $key_val_pair 1]
-      set str "$name="
+      set str "$name"
       if { [string length $val] > 0 } {
-        set str "$str$val"
+        set str "$str=$val"
       }
       lappend opts "-d \"$str\""
     }
@@ -363,6 +364,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     set b_using_xpm_libraries false
     foreach library $l_xpm_libraries {
       if { "XPM_NOC" == $library } { continue; }
+      if { "AP_LIB" == $library } { continue; }
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
@@ -465,7 +467,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     if { $b_add_sim_files } {
       # add additional files from simulation fileset
       send_msg_id USF-XSim-101 INFO "Fetching design files from '$a_sim_vars(s_simset)'..."
-      foreach file [get_files -quiet -all -of_objects [get_filesets $a_sim_vars(s_simset)]] {
+      foreach file [get_files -quiet -compile_order sources -used_in $used_in_val -of_objects [get_filesets $a_sim_vars(s_simset)]] {
         if { [xcs_is_xlnoc_for_synth $file] } { continue }
         set file_type [get_property "file_type" $file]
         if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }

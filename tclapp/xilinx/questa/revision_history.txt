@@ -1,3 +1,15 @@
+2.313 check current design for intermediate impl stage
+2.312 reset scripts only mode for exec mode
+2.311 remove equal sign for empty define value
+2.310 set current design in memory if design opened
+2.309 check for LD_LIBRARY_PATH env before appending
+2.308 add files from simulation fileset compile order for manual hierarchy mode
+2.307 append aietools lib path for designs containing AIE
+2.306 bind noc2 sub-cores
+2.305 support for sys-config simulation
+2.304 disable vivado/vitis lib path for LD_LIBRARY_PATH
+2.303 append paths to find installed libs
+2.302 disable perf analysis
 2.301 bind NoC sub-core library based on comp type
 2.300 removed debug msg
 2.299 compile xpm noc sources locally in xpm_noc library
