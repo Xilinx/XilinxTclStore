@@ -37,6 +37,7 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_compile_simmodels)        0
   set a_sim_vars(b_int_perf_analysis)        0
+  set a_sim_vars(b_uvm)                      0
 
   set a_sim_vars(l_simmodel_compile_order)   [list]
 
@@ -1398,6 +1399,9 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       }
     }
     "vlogan" {
+      if { $a_sim_vars(b_uvm) } {
+        lappend opts "\$uvm_opts"
+      }
       lappend opts "\$${tool}_opts"
       if { [string equal -nocase $file_type "verilog"] } {
         lappend opts "+v2k"

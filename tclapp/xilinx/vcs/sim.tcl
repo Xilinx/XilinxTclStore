@@ -137,6 +137,9 @@ proc usf_vcs_setup_simulation { args } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
+  # uvm
+  [catch {set a_sim_vars(b_uvm) [get_param simulator.enableUVMSimulation]} err]
+
   # nopc - enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
   if { !$a_sim_vars(b_use_static_lib) } {
     set a_sim_vars(b_compile_simmodels) 1
@@ -1397,6 +1400,10 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
+
+  if { $a_sim_vars(b_uvm) } {
+    lappend arg_list "-ntb_opts uvm-1.2 -R"
+  }
  
   if { [get_property "vcs.elaborate.debug_acc" $a_sim_vars(fs_obj)] } {
     set dbg_sw "-debug_acc"
@@ -2291,6 +2298,12 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  if { $a_sim_vars(b_uvm) } {
+    puts $fh_scr "# set UVM command line args"
+    puts $fh_scr "uvm_opts=\"-ntb_opts uvm-1.2\"\n"
+  }
+
 }
 
 proc usf_vcs_write_systemc_compile_options { fh_scr } {
@@ -2569,6 +2582,19 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
 
     puts $fh_scr "GCC_SYSC_PID=\$!"
     puts $fh_scr ""
+  }
+
+  #####################
+  # uvm
+  #####################
+  if { $a_sim_vars(b_uvm) } {
+    puts $fh_scr "echo \"Compiling UVM package sources...\""
+    if { {} != $a_sim_vars(s_tool_bin_path) } {
+      puts $fh_scr "\$bin_path/vlogan \$vlogan_opts \$uvm_opts \\"
+    } else {
+      puts $fh_scr "vlogan \$vlogan_opts \$uvm_opts \\"
+    }
+    puts $fh_scr "2>&1 | tee compile.log; cat .tmp_log > uvm.log 2>/dev/null\n"
   }
 
   #####################
