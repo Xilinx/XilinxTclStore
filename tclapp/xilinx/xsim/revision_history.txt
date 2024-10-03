@@ -1,3 +1,4 @@
+2.492 bind aietools lib for AIE
 2.491 merged 2024.2 to 2025.1
 2.490 reset scripts only mode for exec mode
 2.489 set RDI_DATADIR to compiled library path
