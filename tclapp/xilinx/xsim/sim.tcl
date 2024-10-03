@@ -195,6 +195,9 @@ proc simulate { args } {
           append cmd ":$sm_lib_path"
         }
       }
+      if { {} != $aie_ip_obj } {
+        append cmd ":\$::env(XILINX_VITIS)/aietools/lib/lnx64.o"
+      }
       append cmd ":$::env(LD_LIBRARY_PATH)\""
       set cmd [regsub -all {\$xv_ref_path} $cmd {$::env(xv_ref_path)}]
       if {[catch {eval $cmd} err_msg]} {
