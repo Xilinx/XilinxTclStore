@@ -38,6 +38,8 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_exec_step)                0
   set a_sim_vars(b_int_setup_sim_vars)       0
+  set a_sim_vars(b_int_use_ini_file)         0
+  set a_sim_vars(b_int_bind_sip_cores)       0
 
   set a_sim_vars(b_int_rtl_kernel_mode)      0
   set a_sim_vars(b_compile_simmodels)        0

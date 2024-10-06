@@ -369,7 +369,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library || $a_sim_vars(b_use_ini_file)) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
@@ -469,7 +469,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) || $a_sim_vars(b_use_ini_file) } {
     set filename "xsim.ini"
     set file [file join $a_sim_vars(s_launch_dir) $filename]
 
@@ -686,6 +686,8 @@ proc usf_xsim_setup_args { args } {
   # [-int_en_system_sim_code]: Enable code for system simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_use_ini_file]: Use mapping file for RTL design (internal use)
+  # [-int_bind_sip_cores]: Bind SIP core library (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -724,6 +726,8 @@ proc usf_xsim_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_use_ini_file"         { set a_sim_vars(b_int_use_ini_file)         1                 }
+      "-int_bind_sip_cores"       { set a_sim_vars(b_int_bind_sip_cores)       1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -2288,6 +2292,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # add secureip
   lappend args_list "-L secureip"
+
+  # sip cores
+  if { ("versal" == [rdi::get_family -arch]) && $a_sim_vars(b_int_bind_sip_cores) } {
+    lappend args_list "-L hnicx"
+    lappend args_list "-L cpm5n"
+  }
   
   # RTL kernel
   if { [info exists a_sim_vars(b_int_rtl_kernel_mode)] } {
