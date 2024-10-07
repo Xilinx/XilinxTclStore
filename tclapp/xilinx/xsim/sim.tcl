@@ -369,7 +369,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library || $a_sim_vars(b_use_ini_file)) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library || $a_sim_vars(b_int_use_ini_file)) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
@@ -469,7 +469,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) || $a_sim_vars(b_use_ini_file) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) || $a_sim_vars(b_int_use_ini_file) } {
     set filename "xsim.ini"
     set file [file join $a_sim_vars(s_launch_dir) $filename]
 
