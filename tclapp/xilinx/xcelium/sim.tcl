@@ -39,6 +39,11 @@ proc setup { args } {
   # read simulation command line args and set global variables
   usf_xcelium_setup_args $args
 
+  # set NoC binding type
+  if { $a_sim_vars(b_int_system_design) } {
+    xcs_bind_legacy_noc
+  }
+
   # perform initial simulation tasks
   if { [usf_xcelium_setup_simulation] } {
     return 1
@@ -162,6 +167,9 @@ proc usf_xcelium_setup_simulation { args } {
 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
+
+  # get hard-blocks
+  xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -300,6 +308,7 @@ proc usf_xcelium_setup_args { args } {
   # [-int_ide_gui]: Vivado launch mode is gui (internal use)
   # [-int_halt_script]: Halt and generate error if simulator tools not found (internal use)
   # [-int_systemc_mode]: SystemC mode (internal use)
+  # [-int_dpi_mode]: DPI mode (internal use)
   # [-int_system_design]: Design configured for system simulation (internal use)
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
@@ -340,10 +349,11 @@ proc usf_xcelium_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
       "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
+      "-int_dpi_mode"             { set a_sim_vars(b_int_dpi_mode)             1                 }
       "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
       "-int_compile_glbl"         { set a_sim_vars(b_int_compile_glbl)         1                 }
       "-int_sm_lib_ref_debug"     { set a_sim_vars(b_int_sm_lib_ref_debug)     1                 }
@@ -693,6 +703,8 @@ proc usf_xcelium_write_compile_script {} {
   } else {
     usf_xcelium_write_compile_order_files $fh_scr
   }
+
+  xcs_add_hard_block_wrapper $fh_scr "xcelium" "" $a_sim_vars(s_launch_dir)
 
   # write glbl compile
   usf_xcelium_write_glbl_compile $fh_scr
@@ -1530,6 +1542,12 @@ proc usf_xcelium_write_elaborate_script {} {
     }
   }
 
+  # add ap lib
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    lappend arg_list "-libname aph"
+  }
+
   if { $a_sim_vars(b_int_systemc_mode) } {
     if { $a_sim_vars(b_system_sim_design) } {
       if { {behav_sim} == $a_sim_vars(s_simulation_flow) } {
@@ -1612,12 +1630,23 @@ proc usf_xcelium_write_elaborate_script {} {
       # workaround for xmelab performance issue
       lappend arg_list "-work xil_defaultlib"
       #
-      lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
+      if { $a_sim_vars(b_int_dpi_mode) } {
+        lappend arg_list "-loadsc libdpi"
+      } else {
+        lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
+      }
     }
   }
 
   lappend arg_list "\$design_libs_elab"
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
+  }
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
@@ -1628,7 +1657,11 @@ proc usf_xcelium_write_elaborate_script {} {
         puts $fh_scr "# generate shared object"
         set link_arg_list [list "\$gcc_path/g++"]
         lappend link_arg_list "-m64 -Wl,-G -shared -o"
-        lappend link_arg_list "$a_sim_vars(s_sim_top)_sc.so"
+        if { $a_sim_vars(b_int_dpi_mode) } {
+          lappend link_arg_list "libdpi.so"
+        } else {
+          lappend link_arg_list "$a_sim_vars(s_sim_top)_sc.so"
+        }
         lappend link_arg_list "\$gcc_objs"
 
         # bind protected libs
@@ -2457,6 +2490,7 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
   set prev_lib         {}
   set prev_file_type   {}
   set redirect_cmd_str "2>&1 | tee"
+  set cmd_str          {}
 
   set n_file_group       1
   set n_vhd_file_group   0
@@ -2510,7 +2544,23 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
     # write xmsc cmd
     set gcc_cmd "\$bin_path/$cmd_str"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
-      set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      if { "xmsc_run" == $compiler } {
+        set compiler_path "$a_sim_vars(s_tool_bin_path)/$compiler"
+        if { [file exists $compiler_path] } {
+          set gcc_cmd "\$bin_path/$cmd_str"
+        } else {
+          set xcl_tool_path "$a_sim_vars(s_tool_bin_path)"
+          set parent_dir [file dirname $xcl_tool_path]
+          set parent_dir [file dirname $parent_dir]
+          set compiler_path "$parent_dir/bin/$compiler"
+          if { [file exists $compiler_path] } {
+            set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+          }
+        }
+      } else {
+        set gcc_cmd "\$bin_path/../../bin/$cmd_str"
+      }
     }
     append gcc_cmd "$redirect_cmd_str $a_sim_vars(clog) &"
     incr n_file_group

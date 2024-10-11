@@ -1,3 +1,35 @@
+2.493 bind aietools lib for AIE during run
+2.492 bind aietools lib for AIE
+2.491 check current design for intermediate impl stage
+2.490 reset scripts only mode for exec mode
+2.489 set RDI_DATADIR to compiled library path
+2.488 remove equal sign for empty define value
+2.487 set current design in memory if design opened
+2.486 check for LD_LIBRARY_PATH env before appending
+2.485 fixed coverage option names
+2.484 export RDI_DATADIR for scripts only mode
+2.483 add files from simulation fileset compile order for manual hierarchy mode
+2.482 append aietools lib path for designs containing AIE
+2.481 bind noc2 sub-cores
+2.480 support for sys-config simulation
+2.479 filter access-point library
+2.478 fetch hard-blocks from api
+2.477 disable vivado/vitis lib path for LD_LIBRARY_PATH
+2.476 reference hard-block library
+2.475 append paths to find installed libs
+2.474 bind NoC legacy if param or env set
+2.473 bind NoC sub-core library based on comp type
+2.472 compile xpm noc sources locally in xpm_noc library
+2.471 merged 2024.1 to 2024.2
+2.470 get xpm libraries from API
+2.469 compile xpm NoC sources with the design
+2.468 include NoC subcores for XPM_NOC
+2.467 keep 6.2.0
+2.466 remove 6.2.0
+2.465 refactored procs for fetching simmodel and ext dirs
+2.464 use xv variables for pointing to compiled models
+2.463 print repository path for pre-compiled IPs
+2.462 use xsim/ip dir for base libs
 2.461 fetch header files from compile order
 2.460 disable aie binding
 2.459 filter aie binding

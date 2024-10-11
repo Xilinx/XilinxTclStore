@@ -47,6 +47,8 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(b_int_is_gui_mode)          0
   set a_sim_vars(b_int_export_source_files)  0
 
+  set a_sim_vars(b_use_legacy_noc)           0
+
   #
   # project, simset object setting
   #
@@ -1907,6 +1909,62 @@ proc xcs_get_common_xpm_vhdl_files {} {
   return $files
 }
 
+proc xcs_get_hard_blocks {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable l_hard_blocks
+  set l_hard_blocks [list]
+  foreach hb [rdi::get_hard_blocks] {
+    lappend l_hard_blocks [string tolower $hb]
+  }
+}
+
+proc xcs_add_hard_block_wrapper { fh simulator opts run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  variable l_hard_blocks
+  if { ([llength $l_hard_blocks] == 0) || ({behav_sim} != $a_sim_vars(s_simulation_flow)) } {
+    return
+  }
+
+  set compiler "verilog"
+  switch -exact -- $simulator {
+    {questa}  { set compiler "vlog"   }
+    {xcelium} { set compiler "xmvlog" }
+    {vcs}     { set compiler "vlogan" }
+  }
+
+  set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+  foreach hb $l_hard_blocks {
+    set wrapper_file "${hb}_sim_wrapper.v"
+    set wrapper_file_path [get_files -all -quiet $wrapper_file]
+    if { {} != $wrapper_file_path } {
+      set hb_wrapper_file "[xcs_get_relative_file_path $wrapper_file_path $run_dir]"
+      switch -exact -- $simulator {
+        {xsim}  {
+          puts $fh "\n$compiler $top_lib \\"
+          puts $fh "\"${hb_wrapper_file}\""
+        }
+        {questa}  {
+          puts $fh "\n$compiler $opts -work $top_lib \\"
+          puts $fh "\"${hb_wrapper_file}\""
+        }
+        {xcelium} -
+        {vcs} {
+          puts $fh "\n\$bin_path/$compiler \$${compiler}_opts -work $top_lib \\"
+          puts $fh "\"\$origin_dir/${hb_wrapper_file}\" \\"
+          puts $fh "2>&1 | tee -a compile.log; cat .tmp_log >> ${compiler}.log 2>/dev/null"
+        }
+      }
+    }
+  }
+}
+
 proc xcs_get_path_from_data {path_from_data} {
   # Summary:
   # Argument Usage:
@@ -2332,6 +2390,7 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
   set netlist_cmd_args [xcs_get_netlist_writer_cmd_args $s_simset $s_type $extn]
   set sdf_cmd_args     [xcs_get_sdf_writer_cmd_args $s_simset]
   set design_mode      [get_property DESIGN_MODE [current_fileset]]
+  set design_in_memory {}
 
   # check run results status
   switch -regexp -- $s_simulation_flow {
@@ -2357,11 +2416,13 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
+          set design_in_memory [current_design]
         } else {
           if { [catch {open_run $synth_run -name $netlist} open_err] } {
             #send_msg_id SIM-utils-022 WARNING "open_run failed:$open_err"
           } else {
             current_design $netlist
+            set design_in_memory [current_design]
           }
         }
       } elseif { {GateLvl} == $design_mode } {
@@ -2372,42 +2433,47 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
         if { {} != $synth_design } {
           # design already opened, set it current
           current_design $synth_design
+          set design_in_memory [current_design]
         } else {
           # open the design
           link_design -name $netlist
+          set design_in_memory [current_design]
         }
       } else {
         send_msg_id SIM-utils-023 ERROR "Unsupported design mode found while opening the design for netlist generation!\n"
         return $s_netlist_file
       }
 
-      set design_in_memory [current_design]
-      send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-
-      # write netlist/sdf
-      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $s_type } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $s_type } {
-        set wv_args "-mode timesim $wv_args"
-      }
-
-      if { {.v} == $extn } {
-        send_msg_id SIM-utils-025 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
+      if { {} == $design_in_memory } {
+        [catch {send_msg_id SIM-utils-069 ERROR "No open design in memory! Please run 'Synthesis' from the GUI or execute 'launch_runs <synth>' command from the Tcl console before running post-synthesis netlist simulation."} err]
       } else {
-        send_msg_id SIM-utils-026 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
+        send_msg_id SIM-utils-024 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
-      if { {timing} == $s_type } {
-        send_msg_id SIM-utils-027 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id SIM-utils-028 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
+        # write netlist/sdf
+        set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
+        set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+        if { {functional} == $s_type } {
+          set wv_args "-mode funcsim $wv_args"
+        } elseif { {timing} == $s_type } {
+          set wv_args "-mode timesim $wv_args"
+        }
+
+        if { {.v} == $extn } {
+          send_msg_id SIM-utils-025 INFO "write_verilog $wv_args"
+          eval "write_verilog $wv_args"
+        } else {
+          send_msg_id SIM-utils-026 INFO "write_vhdl $wv_args"
+          eval "write_vhdl $wv_args"
+        }
+
+        if { {timing} == $s_type } {
+          send_msg_id SIM-utils-027 INFO "Writing SDF file..."
+          set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+          send_msg_id SIM-utils-028 INFO "write_sdf $ws_args"
+          eval "write_sdf $ws_args"
+        }
+        set s_netlist_file $net_file
       }
-      set s_netlist_file $net_file
     }
     {post_impl_sim} {
       set impl_run [current_run -implementation]
@@ -2425,42 +2491,52 @@ proc xcs_write_design_netlist { s_simset s_simulation_flow s_type s_sim_top s_la
       if { {} != $impl_design } {
         # design already opened, set it current
         current_design $impl_design
+        set design_in_memory [current_design]
       } else {
         if { [catch {open_run $impl_run -name $netlist} open_err] } {
           #send_msg_id SIM-utils-030 WARNING "open_run failed:$open_err"
         } else {
           current_design $impl_run
+          set design_in_memory [current_design]
         }
       }
 
-      set design_in_memory [current_design]
-      send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
-
-      # write netlist/sdf
-      set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
-      set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
-      if { {functional} == $s_type } {
-        set wv_args "-mode funcsim $wv_args"
-      } elseif { {timing} == $s_type } {
-        set wv_args "-mode timesim $wv_args"
+      if { {} == $design_in_memory } {
+        # intermediate stage before impl? (link/opt)
+        set design_in_memory [current_design]
       }
 
-      if { {.v} == $extn } {
-        send_msg_id SIM-utils-032 INFO "write_verilog $wv_args"
-        eval "write_verilog $wv_args"
+      if { {} == $design_in_memory } {
+        [catch {send_msg_id SIM-utils-069 ERROR "No open design in memory! Please run 'Implementation' from the GUI or execute 'launch_runs <impl>' command from the Tcl console before running post-implementation netlist simulation."} err]
       } else {
-        send_msg_id SIM-utils-033 INFO "write_vhdl $wv_args"
-        eval "write_vhdl $wv_args"
-      }
+        send_msg_id SIM-utils-031 INFO "Writing simulation netlist file for design '$design_in_memory'..."
 
-      if { {timing} == $s_type } {
-        send_msg_id SIM-utils-034 INFO "Writing SDF file..."
-        set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
-        send_msg_id SIM-utils-035 INFO "write_sdf $ws_args"
-        eval "write_sdf $ws_args"
-      }
+        # write netlist/sdf
+        set net_file [xcs_get_netlist_file $design_in_memory $s_launch_dir $extn $s_sim_top $s_simulation_flow $s_type]
+        set wv_args "-nolib $netlist_cmd_args -file \"$net_file\""
+        if { {functional} == $s_type } {
+          set wv_args "-mode funcsim $wv_args"
+        } elseif { {timing} == $s_type } {
+          set wv_args "-mode timesim $wv_args"
+        }
+  
+        if { {.v} == $extn } {
+          send_msg_id SIM-utils-032 INFO "write_verilog $wv_args"
+          eval "write_verilog $wv_args"
+        } else {
+          send_msg_id SIM-utils-033 INFO "write_vhdl $wv_args"
+          eval "write_vhdl $wv_args"
+        }
+  
+        if { {timing} == $s_type } {
+          send_msg_id SIM-utils-034 INFO "Writing SDF file..."
+          set ws_args "-mode timesim $sdf_cmd_args -file \"$sdf_file\""
+          send_msg_id SIM-utils-035 INFO "write_sdf $ws_args"
+          eval "write_sdf $ws_args"
+        }
 
-      set s_netlist_file $net_file
+        set s_netlist_file $net_file
+      }
     }
   }
 
@@ -4078,6 +4154,7 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
   set ref_libs            [list]
@@ -4104,6 +4181,9 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
         foreach lib [get_property -quiet $prop_name $ip_obj] {
           if { [lsearch -exact $uniq_ref_libs $lib] == -1 } {
             lappend uniq_ref_libs $lib
+            if { ("noc_sc_v1_0_0" == $lib) && $a_sim_vars(b_use_legacy_noc) } {
+              set lib "noc_sc_v1_0_0_legacy"
+            }
             lappend ref_libs $lib
           }
         }
@@ -5100,6 +5180,20 @@ proc xcs_is_c_library { library } {
   return 0
 }
 
+proc xcs_bind_legacy_noc { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set b_bind_legacy_noc 0
+  [catch {set b_bind_legacy_noc [get_param project.bindLegacyNoCForSystemSimulation]} err]
+  if { $b_bind_legacy_noc || [info exists ::env(USE_LEGACY_NOC)] } {
+    set a_sim_vars(b_use_legacy_noc) 1
+    send_msg_id SIM-utils-002 INFO "*** Using legacy NoC model for system simulation ***"
+  }
+}
+
 proc xcs_find_sm_dir { sm_dir type } {
   # Summary:
   # Argument Usage:
@@ -5836,6 +5930,11 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   upvar $l_link_sysc_libs_arg l_link_sysc_libs
   upvar $l_link_c_libs_arg    l_link_c_libs
 
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
   puts $fh_scr "# set library search order"
 
   set l_sm_lib_paths [list]
@@ -5877,10 +5976,16 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
 
   set ld_path "LD_LIBRARY_PATH=."
+  set xilinx_vitis {}
 
   # for aie
   set aie_ip_obj [xcs_find_ip "ai_engine"]
+  set aietools_lib_path {}
   if { {} != $aie_ip_obj } {
+    if { [info exists ::env(XILINX_VITIS)] } {
+      set xilinx_vitis $::env(XILINX_VITIS)
+    }
+
     set sm_ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
     set sm_cpt_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "cpt"]
     set sm_dir     [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
@@ -5896,11 +6001,23 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     # disable AIE binding
     #append ld_path ":$tp/$aie_lib_dir"
 
-    set xilinx_vitis     {}
     set cardano_api_path {}
 
-    if { [info exists ::env(XILINX_VITIS)] } {
-      set xilinx_vitis $::env(XILINX_VITIS)
+    if { {} != $xilinx_vitis } {
+      if { [info exists ::env(RDI_DATADIR)] } {
+        foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+          set lpath [file normalize "$data_dir/../lib/lnx64.o"]
+          if { [file exists $lpath] } {
+            #append ld_path ":$lpath"
+            break;
+          }
+        }
+      }
+      set aietools_lib_path "$xilinx_vitis/aietools/lib/lnx64.o"
+      #append ld_path ":$aietools_lib_path"
+    }
+
+    if { {} != $xilinx_vitis } {
       set cardano_api_path "$xilinx_vitis/aietools/lib/${simulator}64.o"
     } else {
       set cardano_api_path "${sm_dir}/${sm_ext_dir}/cardano_api"
@@ -5932,7 +6049,14 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     }
   }
 
-  append ld_path ":\$sys_path:\$LD_LIBRARY_PATH"
+  append ld_path ":\$sys_path"
+  if { {} != $aietools_lib_path } {
+    append ld_path ":$aietools_lib_path"
+  }
+
+  if { [info exists ::env(LD_LIBRARY_PATH)] } {
+    append ld_path ":\$LD_LIBRARY_PATH"
+  }
 
   if { ("vcs" == $simulator) && (("elaborate" == $step) || ("simulate" == $step)) } {
     set lb [string trimright [rdi::get_rdi_library_path] {:}]
@@ -5958,9 +6082,8 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   }
   # for aie
   if { {} != $aie_ip_obj } {
-    if { [info exists ::env(XILINX_VITIS)] } {
+    if { {} != $xilinx_vitis } {
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
-      set xilinx_vitis $::env(XILINX_VITIS)
       set cardano "$xilinx_vitis/aietools"
       set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
       #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
@@ -6042,9 +6165,9 @@ proc xcs_get_verilog_defines { simulator fs args_list } {
           set key_val_pair [split $element "="]
           set name [lindex $key_val_pair 0]
           set val  [lindex $key_val_pair 1]
-          set str "$name="
+          set str "$name"
           if { [string length $val] > 0 } {
-            set str "$str$val"
+            set str "$str=$val"
           }
           lappend args "-d \"$str\""
         }
@@ -6318,8 +6441,10 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
       }
     } else {
       # bind respective sub-core library based on comp type
-      if { [lsearch -exact $comp_types "PL_NMU" ] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
-      if { [lsearch -exact $comp_types "PL_NSU" ] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NMU"] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NMU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NSU"] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NSU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nsu_sim_v1_0_0"]     }
       if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
     }
   }

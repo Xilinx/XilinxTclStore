@@ -38,6 +38,11 @@ proc setup { args } {
   # read simulation command line args and set global variables
   usf_questa_setup_args $args
 
+  # set NoC binding type
+  if { $a_sim_vars(b_int_system_design) } {
+    xcs_bind_legacy_noc
+  }
+
   # perform initial simulation tasks
   if { [usf_questa_setup_simulation] } {
     return 1
@@ -156,6 +161,9 @@ proc usf_questa_setup_simulation { args } {
 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
+
+  # get hard-blocks
+  xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -326,7 +334,7 @@ proc usf_questa_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
       "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
@@ -778,6 +786,8 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   if { (!$b_redirect) || (!$b_appended) } {
     puts $fh ""
   }
+
+  xcs_add_hard_block_wrapper $fh "questa" "-64 -incr -mfcu" $a_sim_vars(s_launch_dir)
 
   set glbl_file "glbl.v"
   if { $a_sim_vars(b_absolute_path) } {
@@ -1426,6 +1436,8 @@ proc usf_questa_get_elaboration_cmdline {} {
   if { {None} == $acc } {
     # no val
   } else {
+    # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
+    set a_sim_vars(b_int_perf_analysis) 0
     if { $a_sim_vars(b_int_perf_analysis) } {
       if { ("acc=npr" == $acc) } {
         lappend arg_list "-access=r+/."
@@ -1563,6 +1575,12 @@ proc usf_questa_get_elaboration_cmdline {} {
     }
   }
 
+  # add ap lib
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    lappend arg_list "-L aph"
+  }
+
   lappend arg_list "-work"
   lappend arg_list $a_sim_vars(default_top_library)
   
@@ -1571,6 +1589,13 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   set arg_list [list $tool $t_opts]
   lappend arg_list "$d_libs"
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
+  }
+
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   set top_level_inst_names {}

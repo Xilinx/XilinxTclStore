@@ -47,7 +47,8 @@ proc register_options { simulator } {
     {{compile.syscan.more_options}  {string} {}        {More SYSCAN compilation options}}
     {{compile.g++.more_options}     {string} {}        {More G++ compilation options}}
     {{compile.gcc.more_options}     {string} {}        {More GCC compilation options}}
-    {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access}}
+    {{elaborate.debug_pp}           {bool}   {1}       {Enable post-process debug access (deprecated)}}
+    {{elaborate.debug_acc}          {bool}   {1}       {Enable post-process debug access}}
     {{elaborate.link.sysc}          {string} {}        {Specify SystemC libraries to bind}}
     {{elaborate.link.c}             {string} {}        {Specify C/C++ libraries to bind}}
     {{elaborate.vcs.more_options}   {string} {}        {More VCS elaboration options}}

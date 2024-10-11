@@ -37,6 +37,11 @@ proc setup { args } {
   # read simulation command line args and set global variables
   usf_vcs_setup_args $args
 
+  # set NoC binding type
+  if { $a_sim_vars(b_int_system_design) } {
+    xcs_bind_legacy_noc
+  }
+
   # perform initial simulation tasks
   if { [usf_vcs_setup_simulation] } {
     return 1
@@ -158,6 +163,9 @@ proc usf_vcs_setup_simulation { args } {
 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
+ 
+  # get hard-blocks
+  xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -343,7 +351,7 @@ proc usf_vcs_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_ide_gui"              { set a_sim_vars(b_int_is_gui_mode)          1                 }
       "-int_halt_script"          { set a_sim_vars(b_int_halt_script)          1                 }
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
@@ -666,7 +674,9 @@ proc usf_vcs_write_compile_script {} {
   } else {
     usf_vcs_write_compile_order_files $fh_scr
   }
-
+ 
+  xcs_add_hard_block_wrapper $fh_scr "vcs" "+v2k" $a_sim_vars(s_launch_dir)
+ 
   # write glbl compile
   usf_vcs_write_glbl_compile $fh_scr
 
@@ -1387,7 +1397,8 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
-
+ 
+  set b_debug_pp_set 0
   if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
     #
     # -debug_acc+pp+dmptf (default)
@@ -1401,6 +1412,15 @@ proc usf_vcs_write_elaborate_script {} {
       append dbg_sw $debug_vars
     }
     lappend arg_list $dbg_sw
+    send_msg_id USF-VCS-002 INFO "Property 'vcs.elaborate.debug_pp' is deprecated and will be removed in the next Vivado release. Please use 'vcs.elaborate.debug_acc' instead."
+    set b_debug_pp_set 1
+  }
+
+  if { [get_property "vcs.elaborate.debug_acc" $a_sim_vars(fs_obj)] } {
+    if { !$b_debug_pp_set } {
+      set dbg_sw "-debug_acc"
+      lappend arg_list $dbg_sw
+    }
   }
 
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
@@ -1708,6 +1728,12 @@ proc usf_vcs_write_elaborate_script {} {
     if { $a_sim_vars(b_system_sim_design) } {
       #lappend arg_list "-loadsc $a_sim_vars(s_sim_top)_sc"
     }
+  }
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend arg_list "$hb_wrapper"
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"

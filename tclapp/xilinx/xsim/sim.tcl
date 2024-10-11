@@ -37,6 +37,11 @@ proc setup { args } {
   # read simulation command line args and set global variables
   usf_xsim_setup_args $args
 
+  # set NoC binding type
+  if { $a_sim_vars(b_int_system_design) } {
+    xcs_bind_legacy_noc
+  }
+
   # perform initial simulation tasks
   if { [usf_xsim_setup_simulation] } {
     return 1
@@ -190,6 +195,9 @@ proc simulate { args } {
           append cmd ":$sm_lib_path"
         }
       }
+      if { {} != $aie_ip_obj } {
+        append cmd ":\$::env(XILINX_VITIS)/aietools/lib/lnx64.o"
+      }
       append cmd ":$::env(LD_LIBRARY_PATH)\""
       set cmd [regsub -all {\$xv_ref_path} $cmd {$::env(xv_ref_path)}]
       if {[catch {eval $cmd} err_msg]} {
@@ -333,6 +341,9 @@ proc usf_xsim_setup_simulation { args } {
   # TODO: perf-fix 
   # initialize XPM libraries (if any)
   xcs_get_xpm_libraries
+
+  # get hard-blocks
+  xcs_get_hard_blocks
 
   # initialize compiled design library
   if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
@@ -704,7 +715,7 @@ proc usf_xsim_setup_args { args } {
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
       "-absolute_path"            { set a_sim_vars(b_absolute_path)            1                 }
       "-batch"                    { set a_sim_vars(b_batch)                    1                 }
-      "-exec"                     { set a_sim_vars(b_exec_step)                1                 }
+      "-exec"                     { set a_sim_vars(b_exec_step) 1;set a_sim_vars(b_scripts_only) 0}
       "-int_systemc_mode"         { set a_sim_vars(b_int_systemc_mode)         1                 }
       "-int_system_design"        { set a_sim_vars(b_int_system_design)        1                 }
       "-int_rtl_kernel_mode"      { set a_sim_vars(b_int_rtl_kernel_mode)      1                 }
@@ -1368,6 +1379,11 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     }
 
     xcs_write_pipe_exit $fh_scr
+    if { [file exists $a_sim_vars(s_clibs_dir)] } {
+      puts $fh_scr "\n# resolve compiled library path in xsim.ini"
+      set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
+      puts $fh_scr "export RDI_DATADIR=\"$data_dir\"\n"
+    }
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set aie_ip_obj [xcs_find_ip "ai_engine"]
@@ -1705,7 +1721,13 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       }
       set sm_lib_path_str [join $cxl_dirs ":"]
       puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
-      puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str:\$LD_LIBRARY_PATH\n"
+
+      set ld_path_str "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str"
+      set ip_obj [xcs_find_ip "ai_engine"]
+      if { {} != $ip_obj } {
+        append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
+      }
+      puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH\n"
     }
 
     if { $standalone_mode } {
@@ -2099,19 +2121,19 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   #}
 
   # -d (verilog macros)
-  set v_defines [get_property "verilog_define" $a_sim_vars(fs_obj)]
-  if { [llength $v_defines] > 0 } {
-    foreach element $v_defines {
-      set key_val_pair [split $element "="]
-      set name [lindex $key_val_pair 0]
-      set val  [lindex $key_val_pair 1]
-      set str "$name="
-      if { [string length $val] > 0 } {
-        set str "$str$val"
-      }
-      lappend args_list "-d \"$str\""
-    }
-  }
+  #set v_defines [get_property "verilog_define" $a_sim_vars(fs_obj)]
+  #if { [llength $v_defines] > 0 } {
+  #  foreach element $v_defines {
+  #    set key_val_pair [split $element "="]
+  #    set name [lindex $key_val_pair 0]
+  #    set val  [lindex $key_val_pair 1]
+  #    set str "$name"
+  #    if { [string length $val] > 0 } {
+  #      set str "$str=$val"
+  #    }
+  #    lappend args_list "-d \"$str\""
+  #  }
+  #}
 
   # -generic_top (verilog macros)
   set v_generics [get_property "generic" $a_sim_vars(fs_obj)]
@@ -2134,8 +2156,8 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set cc_lib      [get_property "xsim.elaborate.coverage.library"    $a_sim_vars(fs_obj)]
   set cc_cell_def [get_property "xsim.elaborate.coverage.celldefine" $a_sim_vars(fs_obj)]
 
-  if { {} != $cc_name } { lappend args_list "-cc_db $cc_name" }
-  if { {} != $cc_dir  } { lappend args_list "-cc_dir $cc_dir" }
+  if { {} != $cc_name } { lappend args_list "-cov_db_name $cc_name" }
+  if { {} != $cc_dir  } { lappend args_list "-cov_db_dir $cc_dir" }
 
   if { $cc_lib        } { lappend args_list "-cc_libs"        }
   if { $cc_cell_def   } { lappend args_list "-cc_celldefines" }
@@ -2301,6 +2323,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  # add ap lib
+  variable l_hard_blocks
+  if { [llength $l_hard_blocks] > 0 } {
+    lappend args_list "-L aph"
+  }
+
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     lappend args_list "-sv_root \".\" -sc_lib libdpi${lib_extn}"
   }
@@ -2326,6 +2354,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     lappend args_list "-pulse_int_r $int_delay"
     lappend args_list "-pulse_e $path_delay"
     lappend args_list "-pulse_int_e $int_delay"
+  }
+
+  variable l_hard_blocks
+  foreach hb $l_hard_blocks {
+    set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
+    lappend args_list "$hb_wrapper"
   }
 
   # add top's
@@ -3190,6 +3224,11 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_pipe_exit $fh_scr
+    if { [file exists $a_sim_vars(s_clibs_dir)] } {
+      puts $fh_scr "\n# resolve compiled library path in xsim.ini"
+      set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
+      puts $fh_scr "export RDI_DATADIR=\"$data_dir\"\n"
+    }
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
         puts $fh_scr "\nxv_cxl_lib_path=\"[usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)]\""
@@ -3299,6 +3338,8 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
       }
     }
   }
+ 
+  xcs_add_hard_block_wrapper $fh_vlog "xsim" "" $a_sim_vars(s_launch_dir)
 
   set glbl_file "glbl.v"
   if { $a_sim_vars(b_absolute_path) } {
