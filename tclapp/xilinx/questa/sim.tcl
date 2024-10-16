@@ -2144,7 +2144,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
  
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
-            puts $fh_scr "export LD_LIBRARY_PATH=$shared_ip_libs_env_path:\$LD_LIBRARY_PATH"
+            set ld_path_str "export LD_LIBRARY_PATH=$shared_ip_libs_env_path"
+            if { {} != $aie_ip_obj } {
+              append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
+            }
+            puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH"
           }
         }
       }
