@@ -521,7 +521,14 @@ proc usf_vcs_write_setup_files {} {
     set design_dmv [get_property -quiet dmv $a_sim_vars(fs_obj)]
     set b_dmv 0
     foreach dmv [rdi::get_unisim_dmvs] {
+      # unisims
       set map_dir "vcs_lib/$dmv"
+      set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+      if { [file exists $fp] } {
+        [catch {file delete -force $fp} error_msg]
+      }
+      # secureip
+      set map_dir "vcs_lib/${dmv}_sip"
       set fp "$a_sim_vars(s_launch_dir)/$map_dir"
       if { [file exists $fp] } {
         [catch {file delete -force $fp} error_msg]
@@ -530,6 +537,7 @@ proc usf_vcs_write_setup_files {} {
     foreach dmv [rdi::get_unisim_dmvs] {
       if { $dmv != $design_dmv } {
         if { !$b_dmv } {
+          # unisims_ver
           set map_dir "vcs_lib/unisims_ver"
           set fp "$a_sim_vars(s_launch_dir)/$map_dir"
           puts $fh "unisims_ver : $map_dir"
@@ -537,11 +545,30 @@ proc usf_vcs_write_setup_files {} {
             [catch {file delete -force $fp} error_msg]
           }
           [catch {file mkdir $fp} error_msg]
+
+          #secureip
+          set map_dir "vcs_lib/secureip"
+          set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+          puts $fh "secureip : $map_dir"
+          if { [file exists $fp] } {
+            [catch {file delete -force $fp} error_msg]
+          }
+          [catch {file mkdir $fp} error_msg]
           set b_dmv 1
         }
+        # unisims
         set map_dir "vcs_lib/$dmv"
         set fp "$a_sim_vars(s_launch_dir)/$map_dir"
         puts $fh "$dmv : $map_dir"
+        if { [file exists $fp] } {
+          [catch {file delete -force $fp} error_msg]
+        }
+        [catch {file mkdir $fp} error_msg]
+ 
+        #secureip
+        set map_dir "vcs_lib/${dmv}_sip"
+        set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+        puts $fh "${dmv}_sip : $map_dir"
         if { [file exists $fp] } {
           [catch {file delete -force $fp} error_msg]
         }
