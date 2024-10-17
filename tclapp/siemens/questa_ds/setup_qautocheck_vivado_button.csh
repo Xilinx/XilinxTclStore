@@ -2,7 +2,7 @@
 
 ## Description:
 ## ------------ 
-## This script can be used to setup the Vivado GUI button for Questa AUTOCHECK. It should be located at the same directory of 'write_questa_autocheck_script.tcl' script.
+## This script can be used to setup the Vivado GUI button for Questa AUTOCHECK. It should be located at the same directory of 'questa_ds_vivado_script.tcl' script.
 ## 
 ## Examples:
 ## ---------
@@ -33,20 +33,20 @@ rm -f $setup_file
 set rootdir = `dirname $0`       # may be relative path
 set rootdir = `cd $rootdir && pwd`    # ensure absolute path
 
-if ( ! -e "$rootdir/write_questa_autocheck_script.tcl" ) then
-  echo "** Error : Can't find '$rootdir/write_questa_autocheck_script.tcl' sript."
-  echo "         : The 'setup_qautocheck_vivado_button.csh' should be located in the same directory of 'write_questa_autocheck_script.tcl' script."
+if ( ! -e "$rootdir/questa_ds_vivado_script.tcl" ) then
+  echo "** Error : Can't find '$rootdir/questa_ds_vivado_script.tcl' sript."
+  echo "         : The 'setup_qautocheck_vivado_button.csh' should be located in the same directory of 'questa_ds_vivado_script.tcl' script."
   exit 1
 endif
 
 ## Check if it is sourced from Vivado installation or Questa AUTOCHECK installation
 ## If it is a Vivado installation, then we need to source questa_cdc.tcl:
 ##   Because it has the environment variable definition for QUESTA_AUTOCHECK_TCL_SCRIPT_PATH, which is used to add the logo of Questa AUTOCHECK to the button in Vivado UI.
-if ( -e "$rootdir/questa_cdc.tcl" ) then
-  echo "source $rootdir/questa_cdc.tcl" >> $setup_file
+if ( -e "$rootdir/questa_ds.tcl" ) then
+  echo "source $rootdir/questa_ds.tcl" >> $setup_file
 endif
 
-echo "source $rootdir/write_questa_autocheck_script.tcl" >> $setup_file
+echo "source $rootdir/questa_ds_vivado_script.tcl" >> $setup_file
 if ( $remove == 0 ) then
   echo "write_questa_autocheck_script -add_button"  >> $setup_file
 else
