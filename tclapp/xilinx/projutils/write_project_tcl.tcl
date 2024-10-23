@@ -1748,8 +1748,8 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
     # process run step tcl pre/post properties
     if { [string equal $type "run"] } {
-      if { [regexp "STEPS" $prop] } {
-        if { [regexp "TCL.PRE" $prop] || [regexp "TCL.POST" $prop] } {
+      if { [regexp "STEPS" $prop] || [regexp "INCREMENTAL" $prop] || [regexp "FILE" $prop] } {
+        if { [regexp "TCL.PRE" $prop] || [regexp "TCL.POST" $prop] || [string equal -nocase $prop "incremental_checkpoint"] ||  [string equal -nocase $prop "noc_solution_file"] } {
           if { ($cur_val != "") } {
             set file $cur_val
 
@@ -1759,7 +1759,11 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
 
             set tcl_file_path {}
             if { [is_local_to_project $file] } {
-              set tcl_file_path "\$proj_dir/$src_file"
+              if { $a_global_vars(b_arg_no_copy_srcs) } {
+                set tcl_file_path "$file"
+              } else {
+                set tcl_file_path "\$proj_dir/$src_file"
+              }
             } else {
               if { $a_global_vars(b_absolute_path)|| [need_abs_path $file]  } {
                 set tcl_file_path "$file"
