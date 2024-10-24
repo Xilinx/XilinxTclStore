@@ -52,17 +52,6 @@ proc ::tclapp::siemens::questa_ds::uniquify_lib {lib lang num} {
   return $new_lib
 }
 proc ::tclapp::siemens::questa_ds::populate_siemens_publickeys {siemens_public_key_table} {
-  
-  # Summary: Internally used routine to check for siemens public encryption keys
-  
-  # Argument Usage:
-  # siemens_public_key_table  : Input table which will be populated with siemens public encryption keys
-
-  # Return Value:
-  # The table with information added  is returned 
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
-  
   set public_keys { "MGC-DVT-MTI" "MGC-VELOCE-RSA" "MGC-VERIF-SIM-RSA-1" "MGC-VERIF-SIM-RSA-2" "MGC-VERIF-SIM-RSA-3" "SIEMENS-VERIF-SIM-RSA-1" "SIEMENS-VERIF-SIM-RSA-2"  }
      foreach pkey $public_keys {
        dict incr siemens_public_key_table $pkey
@@ -70,16 +59,6 @@ proc ::tclapp::siemens::questa_ds::populate_siemens_publickeys {siemens_public_k
      return $siemens_public_key_table
 }
 proc ::tclapp::siemens::questa_ds::populate_rtl_keywords {rtl_keyword_table} {
-
-  # Summary: Internally used routine to check for RTL Keywords
-  
-  # Argument Usage:
-  # rtl_keyword_table  : Input table which will be populated with Verilog and VHDL Keywords
-
-  # Return Value:
-  # The table with information added  is returned 
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
 
      set vl_keywords {accept_on alias always always_comb always_ff always_latch and assert assign assume automatic before begin bind bins binsof bit break buf bufif0 bufif1 byte case casex casez cell chandle checker class clocking cmos config const constraint context continue cover covergroup coverpoint cross deassign default defparam design disable dist do edge else end endcase endchecker endclass endclocking endconfig endfunction endgenerate endgroup endinterface endmodule endpackage endprimitive endprogram endproperty endspecify endsequence endtable endtask enum event eventually expect export extends extern final first_match for force foreach forever fork forkjoin function generate genvar global highz0 highz1 if iff ifnone ignore_bins illegal_bins implies import incdir include initial inout input inside instance int integer interface intersect join join_any join_none large let liblist library local localparam logic longint macromodule matches medium modport module nand negedge new nexttime nmos nor noshowcancelled not notif0 notif1 null or output package packed parameter pmos posedge primitive priority program property protected pull0 pull1 pulldown pullup pulsestyle_ondetect pulsestyle_onevent pure rand randc randcase randsequence rcmos real realtime ref reg reject_on release repeat restrict return rnmos rpmos rtran rtranif0 rtranif1 s_always s_eventually s_nexttime s_until s_until_with scalared sequence shortint shortreal showcancelled signed small solve specify specparam static string strong strong0 strong1 struct super supply0 supply1 sync_accept_on sync_reject_on table tagged task this throughout time timeprecision timescale timeunit tran tranif0 tranif1 tri tri0 tri1 triand trior trireg type typedef union unique unique0 unsigned until until_with untyped use uwire var vectored virtual void wait wait_order wand weak weak0 weak1 while wildcard wire with within wor xnor xor}
    
@@ -100,33 +79,12 @@ proc ::tclapp::siemens::questa_ds::populate_rtl_keywords {rtl_keyword_table} {
      return $rtl_keyword_table
 }
 proc ::tclapp::siemens::questa_ds::is_sv_vhdl_keyword {rtl_keyword_table word} {
-  # Summary: Internally used routine to check if the word is a valid  RTL Keywords
-  
-  # Argument Usage:
-  # rtl_keyword_table  : Input table which will be populated with Verilog and VHDL Keywords
-  # word               : Input word for which we verifyif it's a valid RTL keyword
-
-  # Return Value:
-  # The table with information added  is returned 
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
 
  set word  [string tolower $word]
  return [dict exists $rtl_keyword_table $word] 
 }
 proc ::tclapp::siemens::questa_ds::set_hier_ips {tool userOD} {
     
-# Summary: Internally used routine to set hierarchical IPs for Vivado
-
-# Argument Usage:
-# tool    : The tool being used
-# userOD  : User output directory
-
-# Return Value:
-# The file will contain hier ip directives for the Xilinx IPs
-
-# Categories: xilinxtclstore, siemens, questa_ds
-
   set hier_ip_blocks "questa_${tool}_hier_ip_blocks.tcl"
   if { [catch {open $userOD/$hier_ip_blocks w} result] } {
     puts stderr "ERROR: Could not open $hier_ip_blocks for writing\n$result"
@@ -141,19 +99,10 @@ proc ::tclapp::siemens::questa_ds::set_hier_ips {tool userOD} {
     puts $hier_ip_blocks_fh "hier ip $ip"
   }
   close $hier_ip_blocks_fh
-  return
 
 }
-
 proc ::tclapp::siemens::questa_ds::get_vivado_version {} {
-# Summary: Internally used routine to get the Vivado version
-
-# Argument Usage: 
-
-# Return Value:
-# The Vivado version is returned as a string
-
-# Categories: xilinxtclstore, siemens, questa_cdc
+   
   set current_version [lindex [version] 1]
   regsub {v} $current_version {} current_version
   set major [lindex [split $current_version .] 0]
@@ -163,15 +112,6 @@ proc ::tclapp::siemens::questa_ds::get_vivado_version {} {
 }
 
 proc ::tclapp::siemens::questa_ds::remove_vivado_GUI_button {tool rc} {
-# Summary: 
-# Internally used routine to remove a Vivado GUI button for running Questa tools
-
-# Argument Usage:
-# rc   : Return code to be used
-# tool : Name of the tool for which the button is being added (e.g., "CDC", "RDC", "Lint", "AutoCheck")
-
-# Return Value:
-# The return code after attempting to remove the button
 
     set vivado_version [get_vivado_version] 
     set OS [lindex $::tcl_platform(os) 0]
@@ -180,19 +120,9 @@ proc ::tclapp::siemens::questa_ds::remove_vivado_GUI_button {tool rc} {
     
  return $rc
 }
+
+
 proc ::tclapp::siemens::questa_ds::add_vivado_GUI_button {rc tool} {
-# Summary: 
-# Internally used routine to add a Vivado GUI button for running Questa tools
-
-# Argument Usage:
-# rc   : Return code to be used
-# tool : Name of the tool for which the button is being added (e.g., "CDC", "RDC", "Lint", "AutoCheck")
-
-# Return Value:
-# The return code after attempting to add the button
-
-# Categories: xilinxtclstore, siemens, questa_cdc
-
  ## Example for code of the Vivado GUI button
     ## -----------------------------------------
     ## 0=Run%20Questa%20RDC tclapp::siemens::questa_rdc::write_questa_rdc_script "" /home/iahmed/questa_rdc_logo.PNG "" "" true ^@ "" true 4 Top%20Module "" "" false Output%20Directory "" -output_directory%20OD1 true Use%20Existing%20XDC "" -use_existing_xdc true Invoke%20Questa%20RDC%20Run "" -run true
@@ -285,19 +215,6 @@ puts "$menu"
 
 proc ::tclapp::siemens::questa_ds::write_compilation_files { compile_file_args tool compiled_lib_list_args compile_lines_args updated_global_incdirs_args verilog_define_options } {
   
-  # Summary: Internally used routine to write the compilation files for Vivado
-  
-  # Argument Usage:
-  # compile_file_args           : Argument for the compile file
-  # tool                        : Name of the tool being used
-  # compiled_lib_list_args      : Argument for the compiled library list
-  # compile_lines_args          : Argument for the compile lines
-  # updated_global_incdirs_args : Argument for the updated global include directories
-  # verilog_define_options      : Verilog define options
-  
-  # Return Value:
-  
-  # Categories: xilinxtclstore, siemens, questa_cdc
 
   ## Vivado install dir
   set vivado_dir $::env(XILINX_VIVADO)
@@ -377,19 +294,7 @@ proc ::tclapp::siemens::questa_ds::write_compilation_files { compile_file_args t
 }
 
 proc ::tclapp::siemens::questa_ds::write_ctrl_file { ctrl_file library_version fpga_libs select_methodology methodology select_goal goal black_box_lines tool } {
-  
-  # Summary: Internally used routine to write the control file for Vivado
-  
-  # Argument Usage:
-  # output_file  : The output file to write the control information to
-  # top_module   : The top module of the design
-  # lib_args     : Library arguments
-  # is_makefile  : Flag indicating if a makefile is being used
-  # tool         : The tool being used
-  
-  # Return Value:
-  
-  # Categories: xilinxtclstore, siemens, questa_cdc
+
   upvar 1 ${ctrl_file} ctrl_file_args
   upvar 1 ${black_box_lines} black_box_lines_args
   
@@ -422,18 +327,7 @@ proc ::tclapp::siemens::questa_ds::write_ctrl_file { ctrl_file library_version f
 }
 
 proc ::tclapp::siemens::questa_ds::write_sdc_constraints_file { output_file top_module lib_args userOD is_makefile tool } {
-# Summary: Internally used routine to write the SDC constraints file for Vivado
 
-# Argument Usage:
-# output_file  : The output file to write the constraints to
-# top_module   : The top module of the design
-# lib_args     : Library arguments
-# is_makefile  : Flag indicating if a makefile is being used
-# tool         : The tool being used
-
-# Return Value:
-
-# Categories: xilinxtclstore, siemens, questa_cdc
       upvar 1 ${output_file} output_file_args
       set indent ""
       set makefile_check ""
@@ -457,18 +351,6 @@ proc ::tclapp::siemens::questa_ds::write_sdc_constraints_file { output_file top_
 }
 proc ::tclapp::siemens::questa_ds::write_xdc_constraints_file { output_file top_module lib_args is_makefile tool } {
 
-# Summary: Internally used routine to write the XDC constraints file for Vivado
-
-# Argument Usage:
-# output_file  : The output file to write the constraints to
-# top_module   : The top module of the design
-# lib_args     : Library arguments
-# is_makefile  : Flag indicating if a makefile is being used
-# tool         : The tool being used
-
-# Return Value:
-
-# Categories: xilinxtclstore, siemens, questa_cdc
       upvar 1 ${output_file} output_file_args
       set indent ""
       set makefile_check ""
@@ -493,18 +375,6 @@ proc ::tclapp::siemens::questa_ds::write_xdc_constraints_file { output_file top_
 
 proc ::tclapp::siemens::questa_ds::write_makefile { output_file top_module lib_args top_lib_dir out_dir userOD constraints compilation_file ctrl_file use_existing_xdc generate_sdc tool autocheck_verify_timeout } {
 
-# Summary: Internally used routine to write the makefile for Vivado
-
-# Argument Usage:
-# output_file  : The output file to write the makefile to
-# top_module   : The top module of the design
-# lib_args     : Library arguments
-# is_makefile  : Flag indicating if a makefile is being used
-# tool         : The tool being used
-
-# Return Value:
-
-# Categories: xilinxtclstore, siemens, questa_cdc
 
   upvar 1 ${output_file} output_file_args
   puts $output_file_args "DUT=$top_module"
@@ -558,27 +428,7 @@ proc ::tclapp::siemens::questa_ds::write_makefile { output_file top_module lib_a
 
 }
 proc ::tclapp::siemens::questa_ds::write_batfile { output_file top_module lib_args top_lib_dir out_dir userOD constraints compilation_file ctrl_file sdc_file tool run_questa_cmd autocheck_verify_timeout  } {
-  
-  # Summary: Internally used routine to write a batch file for Questa DS Vivado script.
 
-  # Argument Usage:
-  # output_file: The path to the output batch file.
-  # top_module: The top module name.
-  # lib_args: Library arguments for the compilation.
-  # top_lib_dir: The top library directory.
-  # out_dir: The output directory.
-  # userOD: User-defined options.
-  # constraints: Constraints file.
-  # compilation_file: The compilation file.
-  # ctrl_file: The control file.
-  # sdc_file: The SDC file.
-  # tool: The tool to be used.
-  # run_questa_cmd: Command to run Questa.
-  # autocheck_verify_timeout: Timeout for autocheck verification.
-
-  # Return Value:
-
-  # Categories: xilinxtclstore, siemens, questa_cdc
   upvar 1 ${output_file} output_file_args
   set tool_name [string totitle $tool]
   set do_sdc ""
@@ -666,18 +516,6 @@ proc ::tclapp::siemens::questa_ds::write_batfile { output_file top_module lib_ar
   
 proc ::tclapp::siemens::questa_ds::write_tcl_file { output_file top_module lib_args  userOD constraints compilation_file ctrl_file use_existing_xdc generate_sdc run_questa_cmd autocheck_verify_timeout tool } {
   
-  # Summary: Internally used routine to write the TCL file for Vivado
-  
-  # Argument Usage:
-  # output_file  : The output file to write the TCL script to
-  # top_module   : The top module of the design
-  # lib_args     : Library arguments
-  # is_makefile  : Flag indicating if a makefile is being used
-  # tool         : The tool being used
-  
-  # Return Value:
-  
-  # Categories: xilinxtclstore, siemens, questa_cdc
   upvar 1 ${output_file} output_file_args
   
   set do_constraints ""
@@ -721,18 +559,6 @@ proc ::tclapp::siemens::questa_ds::write_tcl_file { output_file top_module lib_a
 
 proc ::tclapp::siemens::questa_ds::write_sh_file { output_file top_module top_lib_dir out_dir  userOD tcl_script tool } {
 
-  # Summary: Internally used routine to write the shell script file for Vivado
-  
-  # Argument Usage:
-  # output_file  : The output file to write the shell script to
-  # top_module   : The top module of the design
-  # lib_args     : Library arguments
-  # is_makefile  : Flag indicating if a makefile is being used
-  # tool         : The tool being used
-  
-  # Return Value:
-  
-  # Categories: xilinxtclstore, siemens, questa_cdc
   upvar 1 ${output_file} output_file_args
   puts $output_file_args "#! /bin/sh"
   puts $output_file_args ""
@@ -744,18 +570,7 @@ proc ::tclapp::siemens::questa_ds::write_sh_file { output_file top_module top_li
 
 proc ::tclapp::siemens::questa_ds::run_questa_tool_analysis { run_questa_cmd top_module userOD tool } {
 
-    # Summary: Internally used routine to run Questa tool analysis for Vivado
-    
-    # Argument Usage:
-    # output_file  : The output file to write the analysis results to
-    # top_module   : The top module of the design
-    # lib_args     : Library arguments
-    # is_makefile  : Flag indicating if a makefile is being used
-    # tool         : The tool being used
-    
-    # Return Value:
-    
-    # Categories: xilinxtclstore, siemens, questa_cdc
+   
    
     if { $tool eq "cdc"} {
        set tool_name "CDC"
@@ -851,21 +666,6 @@ proc ::tclapp::siemens::questa_ds::run_questa_tool_analysis { run_questa_cmd top
 }
 proc ::tclapp::siemens::questa_ds::extract_rtl_constraint_files {compile_lib_list_args compile_lines_args black_box_lines_args updated_global_incdirs_args num_files_args top_module verilog_define_options_args} {
   
-# Summary: Internally used routine to extract RTL constraint files for Vivado
-
-# Argument Usage:
-# compile_lib_list_args     : Argument for the compile library list
-# compile_lines_args        : Argument for the compile lines
-# black_box_lines_args      : Argument for the black box lines
-# updated_global_incdirs_args : Argument for the updated global include directories
-# num_files_args            : Argument for the number of files
-# top_module                : The top module of the design
-# verilog_define_options_args : Verilog define options
-
-# Return Value:
-
-# Categories: xilinxtclstore, siemens, questa_cdc
-
   upvar 1 ${compile_lib_list_args}     compiled_lib_list
   upvar 1 ${compile_lines_args}     compile_lines
   upvar 1 ${black_box_lines_args}   black_box_lines
@@ -1351,18 +1151,7 @@ proc ::tclapp::siemens::questa_ds::extract_rtl_constraint_files {compile_lib_lis
  }
 
 proc ::tclapp::siemens::questa_ds::parse_arguments {tool args generated_output_filelist usage_msg} {
-    # Summary: Internally used routine to parse arguments for Vivado
-    
-    # Argument Usage:
-    # tool                      : The tool being used
-    # args                      : The arguments to parse
-    # generated_output_filelist : List of generated output files
-    # usage_msg                 : Usage message to display
-    
-    # Return Value:
-    
-    # Categories: xilinxtclstore, siemens, questa_cdc
-
+       
        set lint_vars  [list userOD top_module  tool_constraints run_questa_tool add_button remove_button select_methodology methodology select_goal goal library_version fpga_libs is_set_hier_ips]
        set autocheck_vars  [list userOD top_module use_existing_xdc generate_sdc tool_constraints run_questa_tool add_button remove_button library_version fpga_libs is_set_hier_ips autocheck_verify_timeout]
        set rdc_vars   [list userOD top_module use_existing_xdc generate_sdc tool_constraints run_questa_tool add_button remove_button select_methodology methodology select_goal goal library_version fpga_libs is_set_hier_ips]
@@ -1521,18 +1310,7 @@ proc ::tclapp::siemens::questa_ds::parse_arguments {tool args generated_output_f
   
 
 proc ::tclapp::siemens::questa_ds::create_outfiles {userOD tool generated_output_filelist} {
-# Summary: Internally used routine to create output files for Vivado
-
-# Argument Usage:
-# output_file  : The output file to write the results to
-# top_module   : The top module of the design
-# lib_args     : Library arguments
-# is_makefile  : Flag indicating if a makefile is being used
-# tool         : The tool being used
-
-# Return Value:
-    
-    # Categories: xilinxtclstore, siemens, questa_cdc
+ 
      if {$tool eq "lint"} {
         set local_vars [list q${tool}_run_makefile_fh q${tool}_compile_tcl_fh q${tool}_ctrl_fh q${tool}_tcl_fh q${tool}_run_fh q${tool}_run_batfile_fh compile_tcl ctrl_tcl tcl_script run_script]
     } else {
@@ -1648,8 +1426,6 @@ proc ::tclapp::siemens::questa_ds::write_questa_cdc_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_cdc
    
-  ## Keep an environment variable with the path of the script
-  set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
@@ -1834,9 +1610,6 @@ proc ::tclapp::siemens::questa_ds::write_questa_rdc_script {args} {
   # Return Value: Returns '0' on successful completion
 
   # Categories: xilinxtclstore, siemens, questa_rdc
-
-  ## Keep an environment variable with the path of the script
-  set env(QUESTA_RDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
@@ -2031,9 +1804,6 @@ proc ::tclapp::siemens::questa_ds::write_questa_lint_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_lint
 
-  ## Keep an environment variable with the path of the script
-  set env(QUESTA_LINT_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
-
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
 
@@ -2208,9 +1978,6 @@ proc ::tclapp::siemens::questa_ds::write_questa_autocheck_script {args} {
 
   # Categories: xilinxtclstore, siemens, questa_autocheck
 
-  ## Keep an environment variable with the path of the script
-  set env(QUESTA_AUTOCHECK_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
-
   set args [subst [regsub -all \{ $args ""]]
   set args [subst [regsub -all \} $args ""]]
 
@@ -2368,6 +2135,11 @@ proc ::tclapp::siemens::questa_ds::write_questa_autocheck_script {args} {
   }
 
 }
+## Keep an environment variable with the path of the script
+set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+set env(QUESTA_RDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+set env(QUESTA_LINT_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+set env(QUESTA_AUTOCHECK_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 
 ## Auto-import the procs of the Questa CDC script
 namespace import -force tclapp::siemens::questa_ds::*

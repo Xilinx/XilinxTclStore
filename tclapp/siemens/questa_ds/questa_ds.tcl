@@ -1,4 +1,4 @@
-# tclapp/siemens/questa_cdc/questa_cdc.tcl
+# tclapp/siemens/questa_ds/questa_ds.tcl
 package require Tcl 8.5
 
 namespace eval ::tclapp::siemens::questa_ds {
@@ -9,6 +9,6 @@ namespace eval ::tclapp::siemens::questa_ds {
     lappend ::auto_path $home
     }
     ## Keep an environment variable with the path of the script
-    set env(QUESTA_CDC_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
+    set env(QUESTA_DS_TCL_SCRIPT_PATH) [file normalize [file dirname [info script]]]
 }
 package provide ::tclapp::siemens::questa_ds 1.11

@@ -40,7 +40,7 @@ if ( ! -e "$rootdir/questa_ds_vivado_script.tcl" ) then
 endif
 
 ## Check if it is sourced from Vivado installation or Questa AUTOCHECK installation
-## If it is a Vivado installation, then we need to source questa_cdc.tcl:
+## If it is a Vivado installation, then we need to source questa_ds.tcl:
 ##   Because it has the environment variable definition for QUESTA_AUTOCHECK_TCL_SCRIPT_PATH, which is used to add the logo of Questa AUTOCHECK to the button in Vivado UI.
 if ( -e "$rootdir/questa_ds.tcl" ) then
   echo "source $rootdir/questa_ds.tcl" >> $setup_file
