@@ -7,4 +7,7 @@
 # in response to "package require" commands.  When this
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
-
+# Extend the auto_path to make provider apps available
+if {[lsearch -exact $::auto_path $dir] == -1} {
+    lappend ::auto_path $dir
+}

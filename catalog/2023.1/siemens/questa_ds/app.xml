@@ -11,19 +11,19 @@
       <procs>
         <proc>
           <name>write_questa_autocheck_script</name>
-          <summary>This proc generates the Questa AutoCheck script file</summary>
+          <summary/>
         </proc>
         <proc>
           <name>write_questa_cdc_script</name>
-          <summary>This proc generates the Questa CDC script file</summary>
+          <summary/>
         </proc>
         <proc>
           <name>write_questa_lint_script</name>
-          <summary>This proc generates the Questa Lint script file</summary>
+          <summary/>
         </proc>
         <proc>
           <name>write_questa_rdc_script</name>
-          <summary>This proc generates the Questa RDC script file</summary>
+          <summary/>
         </proc>
       </procs>
     </app>
