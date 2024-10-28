@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::siemens::questa_cdc 1.10 [list source [file join $dir questa_cdc.tcl]]
+package ifneeded ::tclapp::siemens::questa_ds 1.11 [list source [file join $dir questa_ds.tcl]]
