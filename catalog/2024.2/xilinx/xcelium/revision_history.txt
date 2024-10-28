@@ -12,10 +12,9 @@
 11.160 generate and bind dpi shared library
 11.159 append paths to find installed libs
 11.158 bind NoC legacy if param or env set
-11.157 bind NoC sub-core library based on comp type
-11.156 compile xpm noc sources locally in xpm_noc library
-11.155 remove xsc_utility, noc_common binding
-11.154 merged 2024.1 to 2024.2
+11.156 bind NoC sub-core library based on comp type
+11.155 compile xpm noc sources locally in xpm_noc library
+11.154 realign local xpm compiled library mapping
 11.153 get xpm libraries from API
 11.152 compile xpm NoC sources with the design
 11.151 include NoC subcores for XPM_NOC
@@ -26,8 +25,8 @@
 11.146 find object files into collection if param false
 11.145 append _0 descriptor for xmsc object files if param set
 11.144 fetch header files from compile order
-11.143 disable aie binding
-11.142 filter aie binding
+11.143 fetch production simulator version from API
+11.142 merged 2023.2 to 2024.1
 11.141 fixed copyright string
 11.140 filter protected libs from design libs collection
 11.139 filter xcs_utility from design libs collection

@@ -20,7 +20,7 @@
 2.474 bind NoC legacy if param or env set
 2.473 bind NoC sub-core library based on comp type
 2.472 compile xpm noc sources locally in xpm_noc library
-2.471 merged 2024.1 to 2024.2
+2.471 realign local xpm compiled library mapping
 2.470 get xpm libraries from API
 2.469 compile xpm NoC sources with the design
 2.468 include NoC subcores for XPM_NOC
@@ -31,8 +31,8 @@
 2.463 print repository path for pre-compiled IPs
 2.462 use xsim/ip dir for base libs
 2.461 fetch header files from compile order
-2.460 disable aie binding
-2.459 filter aie binding
+2.460 fetch production simulator version from API
+2.459 merged 2023.2 to 2024.1
 2.458 fixed copyright string
 2.457 copyright message update
 2.456 sync utils
