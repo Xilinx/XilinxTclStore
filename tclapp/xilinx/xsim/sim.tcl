@@ -4463,12 +4463,31 @@ proc usf_xsim_escape_quotes { args } {
   set updated_args [list]
   set args_list [split $args " "]
 
-  # args contain -d? (verilog_define)
-  # --incr --debug typical --relax --mt 8 -d "a=20" -d \"hex=64'h1234\"
+  # args contain -d or -generic_top? (verilog_define)
+  # --incr --debug typical --relax --mt 8 -d "a=20" -d \"hex=64'h1234\" -generic_top "g=342"
   if { [regexp { \-d } $args_list] } {
     foreach arg $args_list {
       if { {-d} == $arg } {
         # set flag for next arg value ("a=20")
+        set b_found 1
+        lappend updated_args $arg
+        continue
+      }
+      if { $b_found } {
+        # if value specified is of type hex (val=128'h123)? wrap in quotes with back-slash
+        if { [regexp {'} $arg] } {
+          set val [string trim $arg \"]
+          set arg "\\\"$val\\\""
+        }
+        set b_found 0
+      }
+      lappend updated_args $arg
+    }
+    set cmd [join $updated_args " "]
+  } elseif { [regexp { \-generic_top } $args_list] } {
+    foreach arg $args_list {
+      if { {-generic_top} == $arg } {
+        # set flag for next arg value ("g=342")
         set b_found 1
         lappend updated_args $arg
         continue
