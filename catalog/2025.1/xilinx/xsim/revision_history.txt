@@ -1,3 +1,4 @@
+2.495 add quotes for generic_top
 2.494 fixed use ini var name
 2.493 bind sip cores for Versal
 2.492 bind aietools lib for AIE
