@@ -1101,7 +1101,18 @@ proc usf_compile_simmodel_sources { fh } {
         set obj_file "xcelium_lib/${lib_name}/${file_name}.o"
         lappend args $obj_file
       }
-      set sys_link_path "\$bin_path/../../systemc/lib/64bit/gnu"
+      set sys_link_path ""
+      set gnu_subdir "systemc/lib/64bit/gnu"
+      set check_sys_link_path "$a_sim_vars(s_tool_bin_path)/../../$gnu_subdir"
+      if { ([file exists $check_sys_link_path]) && ([file isdirectory $check_sys_link_path]) } {
+        set sys_link_path "\$bin_path/../../$gnu_subdir"
+      } else {
+        set check_sys_link_path "$a_sim_vars(s_tool_bin_path)/../$gnu_subdir"
+        if { ([file exists $check_sys_link_path]) && ([file isdirectory $check_sys_link_path]) } {
+          set sys_link_path "\$bin_path/../$gnu_subdir"
+        }
+      }
+
       lappend args "$sys_link_path/libscBootstrap_sh.so"
       lappend args "$sys_link_path/libxmscCoroutines_sh.so"
       lappend args "$sys_link_path/libsystemc_sh.so"
