@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>enable QIS options</revision_history>
+      <revision_history>fixed bug with QIS param</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
