@@ -67,7 +67,7 @@ proc register_options { simulator } {
     {{simulate.sc_async_update}    {bool}   {0}                                     {Enable asynchronous request updates for SystemC}}
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
   }
-  if { [get_param "simulator.enableqisflow"]) } {
+  if {[get_param "simulator.enableqisflow"]} {
     append {{{elaborate.opt_mode}  {enum}   {{access} {access} {{access} {debug}}}  {Select vopt execution mode (default:access)}}}
   }
   # create options
