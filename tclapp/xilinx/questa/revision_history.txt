@@ -1,3 +1,4 @@
+2.315 enable QIS options
 2.314 bind aietools library
 2.313 merged 2024.2 to 2025.1
 2.312 reset scripts only mode for exec mode
