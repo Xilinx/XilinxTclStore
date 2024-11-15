@@ -1431,19 +1431,39 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "-cpppath $gcc_path"
   }
 
-  set acc_val {}
   set acc [get_property "questa.elaborate.acc" $a_sim_vars(fs_obj)]
-  if { {None} == $acc } {
-    # no val
-  } else {
-    # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
-    set a_sim_vars(b_int_perf_analysis) 0
-    if { $a_sim_vars(b_int_perf_analysis) } {
-      if { ("acc=npr" == $acc) } {
-        lappend arg_list "-access=r+/."
+  if { [get_param "simulator.enableqisflow"] } {
+    set opt_mode [get_property -quiet "questa.elaborate.opt_mode" $a_sim_vars(fs_obj)]
+    if { {None} == $acc } {
+      # no val
+    } elseif { {npr} == $acc } {
+      if { {access} == $opt_mode } {
+        if { ("acc=npr" == $acc) } {
+          lappend arg_list "-access=r+/."
+        }
+      } elseif { {debug} == $opt_mode } {
+        if { ("acc=npr" == $acc) } {
+          lappend arg_list "-debug"
+        }
       }
+    } elseif { {acc} == $acc } {
+      if { {access} == $opt_mode } {
+        lappend arg_list "-uvmaccess"
+      }
+    }
+  } else {
+    if { {None} == $acc } {
+      # no val
     } else {
-      lappend arg_list "+$acc"
+      # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
+      set a_sim_vars(b_int_perf_analysis) 0
+      if { $a_sim_vars(b_int_perf_analysis) } {
+        if { ("acc=npr" == $acc) } {
+          lappend arg_list "-access=r+/."
+        }
+      } else {
+        lappend arg_list "+$acc"
+      }
     }
   }
 
