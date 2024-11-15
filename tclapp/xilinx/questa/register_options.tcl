@@ -68,7 +68,7 @@ proc register_options { simulator } {
     {{simulate.vsim.more_options}  {string} {}                                      {More VSIM simulation options}}
   }
   if {[get_param "simulator.enableqisflow"]} {
-    append {{{elaborate.opt_mode}  {enum}   {{access} {access} {{access} {debug}}}  {Select vopt execution mode (default:access)}}}
+    append options {{{elaborate.opt_mode}  {enum}   {{access} {access} {{access} {debug}}}  {Select vopt execution mode (default:access)}}}
   }
   # create options
   ::tclapp::xilinx::questa::usf_create_options $simulator $options

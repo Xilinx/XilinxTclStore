@@ -1436,17 +1436,13 @@ proc usf_questa_get_elaboration_cmdline {} {
     set opt_mode [get_property -quiet "questa.elaborate.opt_mode" $a_sim_vars(fs_obj)]
     if { {None} == $acc } {
       # no val
-    } elseif { {npr} == $acc } {
+    } elseif { "acc=npr" == $acc } {
       if { {access} == $opt_mode } {
-        if { ("acc=npr" == $acc) } {
-          lappend arg_list "-access=r+/."
-        }
+        lappend arg_list "-access=r+/."
       } elseif { {debug} == $opt_mode } {
-        if { ("acc=npr" == $acc) } {
-          lappend arg_list "-debug"
-        }
+        lappend arg_list "-debug"
       }
-    } elseif { {acc} == $acc } {
+    } elseif { "acc" == $acc } {
       if { {access} == $opt_mode } {
         lappend arg_list "-uvmaccess"
       }
