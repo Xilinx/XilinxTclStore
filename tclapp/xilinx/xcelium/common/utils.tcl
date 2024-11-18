@@ -1992,6 +1992,12 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
   variable a_sim_lib_info
   array unset a_sim_lib_info
 
+  variable a_locked_ips
+  array unset a_locked_ips
+
+  variable a_custom_ips
+  array unset a_custom_ips
+
   set b_libs_referenced_from_locked_ips 0
   set b_libs_referenced_from_local_repo 0
 
@@ -2011,6 +2017,9 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
         dict append lib_dict $lib
         if { ![info exists a_sim_lib_info($lib)] } {
           set a_sim_lib_info($ip_obj#$lib) "LOCKED_IP"
+          if { ![info exists a_locked_ips($lib)] } {
+            set a_locked_ips($lib) $ip_obj
+          }
         }
         if { !$b_libs_referenced_from_locked_ips } {
           set b_libs_referenced_from_locked_ips 1
@@ -2068,6 +2077,9 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
           # add to library database info and mark it as custom ip
           if { ![info exists a_sim_lib_info($lib)] } {
             set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+            if { ![info exists a_custom_ips($lib)] } {
+              set a_custom_ips($lib) $ip_obj
+            }
             if { !$b_print_local_ip_msg } {
               set b_print_local_ip_msg 1
             }
@@ -2115,6 +2127,48 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
     }
   }
   return [dict keys $lib_dict]
+}
+
+proc xcs_is_locked_ip { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_locked_ips
+  if { [info exists a_locked_ips($library)] } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_custom_ip { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_custom_ips
+  if { [info exists a_custom_ips($library)] } {
+    return true
+  }
+  return false
+}
+
+proc xcs_print_ip_compile_msg { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_locked_ips
+  variable a_custom_ips
+
+  set common_txt "source(s) will be compiled locally with the design"
+  if { [xcs_is_locked_ip $library] } {
+    send_msg_id SIM-utils-040 INFO "Using sources from the locked IP version (pre-compiled version will not be referenced) - $library\n"
+  } elseif { [xcs_is_custom_ip $library] } {
+    send_msg_id SIM-utils-040 INFO "Using sources from the custom IP version (pre-compiled version will not be referenced) - $library\n"
+  } else {
+    send_msg_id SIM-utils-040 INFO "IP version not found from pre-compiled library ($library) - $common_txt\n"
+  }
 }
 
 proc xcs_cache_result {args} {
