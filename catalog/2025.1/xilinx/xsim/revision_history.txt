@@ -1,3 +1,4 @@
+2.496 print msg for locked, custom ips
 2.495 add quotes for generic_top
 2.494 fixed use ini var name
 2.493 bind sip cores for Versal
