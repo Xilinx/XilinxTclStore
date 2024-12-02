@@ -2216,6 +2216,9 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         puts $fh_scr ""
       }
       puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+      if { $a_sim_vars(b_compile_simmodels) } {
+        puts $fh_scr "export xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+      } 
       # for aie
       if { {} != $aie_ip_obj } {
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
