@@ -1,0 +1,13 @@
+  Decription:
+
+     Overloads place_design command to run classic flow directive equivalents with advanced flow.
+
+     This command need to be run once to make place_design command to run equvalent directives in advanced flow.
+
+  Example:
+
+     ::xilinx::designutils::enable_equiv_vivado_directives
+     place_design -directive AltSpreadLogic_medium -verbose
+
+     ::xilinx::designutils::disable_equiv_vivado_directives
+
