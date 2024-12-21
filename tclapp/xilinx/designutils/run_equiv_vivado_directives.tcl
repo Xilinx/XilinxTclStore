@@ -6,7 +6,7 @@ namespace eval ::tclapp::xilinx::designutils {
 }
 
 proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives {} {
-    # Summary : Procedure to run Vivado equivalent placer directive for Advanced flow
+    # Summary : Procedure to enable Vivado equivalent placer directive for Advanced Flow
 
     # Argument Usage:
 
@@ -25,6 +25,8 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives {} {
     if {[lsearch -exact [info commands place_design_[pid]] place_design_[pid]] != -1} {
         puts "Warning: the placer directives mapping for Vivado Advanced Flow is already enabled."
         return 1
+    } else {
+        puts "Info: the placer directives mapping for Vivado Advanced Flow is enabled."
     }
     rename ::place_design ::place_design_[pid]
     uplevel #0 [format {
@@ -160,7 +162,7 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
 }
 
 proc ::tclapp::xilinx::designutils::disable_equiv_vivado_directives {} {
-    # Summary : Procedure to run Vivado equivalent placer directive for Advanced flow
+    # Summary : Procedure to disable Vivado equivalent placer directive for Advanced Flow
 
     # Argument Usage:
 
@@ -169,8 +171,10 @@ proc ::tclapp::xilinx::designutils::disable_equiv_vivado_directives {} {
 
     # Categories: xilinxtclstore, designutils
     if {[lsearch -exact [info commands place_design_[pid]] place_design_[pid]] == -1} {
-    puts "Error: Placer directives mapping for Vivado Advanced Flow is not enabled."
-    return 1
+        puts "Warning: Placer directives mapping for Vivado Advanced Flow is not enabled."
+        return 1
+    } else {
+        puts "Info: Placer directives mapping for Vivado Advanced Flow is disabled."
     }
 
     namespace eval :: {

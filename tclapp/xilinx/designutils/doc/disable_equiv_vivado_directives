@@ -2,7 +2,7 @@
 
      Disables equivalent directive settings for advanced flow, so that regular place_design command can be run.
 
-     This command can be run just after place_desig.
+     This command can be run just after place_design.
 
   Example:
 
