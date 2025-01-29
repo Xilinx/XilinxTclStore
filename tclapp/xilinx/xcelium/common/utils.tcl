@@ -5467,6 +5467,8 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
  
   # platform and library extension
   set platform "win64"
@@ -5475,15 +5477,9 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
     set platform "lnx64"
     set extn "so"
   }
-  # simulator, gcc version, data dir
-  set sim_version {}
-  [catch {set sim_version [rdi::get_sim_prod_version ${simulator}]} err]
-  if { {} == $sim_version } {
-    set sim_version [get_param "simulator.${simulator}.version"]
-  }
 
   # prefix path
-  set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
+  set prefix_dir "simmodels/${simulator}/$a_sim_vars(s_sim_version)/${platform}/${gcc_version}"
 
   # construct path
   set dir {}
