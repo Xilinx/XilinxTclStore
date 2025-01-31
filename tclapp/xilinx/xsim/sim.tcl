@@ -667,6 +667,7 @@ proc usf_xsim_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
+  # [-install_path <arg>]: Custom XSim installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-exec]: Execute script (applicable with -step switch only)
   # [-run_dir <arg>]: Simulation run directory
@@ -706,6 +707,7 @@ proc usf_xsim_setup_args { args } {
       "-type"                     { incr i;set a_sim_vars(s_type)              [lindex $args $i] }
       "-of_objects"               { incr i;set a_sim_vars(s_comp_file)         [lindex $args $i] }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)      [lindex $args $i] }
+      "-install_path"             { incr i;set a_sim_vars(s_install_path)      [lindex $args $i] }
       "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)        [lindex $args $i] }
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
