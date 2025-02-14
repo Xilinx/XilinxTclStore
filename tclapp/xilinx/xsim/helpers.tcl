@@ -244,6 +244,11 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
     }
   }
 
+  set intf_incl_dir "[xcs_add_axi_interface_header  $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)]"
+  if { {} != $intf_incl_dir } {
+    lappend opts "--include \"$intf_incl_dir\""
+  }
+
   # --include
   set prefix_ref_dir "false"
   foreach incl_dir [concat [usf_get_include_file_dirs $global_files_str $prefix_ref_dir] [xcs_get_vip_include_dirs]] {

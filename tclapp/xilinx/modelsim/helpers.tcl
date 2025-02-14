@@ -749,6 +749,12 @@ proc usf_get_include_dirs { } {
       lappend incl_dirs $dir
     }
   }
+  
+  set intf_incl_dir "[xcs_add_axi_interface_header  $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)]"
+  if { {} != $intf_incl_dir } {
+    lappend incl_dirs $intf_incl_dir
+  }
+
   foreach vh_dir $incl_dirs {
     set vh_dir [string trim $vh_dir {\{\}}]
     dict append d_dir_names $vh_dir

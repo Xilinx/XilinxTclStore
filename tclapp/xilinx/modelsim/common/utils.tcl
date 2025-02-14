@@ -6499,3 +6499,32 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
     }
   }
 }
+
+proc xcs_add_axi_interface_header { b_absolute_path dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ![info exists ::env(RDI_DATADIR)] } {
+    return
+  }
+
+  set intf_incl_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+    set path "$data_dir/rsb/busdef"
+    if { [file exists $path] } {
+      if { $b_absolute_path } {
+        set intf_incl_dir "[xcs_resolve_file_path $path $dir]"
+      } else {
+        set intf_incl_dir "[xcs_get_relative_file_path $path $dir]"
+      }
+      break
+    }
+  }
+  return $intf_incl_dir
+}
