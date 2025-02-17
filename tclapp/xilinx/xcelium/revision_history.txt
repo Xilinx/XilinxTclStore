@@ -1,3 +1,4 @@
+11.176 export aie_work_dir
 11.175 include axi interface include dir
 11.174 reference sim_version from args
 11.173 print msg for locked, custom ips

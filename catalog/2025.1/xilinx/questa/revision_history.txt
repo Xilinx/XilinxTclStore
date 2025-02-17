@@ -1,3 +1,4 @@
+2.322 export aie_work_dir
 2.321 include axi interface include dir
 2.320 reference sim_version from args
 2.319 set ext lib path for non-precompile mode
