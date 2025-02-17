@@ -680,6 +680,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
   # [-int_sim_version <arg>]: Simulator version (internal use)
+  # [-int_aie_work_dir <arg>]: AIE work dir (internal use)
   # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -714,6 +715,7 @@ proc usf_xsim_setup_args { args } {
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
       "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
+      "-int_aie_work_dir"         { incr i;set a_sim_vars(s_aie_work_dir)      [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
@@ -1674,6 +1676,10 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       # for aie
       if { {} != $aie_ip_obj } {
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+        set aie_work_dir $a_sim_vars(s_aie_work_dir)
+        if { {} != $aie_work_dir } {
+          puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
+        }
       }
     }
     

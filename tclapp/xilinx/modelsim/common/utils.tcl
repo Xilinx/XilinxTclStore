@@ -119,6 +119,7 @@ proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
   set a_sim_vars(sp_ext_dir)                 {}
   set a_sim_vars(s_gcc_bin_path)             {}
   set a_sim_vars(s_sim_version)              {}
+  set a_sim_vars(s_aie_work_dir)             {}
   set a_sim_vars(s_gcc_version)              {}
   set a_sim_vars(s_boost_dir)                {}
 
@@ -5975,6 +5976,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   variable a_shared_library_path_coln
   
   upvar $l_link_sysc_libs_arg l_link_sysc_libs
@@ -6134,6 +6136,10 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   if { {} != $aie_ip_obj } {
     if { {} != $xilinx_vitis } {
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set aie_work_dir $a_sim_vars(s_aie_work_dir)
+      if { {} != $aie_work_dir } {
+        puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
+      }
       set cardano "$xilinx_vitis/aietools"
       set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
       #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
