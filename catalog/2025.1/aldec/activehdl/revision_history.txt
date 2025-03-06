@@ -1,3 +1,4 @@
+1.38 SPT83218 - TCL Store updated for Vivado 2025.1
 1.37 merged 2024.2 to 2025.1
 1.36 SPT82247 - A fix is required to replace get_files with get_files -compile_order
 1.35 merged 2023.2 to 2024.1
