@@ -33,6 +33,7 @@ proc write_project_tcl {args} {
   # Argument Usage: 
   # [-paths_relative_to <arg> = Script output directory path]: Override the reference directory variable for source file relative paths
   # [-origin_dir_override <arg>]: Set 'origin_dir' directory variable to the specified value (Default is value specified with the -paths_relative_to switch)
+  # [-ip_repo_path <arg>] : Set ip_repo_dir to the specified value.
   # [-target_proj_dir <arg> = Current project directory path]: Directory where the project needs to be restored
   # [-force]: Overwrite existing tcl script file
   # [-all_properties]: Write all properties (default & non-default) for the project object(s)
@@ -82,6 +83,7 @@ proc write_project_tcl {args} {
         set a_global_vars(s_target_proj_dir) [lindex $args $i] 
       }
       "-origin_dir_override"  { incr i;set a_global_vars(s_origin_dir_override) [lindex $args $i] }
+      "-ip_repo_path"  { incr i;set a_global_vars(s_ip_repo_path) [lindex $args $i] }
       "-force"                { set a_global_vars(b_arg_force) 1 }
       "-all_properties"       { set a_global_vars(b_arg_all_props) 1 }
       "-no_copy_sources"      { set a_global_vars(b_arg_no_copy_srcs) 1 }
@@ -232,6 +234,7 @@ proc reset_global_vars {} {
   set a_global_vars(s_path_to_script_dir)       ""
   set a_global_vars(s_origin_dir_override)      "" 
   set a_global_vars(s_target_proj_dir)          ""
+  set a_global_vars(s_ip_repo_path)    ""
   set a_global_vars(b_arg_force)                0
   set a_global_vars(b_arg_no_copy_srcs)         0
   set a_global_vars(b_arg_absolute_remote_path) 0
@@ -1083,6 +1086,9 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
         # We do not write properties for OOC1 
       } elseif { ({RTL} == [get_property design_mode [get_filesets $tcl_obj]]) } {
         set repo_paths [get_ip_repo_paths $tcl_obj]
+        if { {} != $a_global_vars(s_ip_repo_path) } {
+          set repo_paths $a_global_vars(s_ip_repo_path)
+        }
         if { [llength $repo_paths] > 0 } {
           lappend l_script_data "# Set IP repository paths"
           lappend l_script_data "set obj \[get_filesets $tcl_obj\]"
