@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT83218 - TCL Store updated for Vivado 2025.1</revision_history>
+      <revision_history>SPT83276 - Vivado 2020.02 - unable to generate simulation scripts for Active-HDL</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

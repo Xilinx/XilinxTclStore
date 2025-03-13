@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package provide ::tclapp::aldec::common::helpers 1.38
+package provide ::tclapp::aldec::common::helpers 1.39
 
 namespace eval ::tclapp::aldec::common {
 
@@ -1427,7 +1427,7 @@ proc usf_xport_data_files { } {
       set data_files [concat $data_files [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_data_files_filter]]
       # non-hdl data files 
       foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $s_non_hdl_data_files_filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
           }
@@ -2290,14 +2290,12 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     }
 
 	set b_using_xpm_libraries false
-    set xpm_libraries [get_property -quiet xpm_libraries [current_project]]
-    foreach library $xpm_libraries {
+    foreach library [ getXpmLibraries ] {
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
         set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options true]
-		
-		
+
         if { {} != $cmd_str } {
           lappend files $cmd_str
           lappend l_compile_order_files $file
@@ -2608,7 +2606,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   # add testbench files if any
   #set vhdl_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\")"
   #foreach file [usf_get_testbench_files_from_ip $vhdl_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -2622,7 +2620,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   ##set verilog_filter "USED_IN_TESTBENCH == 1 && FILE_TYPE == \"Verilog\" && FILE_TYPE == \"Verilog Header\""
   #set verilog_filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\")"
   #foreach file [usf_get_testbench_files_from_ip $verilog_filter] {
-  #  if { [lsearch -exact [list_property $file] {FILE_TYPE}] == -1 } {
+  #  if { [lsearch -exact [list_property -quiet $file] {FILE_TYPE}] == -1 } {
   #    continue;
   #  }
   #  #set file_type [get_property "FILE_TYPE" [lindex [get_files -quiet -all [list "$file"]] 0]]
@@ -3150,7 +3148,7 @@ proc usf_export_fs_non_hdl_data_files {} {
   set data_files [list]
   foreach file [get_files -all -quiet -of_objects [get_filesets $fileset_object] -filter $s_non_hdl_data_files_filter] {
     # skip user disabled (if the file supports is_user_disabled property
-    if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+    if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
       if { [get_property {IS_USER_DISABLED} $file] } {
         continue;
       }
@@ -3422,7 +3420,7 @@ proc usf_get_incl_dirs_from_ip { tcl_obj } {
       set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
       set associated_library {}
       if { {} != $file_obj } {
-        if { [lsearch -exact [list_property $file_obj] {LIBRARY}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file_obj] {LIBRARY}] != -1 } {
           set associated_library [get_property "LIBRARY" $file_obj]
         }
       }
@@ -3903,7 +3901,7 @@ proc usf_get_testbench_files_from_ip { file_type_filter } {
       foreach tb $tb_files {
         set tb_file_obj [lindex [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] $tb] 0]
         if { {simulation testbench} == [get_property "USED_IN" $tb_file_obj] } {
-          if { [lsearch -exact [list_property $tb_file_obj] {IS_USER_DISABLED}] != -1 } {
+          if { [lsearch -exact [list_property -quiet $tb_file_obj] {IS_USER_DISABLED}] != -1 } {
             if { [get_property {IS_USER_DISABLED} $tb_file_obj] } {
               continue;
             }
@@ -4058,7 +4056,7 @@ proc usf_get_file_cmd_str { \
 	}
 
 	if { {} != $file_obj } {
-		if { [lsearch -exact [ list_property $file_obj ] {LIBRARY}] != -1 } {
+		if { [lsearch -exact [ list_property -quiet $file_obj ] {LIBRARY}] != -1 } {
 			set associated_library [get_property "LIBRARY" $file_obj]
 		}
 
@@ -4307,7 +4305,7 @@ proc usf_find_files { src_files_arg filter } {
   if { [usf_is_ip $tcl_obj] } {
     set ip_name [file tail $tcl_obj]
     foreach file [get_files -all -quiet -of_objects [get_files -quiet *$ip_name] -filter $filter] {
-      if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+      if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
         if { [get_property {IS_USER_DISABLED} $file] } {
           continue;
         }
@@ -4338,7 +4336,7 @@ proc usf_find_files { src_files_arg filter } {
 
     foreach fileset_object $filesets {
       foreach file [get_files -quiet -of_objects [get_filesets $fileset_object] -filter $filter] {
-        if { [lsearch -exact [list_property $file] {IS_USER_DISABLED}] != -1 } {
+        if { [lsearch -exact [list_property -quiet $file] {IS_USER_DISABLED}] != -1 } {
           if { [get_property {IS_USER_DISABLED} $file] } {
             continue;
           }
@@ -4843,7 +4841,7 @@ proc usf_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
       set file_obj [ lindex [get_files -all -quiet [ list "$comp_file" ] ] 0 ]
     }
 
-    set props [list_property $file_obj]
+    set props [list_property -quiet $file_obj]
     if { [lsearch $props "PARENT_COMPOSITE_FILE"] == -1 } {
       break
     }
