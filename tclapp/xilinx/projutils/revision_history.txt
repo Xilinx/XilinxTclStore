@@ -1,3 +1,4 @@
+3.572 Fix for CR-1228988
 3.571 Introduce new option ip_repo_path
 3.570 Fix for CR-1216609
 3.569 merged 2024.2 to 2025.1
