@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export aie_work_dir</revision_history>
+      <revision_history>add vopt options to fix NoC/DDR assertion failures</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
