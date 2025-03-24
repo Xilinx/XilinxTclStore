@@ -1,3 +1,4 @@
+3.573 Fix for CR-1218704 Copying run makes GUI to go into infinite loop.
 3.572 Fix for CR-1228988
 3.571 Introduce new option ip_repo_path
 3.570 Fix for CR-1216609

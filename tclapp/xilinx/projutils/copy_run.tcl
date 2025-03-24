@@ -244,6 +244,10 @@ proc copy_run_ {} {
       continue;
     }
 
+    if { ([string equal -nocase $property_name "AUTO_INCREMENTAL_CHECKPOINT.DIRECTORY"] || [string equal -nocase $property_name "AUTO_RQS.DIRECTORY"])                                                                                                                                              && [ get_property $property_name $m_cpr_options(run_to_copy) ] == "" } {
+        continue; # skip the property if the value is empty
+    }
+
     set default_value [ list_property_value -default $property_name $new_run ]
     set old_value     [ get_property $property_name $m_cpr_options(run_to_copy) ]
 
