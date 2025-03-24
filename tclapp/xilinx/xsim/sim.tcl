@@ -2174,20 +2174,30 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $cc_lib        } { lappend args_list "-cc_libs"        }
   if { $cc_cell_def   } { lappend args_list "-cc_celldefines" }
  
-  set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = line branch condition all
+  set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = statement branch condition all
   #
-  # 1. convert line/branch/condition/toggle to s/b/c/t and append to values list
+  # 1. convert statement/branch/condition/toggle to s/b/c/t and append to values list
   # 2. throw error for invalid cc type
-  # 3. either line (s)/branch (b)/condition (c)/toggle (t)  or all (sbct) allowed else error
+  # 3. either statement (s)/branch (b)/condition (c)/toggle (t)  or all (sbct) allowed else error
+  # 4. if line specified, print deprecation warning and continue with statement
   #
   if { {} != $cc_types } {
     set values [list]
     set l_cc_types [split $cc_types { }]
     foreach type $l_cc_types {
-      set type [string trim $type]
+      set type [string tolower [string trim $type]]
       switch $type {
         {line}      -
-        {s}         { set id "s";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {statement} -
+        {s}         {
+          set id "s";
+          if { ([lsearch -exact $values $id] == -1) } {
+            lappend values $id
+          }
+          if { {line} == $type } {
+            send_msg_id USF-XSim-017 WARNING "Coverage type 'Line' is deprecated, please use equivalent type 'Statement' instead.\n"
+          }
+        }
         {branch}    -
         {b}         { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {condition} -
@@ -2203,6 +2213,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
                     }
         default     { 
           set other_type $type 
+          set b_print_warning 1
           # could be 'sb' (without space?)
           foreach id [split $other_type {}] {
             switch $id {
@@ -2211,7 +2222,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
               {c} -
               {t} { if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
               default {
-                [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] 
+                if { $b_print_warning } {
+                  [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$id' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: Statement (or s) Branch (or b) Condition (or c) Toggle (or t) or All (or sbct))\n"} err]
+                  set b_print_warning 0
+                }
               }
             }
           }
@@ -2219,7 +2233,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       }
     }
     set cc_value [join $values {}]
-    lappend args_list "-cc_type $cc_value"
+    if { [llength $cc_value] > 0 } {
+      lappend args_list "-cc_type $cc_value"
+    }
   }
 
   # override local param
