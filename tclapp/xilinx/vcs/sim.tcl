@@ -137,6 +137,9 @@ proc usf_vcs_setup_simulation { args } {
     set a_sim_vars(b_netlist_sim) 1
   }
 
+  # uvm
+  [catch {set a_sim_vars(b_uvm) [get_param simulator.enableUVMSimulation]} err]
+
   # nopc - enable systemC non-precompile flow if global pre-compiled static IP flow is disabled
   if { !$a_sim_vars(b_use_static_lib) } {
     set a_sim_vars(b_compile_simmodels) 1
@@ -314,12 +317,14 @@ proc usf_vcs_setup_args { args } {
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
   # [-int_sim_version <arg>]: Simulator version (internal use)
+  # [-int_aie_work_dir <arg>]: AIE work dir (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
   # [-int_perf_analysis]: Enable code for performance analysis (internal use)
+  # [-int_enable_dmv_sim]: Enable DMV unisim simulation (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -346,6 +351,7 @@ proc usf_vcs_setup_args { args } {
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
       "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
+      "-int_aie_work_dir"         { incr i;set a_sim_vars(s_aie_work_dir)      [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
@@ -362,6 +368,7 @@ proc usf_vcs_setup_args { args } {
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
       "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
+      "-int_enable_dmv_sim"       { set a_sim_vars(b_int_enable_dmv_sim)       1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -511,6 +518,67 @@ proc usf_vcs_write_setup_files {} {
   if { $a_sim_vars(b_use_static_lib) } {
     usf_vcs_map_pre_compiled_libs $fh
   }
+
+  if { $a_sim_vars(b_int_enable_dmv_sim) } {
+    set design_dmv [get_property -quiet dmv $a_sim_vars(fs_obj)]
+    set b_dmv 0
+    foreach dmv [rdi::get_unisim_dmvs] {
+      # unisims
+      set map_dir "vcs_lib/$dmv"
+      set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+      if { [file exists $fp] } {
+        [catch {file delete -force $fp} error_msg]
+      }
+      # secureip
+      set map_dir "vcs_lib/${dmv}_sip"
+      set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+      if { [file exists $fp] } {
+        [catch {file delete -force $fp} error_msg]
+      }
+    }
+    foreach dmv [rdi::get_unisim_dmvs] {
+      if { $dmv != $design_dmv } {
+        if { !$b_dmv } {
+          # unisims_ver
+          set map_dir "vcs_lib/unisims_ver"
+          set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+          puts $fh "unisims_ver : $map_dir"
+          if { [file exists $fp] } {
+            [catch {file delete -force $fp} error_msg]
+          }
+          [catch {file mkdir $fp} error_msg]
+
+          #secureip
+          set map_dir "vcs_lib/secureip"
+          set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+          puts $fh "secureip : $map_dir"
+          if { [file exists $fp] } {
+            [catch {file delete -force $fp} error_msg]
+          }
+          [catch {file mkdir $fp} error_msg]
+          set b_dmv 1
+        }
+        # unisims
+        set map_dir "vcs_lib/$dmv"
+        set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+        puts $fh "$dmv : $map_dir"
+        if { [file exists $fp] } {
+          [catch {file delete -force $fp} error_msg]
+        }
+        [catch {file mkdir $fp} error_msg]
+ 
+        #secureip
+        set map_dir "vcs_lib/${dmv}_sip"
+        set fp "$a_sim_vars(s_launch_dir)/$map_dir"
+        puts $fh "${dmv}_sip : $map_dir"
+        if { [file exists $fp] } {
+          [catch {file delete -force $fp} error_msg]
+        }
+        [catch {file mkdir $fp} error_msg]
+      }
+    }
+  }
+
   puts $fh "OTHERS=$lib_map_path/$filename"
   close $fh
 
@@ -1397,30 +1465,14 @@ proc usf_vcs_write_elaborate_script {} {
       lappend arg_list "-cpp \$\{gcc_path\}/g++"
     }
   }
- 
-  set b_debug_pp_set 0
-  if { [get_property "vcs.elaborate.debug_pp" $a_sim_vars(fs_obj)] } {
-    #
-    # -debug_acc+pp+dmptf (default)
-    #
-    set debug_vars {+pp+dmptf}
-    set dbg_sw "-debug_acc"
 
-    if { $a_sim_vars(b_int_perf_analysis) } {
-      # do not pass vars
-    } else {
-      append dbg_sw $debug_vars
-    }
-    lappend arg_list $dbg_sw
-    send_msg_id USF-VCS-002 INFO "Property 'vcs.elaborate.debug_pp' is deprecated and will be removed in the next Vivado release. Please use 'vcs.elaborate.debug_acc' instead."
-    set b_debug_pp_set 1
+  if { $a_sim_vars(b_uvm) } {
+    lappend arg_list "-ntb_opts uvm-1.2 -R"
   }
-
+ 
   if { [get_property "vcs.elaborate.debug_acc" $a_sim_vars(fs_obj)] } {
-    if { !$b_debug_pp_set } {
-      set dbg_sw "-debug_acc"
-      lappend arg_list $dbg_sw
-    }
+    set dbg_sw "-debug_acc"
+    lappend arg_list $dbg_sw
   }
 
   set arg_list [linsert $arg_list end "-t" "ps" "-licqueue"]
@@ -2311,6 +2363,12 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+
+  if { $a_sim_vars(b_uvm) } {
+    puts $fh_scr "# set UVM command line args"
+    puts $fh_scr "uvm_opts=\"-ntb_opts uvm-1.2\"\n"
+  }
+
 }
 
 proc usf_vcs_write_systemc_compile_options { fh_scr } {
@@ -2589,6 +2647,19 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
 
     puts $fh_scr "GCC_SYSC_PID=\$!"
     puts $fh_scr ""
+  }
+
+  #####################
+  # uvm
+  #####################
+  if { $a_sim_vars(b_uvm) } {
+    puts $fh_scr "echo \"Compiling UVM package sources...\""
+    if { {} != $a_sim_vars(s_tool_bin_path) } {
+      puts $fh_scr "\$bin_path/vlogan \$vlogan_opts \$uvm_opts \\"
+    } else {
+      puts $fh_scr "vlogan \$vlogan_opts \$uvm_opts \\"
+    }
+    puts $fh_scr "2>&1 | tee compile.log; cat .tmp_log > uvm.log 2>/dev/null\n"
   }
 
   #####################
