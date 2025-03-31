@@ -1,4 +1,13 @@
-2.493 bind aietools lib for AIE during run
+2.502 merged 2025.1 to 2025.2
+2.501 deprecate line coverage type
+2.500 export aie_work_dir
+2.499 include axi interface include dir
+2.498 set install path
+2.497 reference sim_version from args
+2.496 print msg for locked, custom ips
+2.495 add quotes for generic_top
+2.494 fixed use ini var name
+2.493 bind sip cores for Versal
 2.492 bind aietools lib for AIE
 2.491 check current design for intermediate impl stage
 2.490 reset scripts only mode for exec mode

@@ -1,4 +1,4 @@
-16.0 export aie_work_dir
+16.0 merged 2025.1 to 2025.2
 15.9 include axi interface include dir
 15.8 reference sim_version from args
 15.7 print msg for locked, custom ips

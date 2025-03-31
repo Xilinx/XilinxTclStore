@@ -1,4 +1,4 @@
-2.502 update msg for failed or missing compiled IP
+2.502 merged 2025.1 to 2025.2
 2.501 deprecate line coverage type
 2.500 export aie_work_dir
 2.499 include axi interface include dir

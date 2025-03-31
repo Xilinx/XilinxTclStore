@@ -1,4 +1,4 @@
-2.361 update msg for failed or missing compiled IP
+2.361 merged 2025.1 to 2025.2
 2.360 export aie_work_dir
 2.359 include axi interface include dir
 2.358 reference sim_version from args

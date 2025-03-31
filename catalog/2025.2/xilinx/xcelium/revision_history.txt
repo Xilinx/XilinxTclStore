@@ -1,4 +1,10 @@
-11.171 check current design for intermediate impl stage
+11.177 merged 2025.1 to 2025.2
+11.176 export aie_work_dir
+11.175 include axi interface include dir
+11.174 reference sim_version from args
+11.173 print msg for locked, custom ips
+11.172 fix bin util lib path
+11.171 merged 2024.2 to 2025.1
 11.170 reset scripts only mode for exec mode
 11.169 remove equal sign for empty define value
 11.168 set current design in memory if design opened

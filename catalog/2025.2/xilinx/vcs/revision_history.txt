@@ -1,4 +1,13 @@
-15.1 option to set debug_acc with debug_pp deprecation msg
+16.0 merged 2025.1 to 2025.2
+15.9 include axi interface include dir
+15.8 reference sim_version from args
+15.7 print msg for locked, custom ips
+15.6 bind dmv sip libs
+15.5 generate dmv compiled lib dirs
+15.4 dmv simulation support
+15.3 compile for uvm design
+15.2 removed deprecated debug_pp
+15.1 merged 2024.2 to 2025.1
 15.0 check current design for intermediate impl stage
 14.9 reset scripts only mode for exec mode
 14.8 remove equal sign for empty define value
