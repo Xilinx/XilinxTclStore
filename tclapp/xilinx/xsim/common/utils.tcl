@@ -2168,7 +2168,7 @@ proc xcs_print_ip_compile_msg { library } {
   } elseif { [xcs_is_custom_ip $library] } {
     send_msg_id SIM-utils-040 INFO "Using sources from the custom IP version (pre-compiled version will not be referenced) - $library\n"
   } else {
-    send_msg_id SIM-utils-040 INFO "IP version not found from pre-compiled library ($library) - $common_txt\n"
+    send_msg_id SIM-utils-040 INFO "Using sources from the project IP version (pre-compiled version failed or does not exist) - $library\n"
   }
 }
 
@@ -6132,7 +6132,6 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set rdi_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
     puts $fh_scr "export xv_ext_lib_path=\"$rdi_dir/$ext_dir\""
   }
-
   # for aie
   if { {} != $aie_ip_obj } {
     if { {} != $xilinx_vitis } {

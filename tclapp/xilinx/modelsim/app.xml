@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export aie_work_dir</revision_history>
+      <revision_history>update msg for failed or missing compiled IP</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

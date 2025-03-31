@@ -2168,7 +2168,7 @@ proc xcs_print_ip_compile_msg { library } {
   } elseif { [xcs_is_custom_ip $library] } {
     send_msg_id SIM-utils-040 INFO "Using sources from the custom IP version (pre-compiled version will not be referenced) - $library\n"
   } else {
-    send_msg_id SIM-utils-040 INFO "IP version not found from pre-compiled library ($library) - $common_txt\n"
+    send_msg_id SIM-utils-040 INFO "Using sources from the project IP version (pre-compiled version failed or does not exist) - $library\n"
   }
 }
 
