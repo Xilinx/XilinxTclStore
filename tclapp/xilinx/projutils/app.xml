@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2025.1 to 2025.2</revision_history>
+      <revision_history>Fix for CR-1218704 Copying run makes GUI to go into infinite loop.</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
