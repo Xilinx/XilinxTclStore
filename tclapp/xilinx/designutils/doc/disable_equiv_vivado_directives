@@ -1,0 +1,13 @@
+  Decription:
+
+     Disables equivalent directive settings for advanced flow, so that regular place_design command can be run.
+
+     This command can be run just after place_design.
+
+  Example:
+
+     ::xilinx::designutils::enable_equiv_vivado_directives
+     place_design -directive AltSpreadLogic_medium -verbose
+
+     ::xilinx::designutils::disable_equiv_vivado_directives
+
