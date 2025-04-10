@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added new proc run_equiv_vivado_directives.tcl</revision_history>
+      <revision_history>Remove version check out of enable_equiv_dir util</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

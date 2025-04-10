@@ -70,8 +70,6 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
    ## Map classic flow directives to advanced flow
    set advanced_sub_dir ""
    set net_delay_weight ""
-   switch -regexp -- $version {
-   "2024.2*" {
    switch $classic_dir {
     "WLDrivenBlockPlacement" {
         set advanced_dir "Default"
@@ -137,12 +135,6 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
     }
     default {
         set advanced_dir $classic_dir
-    }
-}
-}
-    default {
-        puts "ERROR: No mapping available for current release"
-        return 1
     }
 }
     ## Run place_design based on mapping

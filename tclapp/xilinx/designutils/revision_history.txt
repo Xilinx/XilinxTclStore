@@ -1,3 +1,4 @@
+1.65 Remove version check out of enable_equiv_dir util
 1.64 Added new proc run_equiv_vivado_directives.tcl
 1.63 Various enhancements (report_failfast)
 1.62 Added report_nets and Tcl profiler. Various enhancements (report_failfast)
