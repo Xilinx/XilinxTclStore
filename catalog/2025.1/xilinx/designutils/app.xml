@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Various enhancements (report_failfast)</revision_history>
+      <revision_history>Added run_equiv_vivado_directives (xilinx::designutils) for 2025.1-dev</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -37,6 +37,14 @@
         <proc>
           <name>create_diff_ports</name>
           <summary>Creates differential _N port for each _P port in a pinplanning design</summary>
+        </proc>
+        <proc>
+          <name>disable_equiv_vivado_directives</name>
+          <summary>Procedure to disable Vivado equivalent placer directive for Advanced Flow</summary>
+        </proc>
+        <proc>
+          <name>enable_equiv_vivado_directives</name>
+          <summary>Procedure to enable Vivado equivalent placer directive for Advanced Flow</summary>
         </proc>
         <proc>
           <name>generate_runs</name>
