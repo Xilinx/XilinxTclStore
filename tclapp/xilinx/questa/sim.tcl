@@ -163,7 +163,7 @@ proc usf_questa_setup_simulation { args } {
   xcs_get_xpm_libraries
 
   # get hard-blocks
-  xcs_get_hard_blocks
+  #xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -226,6 +226,13 @@ proc usf_questa_setup_simulation { args } {
   foreach file_obj [get_files -quiet -all] {
     set name [get_property -quiet "name" $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
+  # cache all IPs
+  variable a_sim_cache_all_ip_obj
+  foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+    set name [get_property -quiet name $ip_obj]
+    set a_sim_cache_all_ip_obj($name) $ip_obj
   }
 
   # cache all system verilog package libraries
@@ -2384,6 +2391,7 @@ proc usf_questa_get_sccom_cmd_args {} {
   # Return Value:
  
   variable a_sim_vars
+  variable a_sim_cache_all_ip_obj
 
   set args [list]
   
@@ -2470,7 +2478,6 @@ proc usf_questa_get_sccom_cmd_args {} {
 
     # bind IP static librarries
     set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-    set ip_objs [get_ips -all -quiet]
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       puts "------------------------------------------------------------------------------------------------------------------------------------"
       puts "Referenced pre-compiled shared libraries"
@@ -2478,7 +2485,9 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
     set uniq_shared_libs    [list]
     set shared_libs_to_link [list]
-    foreach ip_obj $ip_objs {
+    xcs_cache_ip_objs
+    foreach ip [array names a_sim_cache_all_ip_obj] {
+      set ip_obj $a_sim_cache_all_ip_obj($ip)
       set ipdef [get_property -quiet "ipdef" $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]

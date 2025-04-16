@@ -183,6 +183,13 @@ proc usf_modelsim_setup_simulation { args } {
     set a_sim_cache_all_design_files_obj($name) $file_obj
   }
 
+  # cache all IPs
+  variable a_sim_cache_all_ip_obj
+  foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+    set name [get_property -quiet name $ip_obj]
+    set a_sim_cache_all_ip_obj($name) $ip_obj
+  }
+
   # cache all system verilog package libraries
   xcs_find_sv_pkg_libs $a_sim_vars(s_launch_dir) $a_sim_vars(b_int_sm_lib_ref_debug)
 

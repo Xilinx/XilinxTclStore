@@ -72,6 +72,7 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_ip_obj
   variable a_sim_cache_all_bd_files
   variable a_sim_cache_parent_comp_files
   variable a_sim_cache_lib_info
@@ -86,6 +87,7 @@ proc usf_init_vars {} {
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
+  array unset a_sim_cache_all_ip_obj
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
   array unset a_sim_cache_lib_info
@@ -148,7 +150,11 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     set global_files [split $global_files_str { }]
     foreach g_file $global_files {
       set g_file [string trim $g_file {\"}]
-      lappend vh_files [get_files -quiet -all $g_file]
+      if { [info exists a_sim_cache_all_design_files_obj($g_file)] } {
+        lappend vh_files $a_sim_cache_all_design_files_obj($g_file)
+      } else {
+        lappend vh_files [get_files -quiet -all $g_file]
+      }
     }
   }
 
@@ -313,6 +319,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   variable l_compile_order_files
   variable l_compiled_libraries
+  variable a_sim_cache_all_design_files_obj
 
   set files          [list]
   set l_compile_order_files [list]
@@ -496,7 +503,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # prepare command line args for fileset ip files
     send_msg_id USF-XSim-102 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
+    set ip_file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($ip_filename)] } {
+      set ip_file_obj $a_sim_cache_all_design_files_obj($ip_filename)
+    } else {
+      set ip_file_obj [get_files -quiet ${ip_filename}]
+    }
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_file_obj]] {
       set file_type [get_property "file_type" $file]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
       set g_files $global_files_str
@@ -540,7 +553,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
 
         # is dynamic? process
-        set used_in_values [get_property "used_in" [lindex [get_files -quiet -all [list "$file"]] 0]]
+        set file_obj {}
+        if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+          set file_obj $a_sim_cache_all_design_files_obj($file)
+        } else {
+          set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+        }
+        set used_in_values [get_property "USED_IN" $file_obj]
         if { [lsearch -exact $used_in_values "ipstatic"] == -1 } {
           set file_type "SystemC"
           set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dir_opts]
@@ -797,9 +816,16 @@ proc usf_add_block_fs_files { global_files_str other_ver_opts_arg files_arg comp
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
+  variable a_sim_cache_all_design_files_obj
+
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\" || FILE_TYPE == \"VHDL 2019\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
-    set file_type [get_property "file_type" $file]
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
+    set file_type [get_property "file_type" $file_obj]
     set cmd_str [usf_get_file_cmd_str $file $file_type false {} other_ver_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -808,7 +834,12 @@ proc usf_add_block_fs_files { global_files_str other_ver_opts_arg files_arg comp
   }
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
-    set file_type [get_property "file_type" $file]
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
+    set file_type [get_property "file_type" $file_obj]
     set cmd_str [usf_get_file_cmd_str $file $file_type false $global_files_str other_ver_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -1201,6 +1232,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   variable l_local_design_libraries
   variable a_sim_cache_all_design_files_obj
   variable a_sim_cache_all_bd_files
+  variable a_sim_cache_all_ip_obj 
 
   #puts org_file=$orig_src_file
   set src_file $orig_src_file
@@ -1327,7 +1359,12 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
           } else {
             # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
             set parent_ip_name [file root [file tail $parent_comp_file]]
-            set ip_output_dir [get_property "ip_output_dir" [get_ips -all $parent_ip_name]]
+            if { [info exists a_sim_cache_all_ip_obj($parent_ip_name)] } {
+              set ip_obj $a_sim_cache_all_ip_obj($parent_ip_name)
+            } else {
+              set ip_obj [get_ips -all $parent_ip_name]
+            }
+            set ip_output_dir [get_property "ip_output_dir" $ip_obj]
             #puts src_ip_file=$ip_static_file
   
             # get the source ip file dir
