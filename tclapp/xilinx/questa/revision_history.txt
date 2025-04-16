@@ -1,3 +1,4 @@
+2.325 performance improvements using data cache
 2.324 merged 2025.1 to 2025.2
 2.323 add vopt options to fix NoC/DDR assertion failures
 2.322 export aie_work_dir
