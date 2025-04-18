@@ -2314,6 +2314,9 @@ proc usf_xcelium_write_verilog_compile_options { fh_scr } {
   if { [get_property "incremental" $a_sim_vars(fs_obj)] } {
     set arg_list [linsert $arg_list end "-update"]
   }
+
+  # search for sv packages
+  #usf_append_sv_pkgs arg_list
   
   set more_xmvlog_options [string trim [get_property "xcelium.compile.xmvlog.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_xmvlog_options } {
@@ -2322,6 +2325,31 @@ proc usf_xcelium_write_verilog_compile_options { fh_scr } {
   
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_append_sv_pkgs { args } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args arg_list
+  variable a_sim_vars
+
+  set design_libs [list]
+
+  foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0] {
+    if {[string length $lib] == 0} { continue; }
+    if { "xil_defaultlib" == $lib } {
+      lappend design_libs "-pkgsearch $lib"
+      continue
+    }
+    set pkg_data_file "$a_sim_vars(s_clibs_dir)/$lib/.cxl.svpkg.dat"
+    if { [file exists $pkg_data_file] } {
+      lappend design_libs "-pkgsearch $lib"
+    }
+  }
+  set lib_str [join $design_libs " "]
+  set arg_list [linsert $arg_list end $lib_str]
 }
 
 proc usf_xcelium_write_systemc_compile_options { fh_scr } {
