@@ -1,4 +1,4 @@
-1.64 Added new proc run_equiv_vivado_directives.tcl
+1.64 Added run_equiv_vivado_directives.tcl
 1.63 Various enhancements (report_failfast)
 1.62 Added report_nets and Tcl profiler. Various enhancements (report_failfast)
 1.61 Various enhancements (report_gt_refclk_summary)

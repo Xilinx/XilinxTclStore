@@ -369,7 +369,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library || $a_sim_vars(b_int_use_ini_file)) } {
     usf_set_compiled_lib_dir
     set l_local_ip_libs [xcs_get_libs_from_local_repo $a_sim_vars(b_use_static_lib) $a_sim_vars(s_local_ip_repo_leaf_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
     set libraries [xcs_get_compiled_libraries $a_sim_vars(compiled_library_dir) $a_sim_vars(b_int_sm_lib_ref_debug)]
@@ -469,7 +469,7 @@ proc usf_xsim_setup_simulation { args } {
       set b_reference_xpm_library 1
     }
   }
-  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) } {
+  if { ($a_sim_vars(b_use_static_lib)) && ([xcs_is_ip_project] || $b_reference_xpm_library) || $a_sim_vars(b_int_use_ini_file) } {
     set filename "xsim.ini"
     set file [file join $a_sim_vars(s_launch_dir) $filename]
 
@@ -667,6 +667,7 @@ proc usf_xsim_setup_args { args } {
   # [-of_objects <arg>]: Generate do file for this object (applicable with -scripts_only option only)
   # [-absolute_path]: Make all file paths absolute wrt the reference directory
   # [-lib_map_path <arg>]: Precompiled simulation library directory path
+  # [-install_path <arg>]: Custom XSim installation directory path
   # [-batch]: Execute batch flow simulation run (non-gui)
   # [-exec]: Execute script (applicable with -step switch only)
   # [-run_dir <arg>]: Simulation run directory
@@ -679,6 +680,7 @@ proc usf_xsim_setup_args { args } {
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
   # [-int_sim_version <arg>]: Simulator version (internal use)
+  # [-int_aie_work_dir <arg>]: AIE work dir (internal use)
   # [-int_rtl_kernel_mode]: RTL Kernel simulation mode (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
@@ -686,6 +688,8 @@ proc usf_xsim_setup_args { args } {
   # [-int_en_system_sim_code]: Enable code for system simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
+  # [-int_use_ini_file]: Use mapping file for RTL design (internal use)
+  # [-int_bind_sip_cores]: Bind SIP core library (internal use)
  
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -704,12 +708,14 @@ proc usf_xsim_setup_args { args } {
       "-type"                     { incr i;set a_sim_vars(s_type)              [lindex $args $i] }
       "-of_objects"               { incr i;set a_sim_vars(s_comp_file)         [lindex $args $i] }
       "-lib_map_path"             { incr i;set a_sim_vars(s_lib_map_path)      [lindex $args $i] }
+      "-install_path"             { incr i;set a_sim_vars(s_install_path)      [lindex $args $i] }
       "-run_dir"                  { incr i;set a_sim_vars(s_launch_dir)        [lindex $args $i] }
       "-int_os_type"              { incr i;set a_sim_vars(s_int_os_type)       [lindex $args $i] }
       "-int_debug_mode"           { incr i;set a_sim_vars(s_int_debug_mode)    [lindex $args $i] }
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
       "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
+      "-int_aie_work_dir"         { incr i;set a_sim_vars(s_aie_work_dir)      [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
@@ -724,6 +730,8 @@ proc usf_xsim_setup_args { args } {
       "-int_csim_compile_order"   { set a_sim_vars(b_int_csim_compile_order)   1                 }
       "-int_export_source_files"  { set a_sim_vars(b_int_export_source_files)  1                 }
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
+      "-int_use_ini_file"         { set a_sim_vars(b_int_use_ini_file)         1                 }
+      "-int_bind_sip_cores"       { set a_sim_vars(b_int_bind_sip_cores)       1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
       default {
         # is incorrect switch specified?
@@ -1668,6 +1676,10 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       # for aie
       if { {} != $aie_ip_obj } {
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+        set aie_work_dir $a_sim_vars(s_aie_work_dir)
+        if { {} != $aie_work_dir } {
+          puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
+        }
       }
     }
     
@@ -2162,20 +2174,30 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $cc_lib        } { lappend args_list "-cc_libs"        }
   if { $cc_cell_def   } { lappend args_list "-cc_celldefines" }
  
-  set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = line branch condition all
+  set cc_types [get_property "xsim.elaborate.coverage.type" $a_sim_vars(fs_obj)]; # cc_types = statement branch condition all
   #
-  # 1. convert line/branch/condition/toggle to s/b/c/t and append to values list
+  # 1. convert statement/branch/condition/toggle to s/b/c/t and append to values list
   # 2. throw error for invalid cc type
-  # 3. either line (s)/branch (b)/condition (c)/toggle (t)  or all (sbct) allowed else error
+  # 3. either statement (s)/branch (b)/condition (c)/toggle (t)  or all (sbct) allowed else error
+  # 4. if line specified, print deprecation warning and continue with statement
   #
   if { {} != $cc_types } {
     set values [list]
     set l_cc_types [split $cc_types { }]
     foreach type $l_cc_types {
-      set type [string trim $type]
+      set type [string tolower [string trim $type]]
       switch $type {
         {line}      -
-        {s}         { set id "s";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
+        {statement} -
+        {s}         {
+          set id "s";
+          if { ([lsearch -exact $values $id] == -1) } {
+            lappend values $id
+          }
+          if { {line} == $type } {
+            send_msg_id USF-XSim-017 WARNING "Coverage type 'Line' is deprecated, please use equivalent type 'Statement' instead.\n"
+          }
+        }
         {branch}    -
         {b}         { set id "b";   if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
         {condition} -
@@ -2191,6 +2213,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
                     }
         default     { 
           set other_type $type 
+          set b_print_warning 1
           # could be 'sb' (without space?)
           foreach id [split $other_type {}] {
             switch $id {
@@ -2199,7 +2222,10 @@ proc usf_xsim_get_xelab_cmdline_args {} {
               {c} -
               {t} { if { ([lsearch -exact $values $id] == -1) } { lappend values $id } }
               default {
-                [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$type' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: line (or s) branch (or b) condition (or c) toggle (or t) or all (or sbct))\n"} err] 
+                if { $b_print_warning } {
+                  [catch {send_msg_id USF-XSim-020 ERROR "Invalid coverage type '$id' specified for 'XSIM.ELABORATE.COVERAGE.TYPE' property (allowed types: Statement (or s) Branch (or b) Condition (or c) Toggle (or t) or All (or sbct))\n"} err]
+                  set b_print_warning 0
+                }
               }
             }
           }
@@ -2207,7 +2233,9 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       }
     }
     set cc_value [join $values {}]
-    lappend args_list "-cc_type $cc_value"
+    if { [llength $cc_value] > 0 } {
+      lappend args_list "-cc_type $cc_value"
+    }
   }
 
   # override local param
@@ -2288,6 +2316,12 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
   # add secureip
   lappend args_list "-L secureip"
+
+  # sip cores
+  if { ("versal" == [rdi::get_family -arch]) && $a_sim_vars(b_int_bind_sip_cores) } {
+    lappend args_list "-L hnicx"
+    lappend args_list "-L cpm5n"
+  }
   
   # RTL kernel
   if { [info exists a_sim_vars(b_int_rtl_kernel_mode)] } {
@@ -4453,12 +4487,31 @@ proc usf_xsim_escape_quotes { args } {
   set updated_args [list]
   set args_list [split $args " "]
 
-  # args contain -d? (verilog_define)
-  # --incr --debug typical --relax --mt 8 -d "a=20" -d \"hex=64'h1234\"
+  # args contain -d or -generic_top? (verilog_define)
+  # --incr --debug typical --relax --mt 8 -d "a=20" -d \"hex=64'h1234\" -generic_top "g=342"
   if { [regexp { \-d } $args_list] } {
     foreach arg $args_list {
       if { {-d} == $arg } {
         # set flag for next arg value ("a=20")
+        set b_found 1
+        lappend updated_args $arg
+        continue
+      }
+      if { $b_found } {
+        # if value specified is of type hex (val=128'h123)? wrap in quotes with back-slash
+        if { [regexp {'} $arg] } {
+          set val [string trim $arg \"]
+          set arg "\\\"$val\\\""
+        }
+        set b_found 0
+      }
+      lappend updated_args $arg
+    }
+    set cmd [join $updated_args " "]
+  } elseif { [regexp { \-generic_top } $args_list] } {
+    foreach arg $args_list {
+      if { {-generic_top} == $arg } {
+        # set flag for next arg value ("g=342")
         set b_found 1
         lappend updated_args $arg
         continue

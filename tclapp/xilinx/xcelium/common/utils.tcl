@@ -119,6 +119,7 @@ proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
   set a_sim_vars(sp_ext_dir)                 {}
   set a_sim_vars(s_gcc_bin_path)             {}
   set a_sim_vars(s_sim_version)              {}
+  set a_sim_vars(s_aie_work_dir)             {}
   set a_sim_vars(s_gcc_version)              {}
   set a_sim_vars(s_boost_dir)                {}
 
@@ -1992,6 +1993,12 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
   variable a_sim_lib_info
   array unset a_sim_lib_info
 
+  variable a_locked_ips
+  array unset a_locked_ips
+
+  variable a_custom_ips
+  array unset a_custom_ips
+
   set b_libs_referenced_from_locked_ips 0
   set b_libs_referenced_from_local_repo 0
 
@@ -2011,6 +2018,9 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
         dict append lib_dict $lib
         if { ![info exists a_sim_lib_info($lib)] } {
           set a_sim_lib_info($ip_obj#$lib) "LOCKED_IP"
+          if { ![info exists a_locked_ips($lib)] } {
+            set a_locked_ips($lib) $ip_obj
+          }
         }
         if { !$b_libs_referenced_from_locked_ips } {
           set b_libs_referenced_from_locked_ips 1
@@ -2068,6 +2078,9 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
           # add to library database info and mark it as custom ip
           if { ![info exists a_sim_lib_info($lib)] } {
             set a_sim_lib_info($ip_obj#$lib) "CUSTOM_IP"
+            if { ![info exists a_custom_ips($lib)] } {
+              set a_custom_ips($lib) $ip_obj
+            }
             if { !$b_print_local_ip_msg } {
               set b_print_local_ip_msg 1
             }
@@ -2115,6 +2128,48 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
     }
   }
   return [dict keys $lib_dict]
+}
+
+proc xcs_is_locked_ip { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_locked_ips
+  if { [info exists a_locked_ips($library)] } {
+    return true
+  }
+  return false
+}
+
+proc xcs_is_custom_ip { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_custom_ips
+  if { [info exists a_custom_ips($library)] } {
+    return true
+  }
+  return false
+}
+
+proc xcs_print_ip_compile_msg { library } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_locked_ips
+  variable a_custom_ips
+
+  set common_txt "source(s) will be compiled locally with the design"
+  if { [xcs_is_locked_ip $library] } {
+    send_msg_id SIM-utils-040 INFO "Using sources from the locked IP version (pre-compiled version will not be referenced) - $library\n"
+  } elseif { [xcs_is_custom_ip $library] } {
+    send_msg_id SIM-utils-040 INFO "Using sources from the custom IP version (pre-compiled version will not be referenced) - $library\n"
+  } else {
+    send_msg_id SIM-utils-040 INFO "Using sources from the project IP version (pre-compiled version failed or does not exist) - $library\n"
+  }
 }
 
 proc xcs_cache_result {args} {
@@ -5413,6 +5468,8 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
   # Summary:
   # Argument Usage:
   # Return Value:
+
+  variable a_sim_vars
  
   # platform and library extension
   set platform "win64"
@@ -5421,15 +5478,9 @@ proc xcs_get_simmodel_dir { simulator gcc_version type } {
     set platform "lnx64"
     set extn "so"
   }
-  # simulator, gcc version, data dir
-  set sim_version {}
-  [catch {set sim_version [rdi::get_sim_prod_version ${simulator}]} err]
-  if { {} == $sim_version } {
-    set sim_version [get_param "simulator.${simulator}.version"]
-  }
 
   # prefix path
-  set prefix_dir "simmodels/${simulator}/${sim_version}/${platform}/${gcc_version}"
+  set prefix_dir "simmodels/${simulator}/$a_sim_vars(s_sim_version)/${platform}/${gcc_version}"
 
   # construct path
   set dir {}
@@ -5925,6 +5976,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_vars
   variable a_shared_library_path_coln
   
   upvar $l_link_sysc_libs_arg l_link_sysc_libs
@@ -6084,6 +6136,10 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   if { {} != $aie_ip_obj } {
     if { {} != $xilinx_vitis } {
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+      set aie_work_dir $a_sim_vars(s_aie_work_dir)
+      if { {} != $aie_work_dir } {
+        puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
+      }
       set cardano "$xilinx_vitis/aietools"
       set chess_script "$cardano/tps/lnx64/target/chess_env_LNa64.sh"
       #puts $fh_scr "export XILINX_VITIS_AIETOOLS=\"$cardano\""
@@ -6448,4 +6504,33 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
       if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
     }
   }
+}
+
+proc xcs_add_axi_interface_header { b_absolute_path dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  if { ![info exists ::env(RDI_DATADIR)] } {
+    return
+  }
+
+  set intf_incl_dir {}
+  set sep ";"
+  if {$::tcl_platform(platform) == "unix"} {
+    set sep ":"
+  }
+
+  foreach data_dir [split $::env(RDI_DATADIR) $sep] {
+    set path "$data_dir/rsb/busdef"
+    if { [file exists $path] } {
+      if { $b_absolute_path } {
+        set intf_incl_dir "[xcs_resolve_file_path $path $dir]"
+      } else {
+        set intf_incl_dir "[xcs_get_relative_file_path $path $dir]"
+      }
+      break
+    }
+  }
+  return $intf_incl_dir
 }

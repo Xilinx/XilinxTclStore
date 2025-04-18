@@ -1,3 +1,32 @@
+2.502 update msg for failed or missing compiled IP
+2.501 deprecate line coverage type
+2.500 export aie_work_dir
+2.499 include axi interface include dir
+2.498 set install path
+2.497 reference sim_version from args
+2.496 print msg for locked, custom ips
+2.495 add quotes for generic_top
+2.494 fixed use ini var name
+2.493 bind sip cores for Versal
+2.492 bind aietools lib for AIE
+2.491 check current design for intermediate impl stage
+2.490 reset scripts only mode for exec mode
+2.489 set RDI_DATADIR to compiled library path
+2.488 remove equal sign for empty define value
+2.487 set current design in memory if design opened
+2.486 check for LD_LIBRARY_PATH env before appending
+2.485 fixed coverage option names
+2.484 export RDI_DATADIR for scripts only mode
+2.483 add files from simulation fileset compile order for manual hierarchy mode
+2.482 append aietools lib path for designs containing AIE
+2.481 bind noc2 sub-cores
+2.480 support for sys-config simulation
+2.479 filter access-point library
+2.478 fetch hard-blocks from api
+2.477 disable vivado/vitis lib path for LD_LIBRARY_PATH
+2.476 reference hard-block library
+2.475 append paths to find installed libs
+2.474 bind NoC legacy if param or env set
 2.473 bind NoC sub-core library based on comp type
 2.472 compile xpm noc sources locally in xpm_noc library
 2.471 realign local xpm compiled library mapping

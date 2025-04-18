@@ -38,6 +38,8 @@ proc usf_init_vars {} {
 
   set a_sim_vars(b_exec_step)                0
   set a_sim_vars(b_int_setup_sim_vars)       0
+  set a_sim_vars(b_int_use_ini_file)         0
+  set a_sim_vars(b_int_bind_sip_cores)       0
 
   set a_sim_vars(b_int_rtl_kernel_mode)      0
   set a_sim_vars(b_compile_simmodels)        0
@@ -79,6 +81,8 @@ proc usf_init_vars {} {
   variable a_shared_library_mapping_path_coln
   variable a_ip_lib_ref_coln
   variable a_pre_compiled_source_info
+  variable a_locked_ips
+  variable a_custom_ips
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -91,6 +95,8 @@ proc usf_init_vars {} {
   array unset a_shared_library_mapping_path_coln
   array unset a_ip_lib_ref_coln
   array unset a_pre_compiled_source_info
+  array unset a_locked_ips
+  array unset a_custom_ips
 
   #######################
   # initialize param vars
@@ -236,6 +242,11 @@ proc usf_get_other_verilog_options { global_files_str opts_arg } {
         lappend opts "-i \"$incl_dir\""
       }
     }
+  }
+
+  set intf_incl_dir "[xcs_add_axi_interface_header  $a_sim_vars(b_absolute_path) $a_sim_vars(s_launch_dir)]"
+  if { {} != $intf_incl_dir } {
+    lappend opts "--include \"$intf_incl_dir\""
   }
 
   # --include
@@ -1291,6 +1302,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
         # library to be compiled locally, add this to the local library linkage collection for mapping purposes
         if { [lsearch -exact $l_local_design_libraries $library] == -1 } {
           lappend l_local_design_libraries $library
+          xcs_print_ip_compile_msg $library
         }
       }
     }

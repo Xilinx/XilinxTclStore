@@ -1,3 +1,11 @@
+3.573 Fix for CR-1218704 Copying run makes GUI to go into infinite loop.
+3.572 Fix for CR-1228988
+3.571 Introduce new option ip_repo_path
+3.570 Fix for CR-1216609
+3.569 merged 2024.2 to 2025.1
+3.568 Classic SoC Boot is a deprecated feature
+3.567 WPT should not write orphan inactive filesets from previous runs
+3.566 Fix for CR-1121058
 3.565 Property FEATURE_SET is deprecated
 3.564 Fix for CR:1184178 Adding a pre-synth TCL script as part of XSA causes VPL error
 3.563 Updated DeprecationMsgPrinter with changed ngc2edif_ exec path

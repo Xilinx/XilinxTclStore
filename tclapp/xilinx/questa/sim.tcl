@@ -298,12 +298,14 @@ proc usf_questa_setup_args { args } {
   # [-int_gcc_bin_path <arg>]: GCC path (internal use)
   # [-int_gcc_version <arg>]: GCC version (internal use)
   # [-int_sim_version <arg>]: Simulator version (internal use)
+  # [-int_aie_work_dir <arg>]: AIE work dir (internal use)
   # [-int_compile_glbl]: Compile glbl (internal use)
   # [-int_sm_lib_ref_debug]: Print simulation model library referencing debug messages (internal use)
   # [-int_csim_compile_order]: Use compile order for co-simulation (internal use)
   # [-int_export_source_files]: Export IP sources to simulation run directory (internal use)
   # [-int_en_vitis_hw_emu_mode]: Enable code for Vitis HW-EMU (internal use)
   # [-int_perf_analysis]: Enable code for performance analysis (internal use)
+  # [-int_fix_noc_assertion]: Enable code for fixing NoC assertion error (internal use)
 
   # Return Value:
   # true (0) if success, false (1) otherwise
@@ -329,6 +331,7 @@ proc usf_questa_setup_args { args } {
       "-int_gcc_bin_path"         { incr i;set a_sim_vars(s_gcc_bin_path)      [lindex $args $i] }
       "-int_gcc_version"          { incr i;set a_sim_vars(s_gcc_version)       [lindex $args $i] }
       "-int_sim_version"          { incr i;set a_sim_vars(s_sim_version)       [lindex $args $i] }
+      "-int_aie_work_dir"         { incr i;set a_sim_vars(s_aie_work_dir)      [lindex $args $i] }
       "-int_sm_lib_dir"           { incr i;set a_sim_vars(custom_sm_lib_dir)   [lindex $args $i] }
       "-scripts_only"             { set a_sim_vars(b_scripts_only)             1                 }
       "-gui"                      { set a_sim_vars(b_gui)                      1                 }
@@ -346,6 +349,7 @@ proc usf_questa_setup_args { args } {
       "-int_en_vitis_hw_emu_mode" { set a_sim_vars(b_int_en_vitis_hw_emu_mode) 1                 }
       "-int_perf_analysis"        { set a_sim_vars(b_int_perf_analysis)        1                 }
       "-int_setup_sim_vars"       { set a_sim_vars(b_int_setup_sim_vars)       1                 }
+      "-int_fix_noc_assertion"    { set a_sim_vars(b_int_fix_noc_assertion)    1                 }
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -1431,19 +1435,35 @@ proc usf_questa_get_elaboration_cmdline {} {
     lappend arg_list "-cpppath $gcc_path"
   }
 
-  set acc_val {}
   set acc [get_property "questa.elaborate.acc" $a_sim_vars(fs_obj)]
-  if { {None} == $acc } {
-    # no val
-  } else {
-    # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
-    set a_sim_vars(b_int_perf_analysis) 0
-    if { $a_sim_vars(b_int_perf_analysis) } {
-      if { ("acc=npr" == $acc) } {
+  if { [get_param "simulator.enableqisflow"] } {
+    set opt_mode [get_property -quiet "questa.elaborate.opt_mode" $a_sim_vars(fs_obj)]
+    if { {None} == $acc } {
+      # no val
+    } elseif { "acc=npr" == $acc } {
+      if { {access} == $opt_mode } {
         lappend arg_list "-access=r+/."
+      } elseif { {debug} == $opt_mode } {
+        lappend arg_list "-debug"
       }
+    } elseif { "acc" == $acc } {
+      if { {access} == $opt_mode } {
+        lappend arg_list "-uvmaccess"
+      }
+    }
+  } else {
+    if { {None} == $acc } {
+      # no val
     } else {
-      lappend arg_list "+$acc"
+      # not enabled for Questa yet (# ** Error (suppressible): (vsim-12130) WLF logging is not supported with QIS.)
+      set a_sim_vars(b_int_perf_analysis) 0
+      if { $a_sim_vars(b_int_perf_analysis) } {
+        if { ("acc=npr" == $acc) } {
+          lappend arg_list "-access=r+/."
+        }
+      } else {
+        lappend arg_list "+$acc"
+      }
     }
   }
 
@@ -1451,6 +1471,10 @@ proc usf_questa_get_elaboration_cmdline {} {
   set vhdl_generics [get_property "generic" [get_filesets $a_sim_vars(fs_obj)]]
   if { [llength $vhdl_generics] > 0 } {
     xcs_append_generics "questa" $vhdl_generics arg_list  
+  }
+
+  if { $a_sim_vars(b_int_fix_noc_assertion) } {
+    lappend arg_list "-inlineFactor=0 -noprotectopt"
   }
  
   #
@@ -2200,9 +2224,16 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
         puts $fh_scr ""
       }
       puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
+      if { $a_sim_vars(b_compile_simmodels) } {
+        puts $fh_scr "export xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+      } 
       # for aie
       if { {} != $aie_ip_obj } {
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
+        set aie_work_dir $a_sim_vars(s_aie_work_dir)
+        if { {} != $aie_work_dir } {
+          puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
+        }
       }
       puts $fh_scr ""
     }
