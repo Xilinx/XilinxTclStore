@@ -51,6 +51,7 @@ proc usf_init_vars {} {
   set a_sim_vars(compiled_design_lib)        "vcs_lib"
   set a_sim_vars(syscan_libname)             "lib_sc.so"
   set a_sim_vars(sysc_ver)                   "233"
+  set a_sim_vars(s_vcs_home)                 ""
 
   set a_sim_vars(run_logs_compile)           [list $a_sim_vars(clog) vhdlan.log vlogan.log syscan.log $a_sim_vars(tmp_log_file)]
   set a_sim_vars(run_logs_elaborate)         [list elaborate.log]

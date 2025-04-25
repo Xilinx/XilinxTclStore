@@ -2096,12 +2096,18 @@ proc usf_set_vcs_home { fh_scr } {
   
   variable a_sim_vars
   if { $a_sim_vars(b_scripts_only) } {
-    if { [info exists ::env(VCS_HOME)] } {
-      set vcs_home $::env(VCS_HOME)
-      if { ({} != $vcs_home) && ([file exists $vcs_home]) && ([file isdirectory $vcs_home]) } {
-        puts $fh_scr "\n# VCS_HOME setting"
-        puts $fh_scr "export VCS_HOME=$vcs_home"
+    if { {} == $a_sim_vars(s_vcs_home) } {
+      if { [info exists ::env(VCS_HOME)] } {
+        set a_sim_vars(s_vcs_home) $::env(VCS_HOME)
+      } else {
+        set a_sim_vars(s_vcs_home) [file dirname $a_sim_vars(s_install_path)]
+        send_msg_id USF-VCS-099 WARNING "VCS_HOME env variable not found! Setting it to '$a_sim_vars(s_vcs_home)' in the generated scripts using install path '$a_sim_vars(s_install_path)'\n"
+        set ::env(VCS_HOME) $a_sim_vars(s_vcs_home)
       }
+    }
+    if { ({} != $a_sim_vars(s_vcs_home)) && ([file exists $a_sim_vars(s_vcs_home)]) && ([file isdirectory $a_sim_vars(s_vcs_home)]) } {
+      puts $fh_scr "\n# VCS_HOME setting"
+      puts $fh_scr "export VCS_HOME=$a_sim_vars(s_vcs_home)"
     }
   }
 }
