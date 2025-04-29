@@ -3163,7 +3163,7 @@ proc usf_vcs_init_env { fh_scr } {
     puts $fh_scr "\n# source VCS GNU package script (for setting GCC, binutils and LD_LIBRARY_PATH)"
     puts $fh_scr "if \[\[ ! -z \$VG_GNU_PACKAGE \]\]; then"
     puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
-    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc9_64.sh"
+    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc920_64.sh"
     puts $fh_scr "fi\n"
   }
 }
