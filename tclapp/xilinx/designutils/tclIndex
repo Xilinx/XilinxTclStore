@@ -26,6 +26,8 @@ set auto_index(::tclapp::xilinx::designutils::clone_net_driver) [list source [fi
 set auto_index(::tclapp::xilinx::designutils::convert_muxfx_to_luts) [list source [file join $dir convert_muxfx_to_luts.tcl]]
 set auto_index(::tclapp::xilinx::designutils::create_combined_mig_io_design) [list source [file join $dir create_combined_mig_io_design.tcl]]
 set auto_index(::tclapp::xilinx::designutils::create_diff_ports) [list source [file join $dir create_diff_ports.tcl]]
+set auto_index(::tclapp::xilinx::designutils::disable_equiv_vivado_directives) [list source [file join $dir run_equiv_vivado_directives.tcl]]
+set auto_index(::tclapp::xilinx::designutils::enable_equiv_vivado_directives) [list source [file join $dir run_equiv_vivado_directives.tcl]]
 set auto_index(::tclapp::xilinx::designutils::generate_runs) [list source [file join $dir generate_runs.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_clock_interaction) [list source [file join $dir get_clock_interaction.tcl]]
 set auto_index(::tclapp::xilinx::designutils::get_connected_ref_pins) [list source [file join $dir get_connected_ref_pins.tcl]]
