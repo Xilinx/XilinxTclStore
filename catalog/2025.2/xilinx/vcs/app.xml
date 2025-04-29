@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>auto set VCS_HOME in simulation scripts if not found</revision_history>
+      <revision_history>source gcc920_64 version in script</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
