@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Added run_equiv_vivado_directives (xilinx::designutils) for 2025.1-dev</revision_history>
+      <revision_history>Added run_equiv_vivado_directives.tcl</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

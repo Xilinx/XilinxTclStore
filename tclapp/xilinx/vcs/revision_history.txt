@@ -1,3 +1,4 @@
+16.1 source gcc920_64 version in script
 16.0 export aie_work_dir
 15.9 include axi interface include dir
 15.8 reference sim_version from args
