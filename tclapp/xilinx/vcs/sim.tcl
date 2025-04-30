@@ -665,6 +665,16 @@ proc usf_vcs_write_compile_script {} {
     puts $fh_scr "\n# installation path setting"
     puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
 
+    if { $a_sim_vars(b_scripts_only) } {
+      if { [info exists ::env(VCS_HOME)] } {
+        set vcs_home $::env(VCS_HOME)
+        if { ({} != $vcs_home) && ([file exists $vcs_home]) && ([file isdirectory $vcs_home]) } {
+          puts $fh_scr "\n# VCS_HOME setting"
+          puts $fh_scr "export VCS_HOME=$vcs_home"
+        }
+      }
+    }
+
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
@@ -3125,7 +3135,7 @@ proc usf_vcs_init_env { fh_scr } {
     puts $fh_scr "\n# source VCS GNU package script (for setting GCC, binutils and LD_LIBRARY_PATH)"
     puts $fh_scr "if \[\[ ! -z \$VG_GNU_PACKAGE \]\]; then"
     puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
-    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc9_64.sh"
+    puts $fh_scr "  source \$VG_GNU_PACKAGE/source_me_gcc920_64.sh"
     puts $fh_scr "fi\n"
   }
 }
