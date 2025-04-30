@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>source gcc920_64 version in script</revision_history>
+      <revision_history>source VCS GNU pkg gcc script explicitly to load VCS libraries first</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
