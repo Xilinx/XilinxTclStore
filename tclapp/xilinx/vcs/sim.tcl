@@ -3161,7 +3161,7 @@ proc usf_vcs_init_env { fh_scr } {
   if { $b_init_env } {
     set gnu_pkg_dir [file dirname [file dirname $a_sim_vars(s_gcc_bin_path)]]
     puts $fh_scr "\n# source VCS GNU package script (for setting GCC, binutils and LD_LIBRARY_PATH)"
-    puts $fh_scr "if \[\[ ! -z \$VG_GNU_PACKAGE \]\]; then"
+    puts $fh_scr "if \[\[ -z \$VG_GNU_PACKAGE \]\]; then"
     puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
     puts $fh_scr "fi\n"
     puts $fh_scr "echo \"VG_GNU_PACKAGE=\$VG_GNU_PACKAGE\""
