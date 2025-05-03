@@ -1,3 +1,4 @@
+16.5 check for VG_GNU_PACKAGE env
 16.4 source VCS GNU pkg gcc script explicitly to load VCS libraries first
 16.3 source gcc920_64 version in script
 16.2 auto set VCS_HOME in simulation scripts if not found
