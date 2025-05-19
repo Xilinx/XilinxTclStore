@@ -5175,6 +5175,11 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
     if { $b_int_sm_lib_ref_debug } {
       puts " + Finding linked shared library:$shared_libname"
     }
+
+    if { ![info exists a_ip_lib_ref_coln($library)] } {
+      set a_ip_lib_ref_coln($library) false
+    }
+
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       #set path [file normalize $path]
