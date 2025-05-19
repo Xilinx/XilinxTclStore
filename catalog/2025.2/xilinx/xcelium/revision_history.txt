@@ -1,3 +1,4 @@
+11.180 add linked library to collection if not found
 11.179 pass -pkgsearch for finding system verilog packages
 11.178 performance improvements using data cache
 11.177 merged 2025.1 to 2025.2

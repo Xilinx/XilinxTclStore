@@ -1,3 +1,4 @@
+2.504 add linked library to collection if not found
 2.503 performance improvements using data cache
 2.502 merged 2025.1 to 2025.2
 2.501 deprecate line coverage type
