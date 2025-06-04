@@ -4136,6 +4136,20 @@ proc xcs_write_script_header { fh step simulator } {
   puts $fh "$cmt ****************************************************************************"
 }
 
+proc xcs_write_version_id { fh simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set sim [string toupper $simulator]
+  if {$::tcl_platform(platform) == "unix"} {
+    puts $fh "export SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
+    puts $fh "export GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
+  }
+  puts $fh ""
+}
+
 proc xcs_glbl_dependency_for_xpm {} {
   # Summary:
   # Argument Usage:
@@ -5875,7 +5889,7 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } {
+proc xcs_get_design_libs { files {b_realign 0} {b_insert_logical_noc_libs 0} {b_insert_xpm_noc_sub_cores 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5910,6 +5924,27 @@ proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } 
   if { $b_realign } {
     if { $b_contains_default_lib } {
       set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
+    }
+  }
+  
+  # add logical noc libs
+  if { $b_insert_logical_noc_libs } {
+    set lnoc_files [list]
+    set uniq_lnoc_libs [list]
+    [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
+    foreach file $lnoc_files {
+      set library [get_property "library" $file]
+      if { "xil_defaultlib" == $library } { continue }
+      if { [lsearch -exact $uniq_lnoc_libs $library] == -1 } {
+        lappend uniq_lnoc_libs $library
+      }
+    }
+    if { [llength $uniq_lnoc_libs] > 0 } {
+      set pos 1
+      foreach elem $uniq_lnoc_libs {
+        set uniq_libs [linsert $uniq_libs $pos $elem]
+        incr pos
+      } 
     }
   }
 

@@ -530,7 +530,7 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib modelsim_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
 
   # TODO:
   # If DesignFiles contains VHDL files, but simulation language is set to Verilog, we should issue CW
@@ -826,7 +826,7 @@ proc usf_modelsim_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 0 1]
+  set design_libs [xcs_get_design_libs $design_files 0 1 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1026,7 +1026,7 @@ proc usf_modelsim_get_simulation_cmdline_2step {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 1 1]
+  set design_libs [xcs_get_design_libs $design_files 1 1 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1428,6 +1428,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "modelsim"
+    #xcs_write_version_id $fh_scr "modelsim"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
     }
@@ -1468,6 +1469,7 @@ proc usf_modelsim_write_driver_shell_script { do_filename step } {
     puts $fh_scr "@echo off"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       xcs_write_script_header $fh_scr $step "modelsim"
+      #xcs_write_version_id $fh_scr "modelsim"
       puts $fh_scr "set bin_path=$a_sim_vars(s_tool_bin_path)"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
         set xv $::env(XILINX_VIVADO)

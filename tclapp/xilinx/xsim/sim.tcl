@@ -1151,7 +1151,7 @@ proc usf_xsim_write_setup_file {} {
       puts $fh "uvm=$uvm_lib"
     }
   }
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     set lib_name [string tolower $lib]
@@ -1382,6 +1382,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
 
     if { [get_param "project.allowSharedLibraryType"] } {
       puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
@@ -1445,6 +1446,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "elaborate" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
@@ -1656,6 +1658,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "simulate" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
         puts $fh_scr "\[ -z \"\$LIBRARY_PATH\" \] && export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir) || export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
@@ -1762,6 +1765,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
   } else {
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr "simulate" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
@@ -2253,7 +2257,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   }
 
   # design source libs
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1 1]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 1 1 1]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend args_list "-L $lib"
@@ -3017,6 +3021,14 @@ proc usf_xsim_get_top_level_instance_names {} {
     set name $top_names
     lappend top_level_instance_names [usf_get_top_name $name $top_lib]
   }
+
+  # logical noc
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend top_level_instance_names [usf_get_top_name $lnoc_top $lib]
+  }
+
   return $top_level_instance_names
 }
 
@@ -3266,6 +3278,7 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "compile" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
     xcs_write_pipe_exit $fh_scr
     if { [file exists $a_sim_vars(s_clibs_dir)] } {
       puts $fh_scr "\n# resolve compiled library path in xsim.ini"
@@ -3294,6 +3307,7 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
     puts $fh_scr "@echo off"
     # TODO: perf-fix
     xcs_write_script_header $fh_scr "compile" "xsim"
+    xcs_write_version_id $fh_scr "xsim"
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       puts $fh_scr "\nset xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
       puts $fh_scr "set xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""

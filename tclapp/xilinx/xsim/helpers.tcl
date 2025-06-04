@@ -445,6 +445,26 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         usf_add_block_fs_files $global_files_str other_ver_opts files l_compile_order_files
       }
     }
+    # add logical NoC files
+    set lnoc_files [list]
+    [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
+    foreach file $lnoc_files {
+      set file_type [get_property "file_type" $file]
+      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+        set used_in_values [get_property -quiet "USED_IN" $file]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          if { $a_sim_vars(b_use_static_lib) } {
+            continue;
+          }
+        }
+        set g_files $global_files_str
+        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
+      }
+    }
     # add files from simulation compile order
     if { {All} == $a_sim_vars(src_mgmt_mode) } {
       send_msg_id USF-XSim-098 INFO "Fetching design files from '$target_obj'..."
@@ -499,6 +519,25 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
+
+    # add logical noc top module file
+    set lnoc_top [get_property -quiet logical_noc_top $a_sim_vars(fs_obj)]
+    if { {} != $lnoc_top } {
+      set lnoc_file "${lnoc_top}.v"
+      set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
+      if { {} != $file } {
+        set file_type [get_property "file_type" $file]
+        if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+          set g_files $global_files_str
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
+          }
+        }
+      }
+    }
+
   } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-XSim-102 INFO "Fetching design files from IP '$target_obj'..."

@@ -487,7 +487,7 @@ proc usf_vcs_write_setup_files {} {
     }
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) } { continue; }
@@ -659,6 +659,7 @@ proc usf_vcs_write_compile_script {} {
   }
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
@@ -1439,6 +1440,7 @@ proc usf_vcs_write_elaborate_script {} {
   }
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
@@ -1802,6 +1804,14 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  # logical noc top
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
+  }
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
@@ -2009,6 +2019,7 @@ proc usf_vcs_write_simulate_script {} {
  
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
@@ -2183,6 +2194,7 @@ proc usf_vcs_create_setup_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -2201,7 +2213,7 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "vcs"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)

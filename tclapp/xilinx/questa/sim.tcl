@@ -636,7 +636,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
 
   if { $a_sim_vars(b_compile_simmodels) } {
     # get the design simmodel compile order
@@ -1499,7 +1499,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 1 1]
+  set design_libs [xcs_get_design_libs $design_files 1 1 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1628,6 +1628,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  # logical noc
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
+  }
 
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
@@ -2078,6 +2085,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "questa"
+    xcs_write_version_id $fh_scr "questa"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
     }
@@ -2318,6 +2326,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     # windows
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr $step "questa"
+    xcs_write_version_id $fh_scr "questa"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
       puts $fh_scr "set bin_path=$a_sim_vars(s_tool_bin_path)"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {

@@ -505,7 +505,7 @@ proc usf_xcelium_write_setup_files {} {
     }
   }
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -625,6 +625,7 @@ proc usf_xcelium_write_compile_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
@@ -1418,6 +1419,7 @@ proc usf_xcelium_write_elaborate_script {} {
   variable a_shared_library_path_coln
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
@@ -1482,7 +1484,7 @@ proc usf_xcelium_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 1]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 1 1]
 
   set arg_list [list]
   # add simulation libraries
@@ -1666,6 +1668,13 @@ proc usf_xcelium_write_elaborate_script {} {
   foreach hb $l_hard_blocks {
     set hb_wrapper "xil_defaultlib.${hb}_sim_wrapper"
     lappend arg_list "$hb_wrapper"
+  }
+
+  # logical noc top
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
   }
 
   set top_level_inst_names {}
@@ -1943,6 +1952,7 @@ proc usf_xcelium_write_simulate_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
@@ -2107,6 +2117,7 @@ proc usf_xcelium_create_setup_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -2125,7 +2136,7 @@ proc usf_xcelium_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "xcelium"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)
@@ -2337,7 +2348,7 @@ proc usf_append_sv_pkgs { args } {
 
   set design_libs [list]
 
-  foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0] {
+  foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0] {
     if {[string length $lib] == 0} { continue; }
     if { "xil_defaultlib" == $lib } {
       lappend design_libs "-pkgsearch $lib"
