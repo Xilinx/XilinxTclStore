@@ -1144,13 +1144,39 @@ proc usf_xsim_write_setup_file {} {
     return 1
   }
 
-  # add uvm mapping for system verilog
-  if { $a_sim_vars(b_contain_sv_srcs) } {
-    set uvm_lib [xcs_find_uvm_library]
-    if { {} != $uvm_lib } {
-      puts $fh "uvm=$uvm_lib"
+  set b_uvm_added 0
+
+  # add base lib mappings
+  set b_add_base_lib_mappings 0
+  [catch {set b_add_base_lib_mappings [get_param project.addBaseLibMappingsForXSim]} err]
+  if { $b_add_base_lib_mappings } {
+    puts $fh "std=\$RDI_DATADIR/xsim/vhdl/std"
+    puts $fh "ieee=\$RDI_DATADIR/xsim/vhdl/ieee"
+    puts $fh "ieee_proposed=\$RDI_DATADIR/xsim/vhdl/ieee_proposed"
+    puts $fh "vl=\$RDI_DATADIR/xsim/vhdl/vl"
+    puts $fh "synopsys=\$RDI_DATADIR/xsim/vhdl/synopsys"
+    puts $fh "uvm=\$RDI_DATADIR/xsim/system_verilog/uvm"
+    puts $fh "secureip=\$RDI_DATADIR/xsim/verilog/secureip"
+    puts $fh "unisim=\$RDI_DATADIR/xsim/vhdl/unisim"
+    puts $fh "unimacro=\$RDI_DATADIR/xsim/vhdl/unimacro"
+    puts $fh "unifast=\$RDI_DATADIR/xsim/vhdl/unifast"
+    puts $fh "unisims_ver=\$RDI_DATADIR/xsim/verilog/unisims_ver"
+    puts $fh "unimacro_ver=\$RDI_DATADIR/xsim/verilog/unimacro_ver"
+    puts $fh "unifast_ver=\$RDI_DATADIR/xsim/verilog/unifast_ver"
+    puts $fh "simprims_ver=\$RDI_DATADIR/xsim/verilog/simprims_ver"
+    set b_uvm_added 1
+  }
+ 
+  if { !$b_uvm_added } { 
+    # add uvm mapping for system verilog
+    if { $a_sim_vars(b_contain_sv_srcs) } {
+      set uvm_lib [xcs_find_uvm_library]
+      if { {} != $uvm_lib } {
+        puts $fh "uvm=$uvm_lib"
+      }
     }
   }
+
   set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
