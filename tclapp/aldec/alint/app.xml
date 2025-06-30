@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial version</revision_history>
+      <name>alint</name>
+      <company>aldec</company>
+      <company_display>Aldec, Inc.</company_display>
+      <display>Alint Linter</display>
+      <procs>
+        <proc>
+          <name>convert_project</name>
+          <summary>Convert Vivado project to Alint</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
