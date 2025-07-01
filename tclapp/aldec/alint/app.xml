@@ -6,7 +6,8 @@
       <name>alint</name>
       <company>aldec</company>
       <company_display>Aldec, Inc.</company_display>
-      <display>Alint Linter</display>
+      <summary>This is an Aldec app to convert a Vivado project to an Alint-PRO project</summary>
+      <display>Alint-PRO Linter</display>
       <procs>
         <proc>
           <name>convert_project</name>
