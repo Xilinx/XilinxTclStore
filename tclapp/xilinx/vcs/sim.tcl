@@ -662,6 +662,7 @@ proc usf_vcs_write_compile_script {} {
   xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
+      puts $fh_scr ""
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
     usf_vcs_init_env $fh_scr
@@ -671,21 +672,21 @@ proc usf_vcs_write_compile_script {} {
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
 
     usf_set_vcs_home $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\"\n"
+        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\"\n"
       }
       # set system sim library paths
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "# set system shared library paths"
-        puts $fh_scr "xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
-        puts $fh_scr "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-        puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+        puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+        puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
         puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\""
       }
     }
@@ -1449,15 +1450,15 @@ proc usf_vcs_write_elaborate_script {} {
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\"\n"
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
  
     usf_set_vcs_home $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
-        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+		puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+		puts $fh_scr "sys_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\"\n"
         
         # bind user specified libraries
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
@@ -2028,7 +2029,7 @@ proc usf_vcs_write_simulate_script {} {
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
 
     usf_set_vcs_home $fh_scr
 
@@ -2118,7 +2119,7 @@ proc usf_set_vcs_home { fh_scr } {
     }
     if { ({} != $a_sim_vars(s_vcs_home)) && ([file exists $a_sim_vars(s_vcs_home)]) && ([file isdirectory $a_sim_vars(s_vcs_home)]) } {
       puts $fh_scr "\n# VCS_HOME setting"
-      puts $fh_scr "export VCS_HOME=$a_sim_vars(s_vcs_home)"
+      puts $fh_scr "export VCS_HOME=[xcs_replace_with_var $a_sim_vars(s_vcs_home) "SIM_VER" "vcs"]"
     }
   }
 }

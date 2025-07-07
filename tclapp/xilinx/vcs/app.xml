@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>add logical NoC files</revision_history>
+      <revision_history>replace sim and gcc version with shell var setting</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

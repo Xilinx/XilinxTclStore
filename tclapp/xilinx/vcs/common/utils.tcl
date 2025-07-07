@@ -4147,7 +4147,34 @@ proc xcs_write_version_id { fh simulator } {
     puts $fh "export SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
     puts $fh "export GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
   }
-  puts $fh ""
+}
+  
+proc xcs_replace_with_var { s_install_path var_name simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  # make sure sim or gcc verison is set for replacement with var 
+  if { ("SIM_VER" == $var_name) && ({} == $a_sim_vars(s_sim_version)) } { return $s_install_path }
+  if { ("GCC_VER" == $var_name) && ({} == $a_sim_vars(s_gcc_version)) } { return $s_install_path }
+
+  set file_path_str $s_install_path
+  set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
+
+  set sim [string toupper $simulator]
+  set env_var_name ${var_name}_${sim}
+
+  set str_to_replace "$a_sim_vars(s_sim_version)"; # sim version
+  if { [regexp {^GCC_VER_} $env_var_name] } {
+    set str_to_replace "$a_sim_vars(s_gcc_version)"; # gcc version
+  }
+  set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
+
+  regsub -all $str_to_replace $file_path_str $str_to_replace_with file_path_str
+
+  return $file_path_str
 }
 
 proc xcs_glbl_dependency_for_xpm {} {
@@ -6332,17 +6359,18 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   puts $fh_scr $ld_path
 
   if { ("elaborate" == $step) || ("simulate" == $step) } {
-    puts $fh_scr "\nexport xv_cxl_lib_path=\"$s_clibs_dir\""
+    puts $fh_scr "\nexport xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $s_clibs_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
     puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
   } else {
     puts $fh_scr ""
   }
 
-  puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $sp_cpt_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
   if { ("elaborate" == $step) } {
     set ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
     set rdi_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-    puts $fh_scr "export xv_ext_lib_path=\"$rdi_dir/$ext_dir\""
+    set rdi_ext_dir "$rdi_dir/$ext_dir"
+    puts $fh_scr "export xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $rdi_ext_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
   }
   # for aie
   if { {} != $aie_ip_obj } {
