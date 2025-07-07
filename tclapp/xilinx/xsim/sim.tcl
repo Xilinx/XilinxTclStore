@@ -150,6 +150,21 @@ proc simulate { args } {
   set cwd [pwd]
   cd $a_sim_vars(s_launch_dir)
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    set cmd "set ::env(SIM_VER_XSIM) $a_sim_vars(s_sim_version)"
+    if {[catch {eval $cmd} err_msg]} {
+      puts $err_msg
+      [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the SIM_VER_XSIM env!"}]
+    } else {
+      #[catch {send_msg_id USF-XSim-103 STATUS "SIM_VER_XSIM=$::env(SIM_VER_XSIM)"}]
+    }
+    set cmd "set ::env(GCC_VER_XSIM) $a_sim_vars(s_gcc_version)"
+    if {[catch {eval $cmd} err_msg]} {
+      puts $err_msg
+      [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the GCC_VER_XSIM env!"}]
+    } else {
+      #[catch {send_msg_id USF-XSim-103 STATUS "GCC_VER_XSIM=$::env(GCC_VER_XSIM)"}]
+    }
+
     if {$::tcl_platform(platform) == "unix"} {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
         set cmd "set ::env(LIBRARY_PATH) $a_sim_vars(ubuntu_lib_dir)"
@@ -200,6 +215,8 @@ proc simulate { args } {
       }
       append cmd ":$::env(LD_LIBRARY_PATH)\""
       set cmd [regsub -all {\$xv_ref_path} $cmd {$::env(xv_ref_path)}]
+      set cmd [regsub -all {\$\{SIM_VER_XSIM\}} $cmd {$::env(SIM_VER_XSIM)}]
+      set cmd [regsub -all {\$\{GCC_VER_XSIM\}} $cmd {$::env(GCC_VER_XSIM)}]
       if {[catch {eval $cmd} err_msg]} {
         puts $err_msg
         [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LD_LIBRARY_PATH!"}]
@@ -227,7 +244,7 @@ proc simulate { args } {
           set cmd "set ::env(xv_cxl_win_path) $a_sim_vars(s_clibs_dir)"
           if {[catch {eval $cmd} err_msg]} {
             puts $err_msg
-            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
+            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the xv_cxl_win_path env!"}]
           }
           set cxl_lib_paths [list]
           variable a_shared_library_path_coln
@@ -242,7 +259,7 @@ proc simulate { args } {
           set cmd "set ::env(PATH) \"$cxl_lib_paths_str;\$::env(PATH)\""
           if {[catch {eval $cmd} err_msg]} {
             puts $err_msg
-            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the LIBRARY_PATH env!"}]
+            [catch {send_msg_id USF-XSim-102 ERROR "Failed to set the PATH env!"}]
           }
           if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
             puts "------------------------------------------------------------------------------------------------------------------------------------"
