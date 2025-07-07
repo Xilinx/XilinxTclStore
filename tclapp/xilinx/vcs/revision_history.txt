@@ -1,3 +1,4 @@
+16.8 replace sim and gcc version with shell var setting
 16.7 add logical NoC files
 16.6 add linked library to collection if not found
 16.5 check for VG_GNU_PACKAGE env

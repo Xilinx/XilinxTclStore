@@ -1,3 +1,4 @@
+11.182 replace sim and gcc version with shell var setting
 11.181 add logical NoC files
 11.180 add linked library to collection if not found
 11.179 pass -pkgsearch for finding system verilog packages
