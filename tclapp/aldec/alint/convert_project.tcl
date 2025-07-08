@@ -43,6 +43,5 @@ proc ::tclapp::aldec::alint::convert_project {alint_path} {
 
     exec -- $alintcon \
         -batch \
-        -do $alint_script_path $xpr_path \
-        >@stdout
+        -do $alint_script_path $xpr_path
 }
