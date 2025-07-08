@@ -15,7 +15,11 @@ proc ::tclapp::aldec::alint::convert_project {alint_path} {
 
     # Categories: xilinxtclstore, aldec, alint, convert
 
-    set alintcon $alint_path/bin/alintcon
+    if {$::tcl_platform(platform) == "windows"} {
+        set alintcon $alint_path/bin/alintcon.exe
+    } else {
+        set alintcon $alint_path/bin/alintcon
+    }
 
     if {![file exists $alintcon]} {
         error "Required file $alintcon not found"
