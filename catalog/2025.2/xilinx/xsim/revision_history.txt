@@ -1,3 +1,4 @@
+2.509 add comments for tasks
 2.508 export sim and gcc version setting for integrated mode
 2.507 replace sim and gcc version with shell var setting
 2.506 add base library bindings for RTL project
