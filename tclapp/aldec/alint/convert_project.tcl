@@ -4,21 +4,61 @@ namespace eval ::tclapp::aldec::alint {
     namespace export convert_project
 }
 
-proc ::tclapp::aldec::alint::convert_project {alint_path} {
+proc ::tclapp::aldec::alint::convert_project {args} {
 
     # Summary: Convert Vivado project to Alint
 
     # Argument Usage:
-    # alint_path: Path where Alint is located
+    #  alint_path: Path where Alint is located
+    #  [-usage]: This help message
 
     # Return Value:
 
     # Categories: xilinxtclstore, aldec, alint, convert
 
+    set usage [format {
+  Usage: convert_project
+              alint_path - Path where Alint is located
+              [-usage]   - This help message
+
+  Description: Convert Vivado project to Alint
+  Example:
+     convert_project ~/ALINT-PRO
+}]
+
+    set help false
+
+    foreach arg $args {
+        switch -- $arg {
+            -usage {
+               set help true
+            }
+            -* {
+                error "Unrecognized option $arg"
+            }
+            default {
+                if {[info exists alint_path]} {
+                    error "Too many arguments\n$usage"
+                }
+                set alint_path $arg
+            }
+        }
+    }
+
+    if {$help} {
+        puts $usage
+        return
+    }
+
+    if {![info exists alint_path]} {
+        error "Alint path not passed\n$usage"
+    }
+
+    set alint $alint_path/bin/alint
+    set alintcon $alint_path/bin/alintcon
     if {$::tcl_platform(platform) == "windows"} {
-        set alintcon $alint_path/bin/alintcon.exe
-    } else {
-        set alintcon $alint_path/bin/alintcon
+        set alint $alint.exe
+        set alintcon $alintcon.exe
     }
 
     if {![file exists $alintcon]} {
