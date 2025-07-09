@@ -6,11 +6,11 @@ namespace eval ::tclapp::aldec::alint {
 
 proc ::tclapp::aldec::alint::convert_project {args} {
 
-    # Summary: Convert Vivado project to Alint
+    # Summary: Convert Vivado project to ALINT-PRO
 
     # Argument Usage:
-    #  alint_path: Path where Alint is located
-    #  [-gui]: Start Alint in GUI mode and don't exit after converting
+    #  alint_path: Path where ALINT-PRO is located
+    #  [-gui]: Start ALINT-PRO in GUI mode and don't exit after converting
     #  [-usage]: This help message
 
     # Return Value:
@@ -19,11 +19,11 @@ proc ::tclapp::aldec::alint::convert_project {args} {
 
     set usage [format {
   Usage: convert_project
-              alint_path - Path where Alint is located
-              [-gui]     - Start Alint in GUI mode and don't exit after converting
+              alint_path - Path where ALINT-PRO is located
+              [-gui]     - Start ALINT-PRO in GUI mode and don't exit after converting
               [-usage]   - This help message
 
-  Description: Convert Vivado project to Alint
+  Description: Convert Vivado project to ALINT-PRO
   Example:
      convert_project ~/ALINT-PRO
      convert_project -gui ~/ALINT-PRO
@@ -58,7 +58,7 @@ proc ::tclapp::aldec::alint::convert_project {args} {
     }
 
     if {![info exists alint_path]} {
-        error "Alint path not passed\n$usage"
+        error "ALINT-PRO path not passed\n$usage"
     }
 
     set alint $alint_path/bin/alint
@@ -72,7 +72,7 @@ proc ::tclapp::aldec::alint::convert_project {args} {
         error "Required file $alintcon not found"
     }
 
-    # Generate a script file for Alint
+    # Generate a script file for ALINT-PRO
     set alint_script_path [file tempfile]
     set alint_script_file [open $alint_script_path w]
     set alint_script {
