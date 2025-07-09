@@ -10,6 +10,7 @@ proc ::tclapp::aldec::alint::convert_project {args} {
 
     # Argument Usage:
     #  alint_path: Path where Alint is located
+    #  [-gui]: Start Alint in GUI mode and don't exit after converting
     #  [-usage]: This help message
 
     # Return Value:
@@ -19,17 +20,23 @@ proc ::tclapp::aldec::alint::convert_project {args} {
     set usage [format {
   Usage: convert_project
               alint_path - Path where Alint is located
+              [-gui]     - Start Alint in GUI mode and don't exit after converting
               [-usage]   - This help message
 
   Description: Convert Vivado project to Alint
   Example:
      convert_project ~/ALINT-PRO
+     convert_project -gui ~/ALINT-PRO
 }]
 
+    set gui false
     set help false
 
     foreach arg $args {
         switch -- $arg {
+            -gui {
+                set gui true
+            }
             -usage {
                set help true
             }
@@ -81,7 +88,12 @@ proc ::tclapp::aldec::alint::convert_project {args} {
         error "Project file not found"
     }
 
-    exec -- $alintcon \
-        -batch \
-        -do $alint_script_path $xpr_path
+    if {$gui} {
+        exec -- $alint \
+            -do $alint_script_path $xpr_path
+    } else {
+        exec -- $alintcon \
+            -batch \
+            -do $alint_script_path $xpr_path
+    }
 }
