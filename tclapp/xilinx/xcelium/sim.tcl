@@ -634,6 +634,7 @@ proc usf_xcelium_write_compile_script {} {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
@@ -1425,6 +1426,7 @@ proc usf_xcelium_write_elaborate_script {} {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
@@ -1433,8 +1435,8 @@ proc usf_xcelium_write_elaborate_script {} {
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\"\n"
-        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\"\n"
+        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\""
+        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\""
 
         # bind user specified libraries
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
@@ -1958,6 +1960,7 @@ proc usf_xcelium_write_simulate_script {} {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
@@ -1965,7 +1968,7 @@ proc usf_xcelium_write_simulate_script {} {
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\"\n"
+        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\""
         if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           xcs_write_launch_mode_for_vitis $fh_scr "xcelium"
         }

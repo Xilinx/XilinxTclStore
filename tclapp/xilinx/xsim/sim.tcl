@@ -1436,41 +1436,45 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
         puts $fh_scr "\[ -z \"\$LIBRARY_PATH\" \] && export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir) || export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
       }
     }
-
+    puts $fh_scr "\n# catch pipeline exit status"
     xcs_write_pipe_exit $fh_scr
     if { [file exists $a_sim_vars(s_clibs_dir)] } {
       puts $fh_scr "\n# resolve compiled library path in xsim.ini"
       set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
-      puts $fh_scr "export RDI_DATADIR=\"[xcs_replace_with_var $data_dir "SIM_VER" "xsim"]\"\n"
+      puts $fh_scr "export RDI_DATADIR=\"[xcs_replace_with_var $data_dir "SIM_VER" "xsim"]\""
     }
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
-        puts $fh_scr "\nxv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
+        puts $fh_scr "\n# set simulation library paths"
+        puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
         puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPCPT" $a_sim_vars(sp_cpt_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $a_sim_vars(s_boost_dir)]\"\n"
       } else {
         if { $a_sim_vars(b_compile_simmodels) } {
-          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "xv_cxl_lib_path=\"simlibs\""
           puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
-          puts $fh_scr "\nxv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
         }
         puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
-        puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"
+        puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\""
       }
       # for aie
       if { {} != $aie_ip_obj } {
+        puts $fh_scr "\n# set header/runtime library path for AIE compiler"
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\"\n"
       }
     }
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set args [usf_xsim_get_xsc_elab_cmdline_args]
-      puts $fh_scr "$a_sim_vars(script_cmt_tag) link design libraries"
+      puts $fh_scr "\n$a_sim_vars(script_cmt_tag) link design libraries"
       puts $fh_scr "echo \"xsc $args\""
       puts $fh_scr "xsc $args"
       xcs_write_exit_code $fh_scr
@@ -1492,7 +1496,8 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     xcs_write_version_id $fh_scr "xsim"
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nset xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+      puts $fh_scr "\n# set simulation library paths"
+      puts $fh_scr "set xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
       puts $fh_scr "set xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       puts $fh_scr "set xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       puts $fh_scr "set xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"
@@ -1518,7 +1523,7 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set args [usf_xsim_get_xsc_elab_cmdline_args]
-      puts $fh_scr "$a_sim_vars(script_cmt_tag) link design libraries"
+      puts $fh_scr "\n$a_sim_vars(script_cmt_tag) link design libraries"
       puts $fh_scr "echo \"xsc $args\""
       puts $fh_scr "call xsc $a_sim_vars(s_dbg_sw) $args 2> xsc_err.log"
       puts $fh_scr "set exit_code=%errorlevel%"
@@ -1707,20 +1712,24 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
         puts $fh_scr "\[ -z \"\$LIBRARY_PATH\" \] && export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir) || export LIBRARY_PATH=$a_sim_vars(ubuntu_lib_dir):\$LIBRARY_PATH"
       }
     }
+    puts $fh_scr "\n# catch pipeline exit status"
     xcs_write_pipe_exit $fh_scr
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set aie_ip_obj [xcs_find_ip "ai_engine"]
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
-        puts $fh_scr "\nexport xv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
+        puts $fh_scr "\n# set simulation library paths"
+        puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
         puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path/ip\""
         puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPCPT" $a_sim_vars(sp_cpt_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       } else {
         if { $a_sim_vars(b_compile_simmodels) } {
-          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "xv_cxl_lib_path=\"simlibs\""
           puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
-          puts $fh_scr "\nexport xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
           puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path/ip\""
         }
         puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
@@ -1728,6 +1737,7 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       }
       # for aie
       if { {} != $aie_ip_obj } {
+        puts $fh_scr "\n# set header/runtime library path for AIE compiler"
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
         set aie_work_dir $a_sim_vars(s_aie_work_dir)
         if { {} != $aie_work_dir } {
@@ -1787,11 +1797,12 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
       set sm_lib_path_str [join $cxl_dirs ":"]
       puts $fh_scr "xv_lib_path=\"\$xv_ref_path/lib/lnx64.o/Default:\$xv_ref_path/lib/lnx64.o\""
 
-      set ld_path_str "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str"
+      set ld_path_str "export LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:$sm_lib_path_str"
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
         append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
       }
+      puts $fh_scr "\n# set shared library paths"
       puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH\n"
     }
 
@@ -1811,7 +1822,8 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
     xcs_write_version_id $fh_scr "xsim"
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nset xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+      puts $fh_scr "\n# set simulation library paths"
+      puts $fh_scr "set xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
       puts $fh_scr "set xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       puts $fh_scr "set xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\"\n"
       # set PATH env to reference shared lib's 
@@ -3322,24 +3334,28 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_version_id $fh_scr "xsim"
+    puts $fh_scr "\n# catch pipeline exit status"
     xcs_write_pipe_exit $fh_scr
     if { [file exists $a_sim_vars(s_clibs_dir)] } {
       puts $fh_scr "\n# resolve compiled library path in xsim.ini"
       set data_dir [file dirname $a_sim_vars(s_clibs_dir)]
-      puts $fh_scr "export RDI_DATADIR=\"[xcs_replace_with_var $data_dir "SIM_VER" "xsim"]\"\n"
+      puts $fh_scr "export RDI_DATADIR=\"[xcs_replace_with_var $data_dir "SIM_VER" "xsim"]\""
     }
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { $a_sim_vars(b_ref_sysc_lib_env) } {
-        puts $fh_scr "\nxv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
+        puts $fh_scr "\n# set simulation library paths"
+        puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "CLIBS" $a_sim_vars(s_clibs_dir)] "SIM_VER" "xsim"]\""
         puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPCPT" $a_sim_vars(sp_cpt_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var [usf_xsim_resolve_sysc_lib_path "SPEXT" $a_sim_vars(sp_ext_dir)] "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_boost_lib_path=\"[usf_xsim_resolve_sysc_lib_path "BOOST" $a_sim_vars(s_boost_dir)]\"\n"
       } else {
         if { $a_sim_vars(b_compile_simmodels) } {
-          puts $fh_scr "\nxv_cxl_lib_path=\"simlibs\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "xv_cxl_lib_path=\"simlibs\""
           puts $fh_scr "xv_cxl_obj_lib_path=\"$a_sim_vars(compiled_design_lib)\""
         } else {
-          puts $fh_scr "\nxv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+          puts $fh_scr "\n# set simulation library paths"
+          puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
         }
         puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
         puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
@@ -3351,8 +3367,10 @@ proc usf_xsim_write_systemc_variables { fh_scr } {
     # TODO: perf-fix
     xcs_write_script_header $fh_scr "compile" "xsim"
     xcs_write_version_id $fh_scr "xsim"
+    puts $fh_scr ""
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-      puts $fh_scr "\nset xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
+      puts $fh_scr "\n# set simulation library paths"
+      puts $fh_scr "set xv_cxl_lib_path=\"[xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xsim"]\""
       puts $fh_scr "set xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       puts $fh_scr "set xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xsim"] "GCC_VER" "xsim"]\""
       puts $fh_scr "set xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\"\n"

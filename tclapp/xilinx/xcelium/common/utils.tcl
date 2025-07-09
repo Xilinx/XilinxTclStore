@@ -298,7 +298,6 @@ proc xcs_set_ref_dir { fh b_absolute_path s_launch_dir } {
   } else {
     puts $fh "origin_dir=\".\""
   }
-  puts $fh ""
 }
 
 proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_files s_simset s_simulation_flow s_netlist_file } {
@@ -6226,7 +6225,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set sep ":"
   }
 
-  puts $fh_scr "# set library search order"
+  puts $fh_scr "\n# set library search order"
 
   set l_sm_lib_paths [list]
   foreach {library lib_dir} [array get a_shared_library_path_coln] {
@@ -6359,7 +6358,8 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   puts $fh_scr $ld_path
 
   if { ("elaborate" == $step) || ("simulate" == $step) } {
-    puts $fh_scr "\nexport xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $s_clibs_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
+    puts $fh_scr "\n# set simulation library paths"
+    puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $s_clibs_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
     puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
   } else {
     puts $fh_scr ""
@@ -6375,6 +6375,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   # for aie
   if { {} != $aie_ip_obj } {
     if { {} != $xilinx_vitis } {
+      puts $fh_scr "\n# set header/runtime library path for AIE compiler"
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
       set aie_work_dir $a_sim_vars(s_aie_work_dir)
       if { {} != $aie_work_dir } {

@@ -2089,10 +2089,11 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "questa"
     xcs_write_version_id $fh_scr "questa"
-    puts $fh_scr ""
+    puts $fh_scr "\n# catch pipeline exit status"
     xcs_write_pipe_exit $fh_scr
     if { {} != $a_sim_vars(s_tool_bin_path) } {
-      puts $fh_scr "\nbin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]\""
+      puts $fh_scr "\n# set simulator install path"
+      puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]\""
     }
 
     set aie_ip_obj {}
@@ -2237,24 +2238,24 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      puts $fh_scr "\n# set simulation library paths"
       if { ("elaborate" == $step) || ("simulate" == $step) } {
-        puts $fh_scr "\nexport xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
+        puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
         puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
-      } else {
-        puts $fh_scr ""
       }
       puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
       puts $fh_scr "export xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
       # for aie
       if { {} != $aie_ip_obj } {
+        puts $fh_scr "\n# set header/runtime library path for AIE compiler"
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
         set aie_work_dir $a_sim_vars(s_aie_work_dir)
         if { {} != $aie_work_dir } {
           puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
         }
       }
-      puts $fh_scr ""
       if { ("elaborate" == $step) || ("simulate" == $step) } {
+        puts $fh_scr "\n# set shared library paths"
         puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH\n"
       }
     }
@@ -2288,7 +2289,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     }
  
     if { ({compile} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "source $do_filename 2>&1 | tee $log_filename"
+      puts $fh_scr "\nsource $do_filename 2>&1 | tee $log_filename"
       xcs_write_exit_code $fh_scr
     } elseif { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       set append_sw " "
