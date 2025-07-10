@@ -74,7 +74,8 @@ proc ::tclapp::aldec::alint::convert_project {args} {
         error "Required file $alint_bin not found"
     }
 
-    set alint_script_path [file normalize [file dirname [info script]]]/alint_script.do
+    set this_script_path [dict get [info frame 0] file]
+    set alint_script_path [file dirname $this_script_path]/alint_script.do
 
     set project_dir [get_property DIRECTORY [current_project]]
     set project_name [get_property NAME [current_project]]
