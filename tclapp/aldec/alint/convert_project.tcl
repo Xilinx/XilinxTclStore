@@ -18,15 +18,15 @@ proc ::tclapp::aldec::alint::convert_project {args} {
     # Categories: xilinxtclstore, aldec, alint, convert
 
     set usage [format {
-  Usage: convert_project
+  Usage: aldec::alint::convert_project
               alint_path - Path where ALINT-PRO is located
               [-gui]     - Start ALINT-PRO in GUI mode and don't exit after converting
               [-usage]   - This help message
 
   Description: Convert Vivado project to ALINT-PRO
   Example:
-     convert_project ~/ALINT-PRO
-     convert_project -gui ~/ALINT-PRO
+     aldec::alint::convert_project ~/ALINT-PRO
+     aldec::alint::convert_project -gui ~/ALINT-PRO
 }]
 
     set gui false
