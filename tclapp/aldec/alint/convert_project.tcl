@@ -72,14 +72,7 @@ proc ::tclapp::aldec::alint::convert_project {args} {
         error "Required file $alintcon not found"
     }
 
-    # Generate a script file for ALINT-PRO
-    set alint_script_path [file tempfile]
-    set alint_script_file [open $alint_script_path w]
-    set alint_script {
-        convert.xpr.project {*}$argv
-    }
-    puts $alint_script_file $alint_script
-    close $alint_script_file
+    set alint_script_path [file normalize [file dirname [info script]]]/alint_script.do
 
     set project_dir [get_property DIRECTORY [current_project]]
     set project_name [get_property NAME [current_project]]
