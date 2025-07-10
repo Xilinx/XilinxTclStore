@@ -61,15 +61,17 @@ proc ::tclapp::aldec::alint::convert_project {args} {
         error "ALINT-PRO path not passed\n$usage"
     }
 
-    set alint $alint_path/bin/alint
-    set alintcon $alint_path/bin/alintcon
+    if {$gui} {
+        set alint_bin $alint_path/bin/alint
+    } else {
+        set alint_bin $alint_path/bin/alintcon
+    }
     if {$::tcl_platform(platform) == "windows"} {
-        set alint $alint.exe
-        set alintcon $alintcon.exe
+        set alint_bin $alint_bin.exe
     }
 
-    if {![file exists $alintcon]} {
-        error "Required file $alintcon not found"
+    if {![file exists $alint_bin]} {
+        error "Required file $alint_bin not found"
     }
 
     set alint_script_path [file normalize [file dirname [info script]]]/alint_script.do
@@ -82,10 +84,10 @@ proc ::tclapp::aldec::alint::convert_project {args} {
     }
 
     if {$gui} {
-        exec -- $alint \
-            -do $alint_script_path $xpr_path
+        exec -- $alint_bin \
+            -do $alint_script_path $xpr_path &
     } else {
-        exec -- $alintcon \
+        exec -- $alint_bin \
             -batch \
             -do $alint_script_path $xpr_path
     }
