@@ -1,3 +1,4 @@
+2.330 set sim gcc version for windows
 2.329 add comments for tasks
 2.328 replace sim and gcc version with shell var setting
 2.327 add logical NoC files

@@ -1,3 +1,4 @@
+2.510 set sim gcc version for windows
 2.509 add comments for tasks
 2.508 export sim and gcc version setting for integrated mode
 2.507 replace sim and gcc version with shell var setting
