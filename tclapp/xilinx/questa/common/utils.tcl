@@ -4145,6 +4145,9 @@ proc xcs_write_version_id { fh simulator } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh "export SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
     puts $fh "export GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
+  } else {
+    puts $fh "set SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
+    puts $fh "set GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
   }
 }
   
