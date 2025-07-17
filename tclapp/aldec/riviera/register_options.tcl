@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.39
+package require ::tclapp::aldec::common::helpers 1.40
 
 namespace eval ::tclapp::aldec::riviera {
 
@@ -68,6 +68,7 @@ proc register_options { simulator } {
     {{simulate.saif_scope}           {string} {}       {Specifies a design region to be exported to SAIF}}
     {{simulate.saif}                 {string} {}       {Generate SAIF file for power analysis}}
     {{simulate.asim.more_options}    {string} {}       {More simulation options}}
+    {{simulate.record_AXI_MM}        {bool}   {0}      {Record AXI memory-mapped transactions}}
     {{simulate.statement_coverage}   {bool}   {0}      {Statement Coverage}}
     {{simulate.branch_coverage}      {bool}   {0}      {Branch Coverage}}
     {{simulate.functional_coverage}  {bool}   {0}      {Functional Coverage}}
