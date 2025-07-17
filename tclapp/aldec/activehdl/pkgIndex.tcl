@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::aldec::activehdl 1.39 [list source [file join $dir activehdl.tcl]]
+package ifneeded ::tclapp::aldec::activehdl 1.40 [list source [file join $dir activehdl.tcl]]
