@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>merged 2025.1 to 2025.2</revision_history>
+      <revision_history>BKO2015 - AXI Memory Map transactions recorder</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

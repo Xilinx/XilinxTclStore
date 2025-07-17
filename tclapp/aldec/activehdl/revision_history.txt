@@ -1,4 +1,4 @@
-1.40 BKO2015 AXI Memory Map transactions recorder for Riviera-PRO
+1.40 BKO2015 - AXI Memory Map transactions recorder
 1.39 SPT83276 - Vivado 2020.02 - unable to generate simulation scripts for Active-HDL
 1.38 SPT83218 - TCL Store updated for Vivado 2025.1
 1.37 merged 2024.2 to 2025.1
