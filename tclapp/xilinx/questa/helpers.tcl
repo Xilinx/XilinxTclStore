@@ -343,7 +343,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
                 set incl_dir "[xcs_get_relative_file_path $incl_dir $a_sim_vars(s_launch_dir)]"
               }
               #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
-              lappend l_C_incl_dirs_opts "-I \"[xcs_replace_with_var [xcs_replace_with_var $incl_dir "SIM_VER" "questa"] "GCC_VER" "questa"]\""
+              if {$::tcl_platform(platform) == "unix"} {
+                lappend l_C_incl_dirs_opts "-I \"[xcs_replace_with_var [xcs_replace_with_var $incl_dir "SIM_VER" "questa"] "GCC_VER" "questa"]\""
+              } else {
+                lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
+              }
             }
           }
         }
@@ -1356,7 +1360,10 @@ proc usf_append_compiler_options { tool file_type opts_arg } {
         if { {off} != $cores } {
           lappend arg_list "-j $cores"
         }
-        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+        set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+        if {$::tcl_platform(platform) == "unix"} {
+          set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+        }
         lappend arg_list "-cpppath $gcc_path"
         lappend arg_list "-std=c++11"
         set more_opts [get_property "questa.compile.sccom.more_options" $a_sim_vars(fs_obj)]

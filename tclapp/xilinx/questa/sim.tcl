@@ -609,7 +609,11 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
-    set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    } else {
+      set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    }
   }
 
   set fh 0
@@ -1103,7 +1107,10 @@ proc usf_compile_simmodel_sources { fh } {
       #
       set args [list]
       lappend args "-64"
-      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      if {$::tcl_platform(platform) == "unix"} {
+        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      }
       lappend args "-cpppath $gcc_path"
       
       # <SYSTEMC_COMPILE_OPTION>
@@ -1128,7 +1135,11 @@ proc usf_compile_simmodel_sources { fh } {
             regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
             set incl_dir [string trimleft $incl_dir {\$}]
           }
-          lappend args "-I [xcs_replace_with_var [xcs_replace_with_var $incl_dir "SIM_VER" "questa"] "GCC_VER" "questa"]"
+          if {$::tcl_platform(platform) == "unix"} {
+            lappend args "-I [xcs_replace_with_var [xcs_replace_with_var $incl_dir "SIM_VER" "questa"] "GCC_VER" "questa"]"
+          } else {
+            lappend args "-I $incl_dir"
+          }
         }
       }
    
@@ -1170,7 +1181,10 @@ proc usf_compile_simmodel_sources { fh } {
       #
       set args [list]
       lappend args "-64"
-      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      if {$::tcl_platform(platform) == "unix"} {
+        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      }
       lappend args "-cpppath $gcc_path"
 
       # <SYSTEMC_COMPILE_OPTION>
@@ -1375,7 +1389,10 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   }
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
-    set tool_path_str "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]${DS}"
+    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]${DS}"
+    }
   }
 
   set fh 0
@@ -1385,7 +1402,9 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   }
 
   usf_questa_write_header $fh $do_file
-  xcs_write_version_id $fh "questa"
+  if {$::tcl_platform(platform) == "unix"} {
+    xcs_write_version_id $fh "questa"
+  }
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -1441,7 +1460,10 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
-    set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    if {$::tcl_platform(platform) == "unix"} {
+      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    }
     lappend arg_list "-cpppath $gcc_path"
   }
 
@@ -2333,9 +2355,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     # windows
     puts $fh_scr "@echo off"
     xcs_write_script_header $fh_scr $step "questa"
-    xcs_write_version_id $fh_scr "questa"
     if { {} != $a_sim_vars(s_tool_bin_path) } {
-      puts $fh_scr "set bin_path=[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]"
+      puts $fh_scr "set bin_path=$a_sim_vars(s_tool_bin_path)"
       if { ({compile} == $step) && ({} != $tcl_pre_hook) } {
         set xv $::env(XILINX_VIVADO)
         set xv [string map {\\\\ /} $xv]
@@ -2424,7 +2445,10 @@ proc usf_questa_get_sccom_cmd_args {} {
         }
       }
     }
-    set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    if {$::tcl_platform(platform) == "unix"} {
+      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    }
     lappend args "-cpppath $gcc_path"
     lappend args "-link"
 
@@ -2632,7 +2656,10 @@ proc usf_questa_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_fil
   }
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
-    set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    }
   }
 
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
