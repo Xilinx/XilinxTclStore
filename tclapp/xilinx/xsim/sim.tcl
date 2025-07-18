@@ -1013,11 +1013,29 @@ proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
 
   variable a_sim_vars
 
-  if { ![get_param "simulation.resolveDataDirEnvPathForXSim"] } {
+  set b_param_mode_set 0
+  set b_env_mode_set 0
+  if { [get_param "simulation.resolveDataDirEnvPathForXSim"] } {
+    set b_param_mode_set 1
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-      puts "(DEBUG) - param 'simulation.resolveDataDirEnvPathForXSim' is false, RDI_DATADIR will not be resolved in xsim.ini"
+      puts "(DEBUG) - param 'simulation.resolveDataDirEnvPathForXSim is enabled' (\$RDI_DATADIR env will be resolved in local xsim.ini, if found)"
     }
-    return 0
+  } else {
+    # check env
+    if { [info exists ::env(RESOLVE_DATADIR_ENV_PATH_FOR_XSIM)] } {
+      set b_env_mode_set 1
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        puts "(DEBUG) - env 'RESOLVE_DATADIR_ENV_PATH_FOR_XSIM' is set (\$RDI_DATADIR env will be resolved in local xsim.ini, if found)"
+      }
+    } else {
+      # skip RDI_DATADIR env replacement with absolute clib path
+      if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+        if { (!$b_param_mode_set) && (!$b_env_mode_set) } {
+          puts "(DEBUG) - neither 'simulation.resolveDataDirEnvPathForXSim' param or 'RESOLVE_DATADIR_ENV_PATH_FOR_XSIM' env set, \$RDI_DATADIR will NOT be resolved in local xsim.ini"
+        }
+      }
+      return 0
+    }
   }
 
   set ini_file "$run_dir/xsim.ini"
@@ -1033,9 +1051,6 @@ proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
   set ini_data [read $fh]
   close $fh
   
-  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
-    puts "(DEBUG) - simulation.resolveDataDirEnvPathForXSim=true (RDI_DATADIR will be resolved in xsim.ini, if found)"
-  }
   set libs [list]
   set ini_data [split $ini_data "\n"]
   foreach line $ini_data {
@@ -1058,6 +1073,11 @@ proc usf_resolve_rdi_datadir { run_dir cxl_prop_dir } {
     puts $fh "$library=[usf_resolve_compiled_library_dir $cxl_prop_dir $library]"
   }
   close $fh
+
+  if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
+    puts "(DEBUG) - compiled library absolute path updated in xsim.ini: '$ini_file'"
+  }
+
   return 0
 }
 
