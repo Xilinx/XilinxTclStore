@@ -1455,7 +1455,10 @@ proc usf_xcelium_write_elaborate_script {} {
   if { $a_sim_vars(b_int_perf_analysis) } {
     set access_mode "r"
   }
-  lappend arg_list "-access +$access_mode"
+  set b_acc [get_property xcelium.elaborate.acc $a_sim_vars(fs_obj)]
+  if { $b_acc } {
+    lappend arg_list "-access +$access_mode"
+  }
   lappend arg_list "-namemap_mixgen"
 
   set path_delay 0
