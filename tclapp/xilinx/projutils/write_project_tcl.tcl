@@ -1345,6 +1345,10 @@ proc filter { prop val { file {} } } {
     return 1
   }
 
+  if { ($::tcl_platform(platform) == "unix") && ([regexp -nocase {activehdl} $prop]) } { 
+  return 1 
+  }
+
   return 0
 }
 
