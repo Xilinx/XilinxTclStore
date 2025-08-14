@@ -1,3 +1,4 @@
+11.187 add comment for signal visibility
 11.184 set sim gcc version for windows
 11.183 add comments for tasks
 11.182 replace sim and gcc version with shell var setting
