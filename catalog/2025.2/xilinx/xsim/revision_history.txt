@@ -1,3 +1,4 @@
+2.512 export isoutilattrs.cdo for axi_noc2
 2.511 resolve RDI_DATADIR with absolute path
 2.510 set sim gcc version for windows
 2.509 add comments for tasks
