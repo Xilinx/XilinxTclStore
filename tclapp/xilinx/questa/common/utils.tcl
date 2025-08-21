@@ -3137,6 +3137,35 @@ proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir } {
   xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
 }
 
+proc xcs_export_other_data_files { launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set noc2_obj [xcs_find_ip "axi_noc2"]
+  if { {} != $noc2_obj } {
+    set b_inline_ecc [get_property -quiet "config.ddrmc5_inline_ecc" [get_ips -all *_axi_noc2_*]]
+    set crypto       [get_property -quiet "config.ddrmc5_crypto"     [get_ips -all *_axi_noc2_*]]
+    if { ($b_inline_ecc) ||
+         ("XTS"     == $crypto) ||
+         ("GCM"     == $crypto) ||
+         ("XTS_GCM" == $crypto) } {
+      set proj_obj  [current_project]
+      set proj_dir  [get_property directory $proj_obj]
+      set proj_name [get_property name $proj_obj]
+      set proj_gen_dir "$proj_dir/${proj_name}.gen"
+      set attrs_file "$proj_gen_dir/sources_1/common/nsln/isoutilattrs.cdo"
+      if { [file exists $attrs_file] } {
+        if {[catch {file copy -force $attrs_file $launch_dir} error_msg] } {
+          send_msg_id SIM-utils-057 INFO "Failed to copy file '$attrs_file' to '$launch_dir' : $error_msg\n"
+        } else {
+          send_msg_id SIM-utils-043 INFO "Exported '$attrs_file'\n"
+        }
+      }
+    }
+  }
+}
+
 proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir } {
   # Summary:
   # Argument Usage:
@@ -3990,6 +4019,9 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
 
     # export non-hdl data files to run dir
     xcs_export_fs_non_hdl_data_files $simset $launch_dir $dynamic_repo_dir
+
+    # export other files
+    xcs_export_other_data_files $launch_dir
 
   } else {
     send_msg_id SIM-utils-055 INFO "Unsupported object source: $tcl_obj\n"
