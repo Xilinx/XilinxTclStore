@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Fix for CR-1218704 Copying run makes GUI to go into infinite loop.</revision_history>
+      <revision_history>Fix: Simulator related issue when replaying write_project_tcl script</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
@@ -12,7 +12,7 @@
       <procs>
         <proc>
           <name>convert_ngc</name>
-          <summary>Convert all provided NGC files to a supported format</summary>
+          <summary/>
         </proc>
         <proc>
           <name>copy_run</name>

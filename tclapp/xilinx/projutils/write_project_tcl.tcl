@@ -1345,6 +1345,16 @@ proc filter { prop val { file {} } } {
     return 1
   }
 
+  #filter activehdl properties
+  if { ($::tcl_platform(platform) == "unix") && ([regexp -nocase {activehdl} $prop]) } { 
+  return 1 
+  }
+
+  #filter simulator.modelsim_gcc_install_dir properties
+  if { [regexp -nocase {simulator.modelsim_gcc_install_dir} $prop] } { 
+  return 1 
+  }
+
   return 0
 }
 
