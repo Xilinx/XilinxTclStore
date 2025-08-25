@@ -3145,9 +3145,9 @@ proc xcs_export_other_data_files { launch_dir } {
   return
   set noc2_obj [xcs_find_ip "axi_noc2"]
   if { {} != $noc2_obj } {
-    set b_inline_ecc [get_property -quiet "config.ddrmc5_inline_ecc" [get_ips -all *_axi_noc2_*]]
-    set crypto       [get_property -quiet "config.ddrmc5_crypto"     [get_ips -all *_axi_noc2_*]]
-    if { ($b_inline_ecc) ||
+    set inline_ecc [get_property -quiet "config.ddrmc5_inline_ecc" [get_ips -all *_axi_noc2_*]]
+    set crypto     [get_property -quiet "config.ddrmc5_crypto"     [get_ips -all *_axi_noc2_*]]
+    if { ($inline_ecc == 1) ||
          ("XTS"     == $crypto) ||
          ("GCM"     == $crypto) ||
          ("XTS_GCM" == $crypto) } {
