@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>export isoutilattrs.cdo for axi_noc2</revision_history>
+      <revision_history>disable code for isoutilattrs.cdo export</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

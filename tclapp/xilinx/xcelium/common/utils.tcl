@@ -3142,6 +3142,11 @@ proc xcs_export_other_data_files { launch_dir } {
   # Argument Usage:
   # Return Value:
 
+  # TODO: expected boolean value but got "0 0"
+  # while executing
+  # "if { ($b_inline_ecc) ||
+  #
+  return
   set noc2_obj [xcs_find_ip "axi_noc2"]
   if { {} != $noc2_obj } {
     set b_inline_ecc [get_property -quiet "config.ddrmc5_inline_ecc" [get_ips -all *_axi_noc2_*]]
