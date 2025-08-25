@@ -1,3 +1,4 @@
+2.371 fixed ddrmc5_inline_ecc to string var
 2.370 disable code for isoutilattrs.cdo export to sim dir
 2.369 disable code for isoutilattrs.cdo export
 2.368 export isoutilattrs.cdo for axi_noc2
