@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.40
+package require ::tclapp::aldec::common::helpers 1.41
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -47,12 +47,12 @@ proc register_options { simulator } {
     {{compile.path_coverage}                                           {bool} {0}  {Path Coverage}}
     {{compile.assertion_coverage}                                      {bool} {0}  {Assertion Coverage}}
     {{compile.fsm_coverage}                                            {bool} {0}  {FSM Coverage}}
-    {{compile.enable_expressions_on_subprogram_arguments}              {bool} {0}  {Enable expressions on subprogram arguments}}
-    {{compile.enable_atomic_expressions_in_the_conditional_statements} {bool} {0}  {Enable atomic expressions in the conditional statements}}
-    {{compile.enable_the_expressions_consisting_of_one_variable_only}  {bool} {0}  {Enable the expressions consisting of one variable only}}
-    {{compile.enable_the_expressions_with_relational_operators}        {bool} {0}  {Enable the expressions with relational operators}}
-    {{compile.enable_the_expressions_returning_vectors}                {bool} {0}  {Enable the expressions returning vectors}}
-    {{compile.enable_fsm_sequences_in_fsm_coverage}                    {bool} {0}  {Enable FSM sequences in FSM Coverage}}
+    {{compile.enable_expressions_on_subprogram_arguments}              {bool} {0}  {Enable Expression/Condition Coverage for expressions that contain subprograms as arguments}}
+    {{compile.enable_atomic_expressions_in_the_conditional_statements} {bool} {0}  {Enable Expression/Condition Coverage for atomic expressions in conditional statements}}
+    {{compile.enable_the_expressions_consisting_of_one_variable_only}  {bool} {0}  {Enable Expression/Condition Coverage for single-variable expressions and conditions}}
+    {{compile.enable_the_expressions_with_relational_operators}        {bool} {0}  {Enable Expression/Condition Coverage for expressions and conditions with relational operators}}
+    {{compile.enable_the_expressions_returning_vectors}                {bool} {0}  {Enable Expression/Condition Coverage for expressions returning vectors}}
+    {{compile.enable_fsm_sequences_in_fsm_coverage}                    {bool} {0}  {Enable data collection for FSM sequence coverage}}
     {{compile.basic_libraries}                                         {bool} {1}  {Detaches global libraries and attaches libraries from compiled library location}}
 
     {{elaborate.access}  {bool} {0} {Enable access to objects optimized by default}}
@@ -64,7 +64,7 @@ proc register_options { simulator } {
     {{simulate.runtime}              {string} {1000ns} {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}   {0}      {Log all signals in simulation database}}
     {{simulate.debug}                {bool}   {0}      {Enable debugging features}}
-    {{simulate.verilog_acceleration} {bool}   {1}      {Enable verilog acceleration}}
+    {{simulate.verilog_acceleration} {bool}   {1}      {Enable SLP acceleration for design units written in Verilog or SystemVerilog}}
     {{simulate.saif_scope}           {string} {}       {Specifies a design region to be exported to SAIF}}
     {{simulate.saif}                 {string} {}       {Generate SAIF file for power analysis}}
     {{simulate.asim.more_options}    {string} {}       {More simulation options}}
