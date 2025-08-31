@@ -1,3 +1,4 @@
+1.41 BKO2282 - Change descriptions of Coverage na SLP options
 1.40 BKO2015 - AXI Memory Map transactions recorder
 1.39 SPT83276 - Vivado 2020.02 - unable to generate simulation scripts for Active-HDL
 1.38 SPT83218 - TCL Store updated for Vivado 2025.1
