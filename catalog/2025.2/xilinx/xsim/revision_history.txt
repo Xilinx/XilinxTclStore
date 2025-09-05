@@ -1,3 +1,4 @@
+2.516 updated help text for xsim settings
 2.515 fixed ddrmc5_inline_ecc to string var
 2.514 disable code for isoutilattrs.cdo export to sim dir
 2.513 disable code for isoutilattrs.cdo export
