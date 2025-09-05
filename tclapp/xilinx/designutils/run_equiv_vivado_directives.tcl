@@ -70,8 +70,6 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
    ## Map classic flow directives to advanced flow
    set advanced_sub_dir ""
    set net_delay_weight ""
-   switch -regexp -- $version {
-   "2024.2*" {
    switch $classic_dir {
     "WLDrivenBlockPlacement" {
         set advanced_dir "Default"
@@ -109,6 +107,10 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
         set advanced_dir "Default"
         set advanced_sub_dir "{Floorplan.BalancedSLR.low}"
     }
+    "SSI_SpreadLogic_medium" {
+        set advanced_dir "Default"
+        set advanced_sub_dir "{Floorplan.BalancedSLR.med}"
+    }
     "SSI_SpreadSLL" {
         puts "Info: SSI_SpreadSLL is not supported in advanced flow"
         set advanced_dir "Default"
@@ -135,14 +137,13 @@ proc ::tclapp::xilinx::designutils::enable_equiv_vivado_directives::place_design
         set advanced_sub_dir ""
         set net_delay_weight "low"
     }
+    "ExtraNetDelay_medium" {
+        set advanced_dir "Explore"
+        set advanced_sub_dir ""
+        set net_delay_weight "medium"
+    }
     default {
         set advanced_dir $classic_dir
-    }
-}
-}
-    default {
-        puts "ERROR: No mapping available for current release"
-        return 1
     }
 }
     ## Run place_design based on mapping
