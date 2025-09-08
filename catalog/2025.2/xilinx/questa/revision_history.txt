@@ -1,3 +1,4 @@
+2.336 updated help text for simulation settings
 2.335 fixed ddrmc5_inline_ecc to string var
 2.334 disable code for isoutilattrs.cdo export to sim dir
 2.333 disable code for isoutilattrs.cdo export
