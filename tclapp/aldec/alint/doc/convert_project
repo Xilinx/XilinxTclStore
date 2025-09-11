@@ -1,0 +1,9 @@
+
+
+Examples:
+
+  Convert the project by running ALINT-PRO in the batch mode and exiting:
+    ::aldec::alint::convert_project <alint_path>
+
+  Convert the project by running ALINT-PRO in the GUI mode:
+    ::aldec::alint::convert_project -gui <alint_path>
