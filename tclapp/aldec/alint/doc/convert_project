@@ -1,0 +1,18 @@
+
+Description:
+Convert a Vivado project to an ALINT-PRO format directly from Vivado IDE.
+
+The ALINT-PRO project files are saved in the same location as the currently
+opened Vivado project. To run ALINT-PRO conversion, please ensure that the
+ALINT-PRO software and required licenses are available.
+
+Optionally, ALINT-PRO can be started in GUI mode with the converted project
+using the -gui flag.
+
+Examples:
+
+Convert the project by running ALINT-PRO in the batch mode and exiting:
+  ::aldec::alint::convert_project <alint_path>
+
+Convert the project by running ALINT-PRO in the GUI mode:
+  ::aldec::alint::convert_project -gui <alint_path>
