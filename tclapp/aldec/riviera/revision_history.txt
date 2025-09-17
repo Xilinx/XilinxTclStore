@@ -1,3 +1,4 @@
+1.42 BKO2283 - Change shell in the *.sh linux scripts
 1.41 BKO2282 - Change descriptions of Coverage na SLP options
 1.40 BKO2015 - AXI Memory Map transactions recorder
 1.39 SPT83276 - Vivado 2020.02 - unable to generate simulation scripts for Active-HDL
