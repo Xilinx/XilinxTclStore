@@ -149,6 +149,16 @@ proc xcs_set_common_param_vars { } {
   }
 }
 
+proc xcs_cache_ip_objs { } {
+  variable a_sim_cache_all_ip_obj
+  if { [array size a_sim_cache_all_ip_obj] == 0 } {
+    foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+      set name [get_property -quiet name $ip_obj]
+      set a_sim_cache_all_ip_obj($name) $ip_obj
+    }
+  }
+}
+
 proc xcs_create_fs_options_spec { simulator opts } {
   # Summary:
   # Argument Usage:
@@ -245,6 +255,8 @@ proc xcs_extract_ip_files { b_extract_ip_sim_files_arg } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_ip_obj 
   upvar $b_extract_ip_sim_files_arg b_extract_ip_sim_files
 
   if { ![get_property corecontainer.enable [current_project]] } {
@@ -252,12 +264,23 @@ proc xcs_extract_ip_files { b_extract_ip_sim_files_arg } {
   }
   set b_extract_ip_sim_files [get_property extract_ip_sim_files [current_project]]
   if { $b_extract_ip_sim_files } {
-    foreach ip [get_ips -all -quiet] {
+    xcs_cache_ip_objs
+    foreach ip [array names a_sim_cache_all_ip_obj] {
       set xci_ip_name "${ip}.xci"
       set xcix_ip_name "${ip}.xcix"
-      set xcix_file_path [get_property core_container [get_files -quiet -all ${xci_ip_name}]]
+      if { [info exists a_sim_cache_all_design_files_obj($xci_ip_name)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($xci_ip_name)
+      } else {
+        set file_obj [get_files -quiet -all ${xci_ip_name}]
+      }
+      set xcix_file_path [get_property core_container $file_obj]
       if { {} != $xcix_file_path } {
-        [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
+        if { [info exists a_sim_cache_all_design_files_obj($xci_ip_name)] } {
+          set file_obj $a_sim_cache_all_design_files_obj($xci_ip_name)
+          [catch {rdi::extract_ip_sim_files -of_objects $file_obj} err]
+        } else {
+          [catch {rdi::extract_ip_sim_files -of_objects [get_files -quiet -all ${xcix_ip_name}]} err]
+        }
       }
     }
   }
@@ -275,7 +298,6 @@ proc xcs_set_ref_dir { fh b_absolute_path s_launch_dir } {
   } else {
     puts $fh "origin_dir=\".\""
   }
-  puts $fh ""
 }
 
 proc xcs_compile_glbl_file { simulator b_load_glbl b_int_compile_glbl design_files s_simset s_simulation_flow s_netlist_file } {
@@ -616,6 +638,7 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   # Return Value:
 
   #puts vh_file=$vh_file
+  variable a_sim_cache_all_ip_obj 
   set ip_file [xcs_get_top_ip_filename $vh_file]
   if { {} == $ip_file } {
     return $vh_file
@@ -631,7 +654,12 @@ proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
 
   set vh_filename   [file tail $vh_file]
   set vh_file_dir   [file dirname $vh_file]
-  set output_dir    [get_property -quiet IP_OUTPUT_DIR [lindex [get_ips -quiet -all $ip_name] 0]]
+  if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+    set ip_obj $a_sim_cache_all_ip_obj($ip_name)
+  } else {
+    set ip_obj [lindex [get_ips -quiet -all $ip_name] 0]
+  }
+  set output_dir    [get_property -quiet IP_OUTPUT_DIR $ip_obj]
   if { [string length $output_dir] == 0 } {
     return $vh_file
   }
@@ -655,6 +683,7 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   # Return Value:
   #
   variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_ip_obj
 
   if { [get_param "project.useIPGenSrcFileForSimulation" ] } {
     return $vh_file
@@ -684,11 +713,20 @@ proc xcs_fetch_header_from_export { vh_file b_is_bd dynamic_repo_dir } {
   set ip_filename [file tail $ip_file]
   set ip_name     [file root $ip_filename]
   set output_dir {}
-  set ip_obj [lindex [get_ips -quiet -all $ip_name] 0]
+  if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+    set ip_obj $a_sim_cache_all_ip_obj($ip_name)
+  } else {
+    set ip_obj [lindex [get_ips -quiet -all $ip_name] 0]
+  }
   if { "" != $ip_obj } {
     set output_dir [get_property -quiet IP_OUTPUT_DIR $ip_obj]
   } else {
-    set output_dir [get_property -quiet NAME [get_files -all $ip_filename]]
+    if { [info exists a_sim_cache_all_design_files_obj($ip_filename)] } {
+      set ip_file_obj $a_sim_cache_all_design_files_obj($ip_filename)
+    } else {
+      set ip_file_obj [get_files -all $ip_filename]
+    }
+    set output_dir [get_property -quiet NAME $ip_file_obj]
     set output_dir [file dirname $output_dir]
   }
   if { [string length $output_dir] == 0 } {
@@ -937,13 +975,23 @@ proc xcs_find_ipstatic_file_path { file_obj src_ip_file parent_comp_file ipstati
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
+  variable a_sim_cache_all_ip_obj 
   set dest_file {}
   set filename [file tail $src_ip_file]
   if { {} == $file_obj } {
-    set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    if { [info exists a_sim_cache_all_design_files_obj($src_ip_file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($src_ip_file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$src_ip_file"]] 0]
+    }
   }
   if { {} == $file_obj } {
-    set file_obj [lindex [get_files -quiet -all $filename] 0]
+    if { [info exists a_sim_cache_all_design_files_obj($filename)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($filename)
+    } else {
+      set file_obj [lindex [get_files -quiet -all $filename] 0]
+    }
   }
   if { {} == $file_obj } {
     return $dest_file
@@ -963,7 +1011,12 @@ proc xcs_find_ipstatic_file_path { file_obj src_ip_file parent_comp_file ipstati
     }
   } else {
     set parent_ip_name [file root [file tail $parent_comp_file]]
-    set ip_output_dir [get_property ip_output_dir [get_ips -all $parent_ip_name]]
+    if { [info exists a_sim_cache_all_ip_obj($parent_ip_name)] } {
+      set ip_obj $a_sim_cache_all_ip_obj($parent_ip_name)
+    } else {
+      set ip_obj [get_ips -all $parent_ip_name]
+    }
+    set ip_output_dir [get_property ip_output_dir $ip_obj]
     set src_ip_file_dir [file dirname $src_ip_file]
     set lib_dir [xcs_get_sub_file_path $src_ip_file_dir $ip_output_dir]
     set target_extract_dir [file normalize [file join $ipstatic_dir $lib_dir]]
@@ -996,7 +1049,11 @@ proc xcs_find_top_level_ip_file { src_file } {
     if { {} == $file_obj } {
       # try from filename
       set file_name [file tail $comp_file]
-      set file_obj [lindex [get_files -all "$file_name"] 0]
+      if { [info exists a_sim_cache_all_design_files_obj($file_name)] } {
+        set file_obj $a_sim_cache_all_design_files_obj($file_name)
+      } else {
+        set file_obj [lindex [get_files -all "$file_name"] 0]
+      }
       set comp_file $file_obj
     }
     if { [info exists a_sim_cache_parent_comp_files($comp_file)] } {
@@ -1021,6 +1078,7 @@ proc xcs_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
   upvar $runs_to_launch_arg runs_to_launch
   set ts [get_property "SIMULATOR_LANGUAGE" [current_project]]
   set ip_filename [file tail $comp_file]
@@ -1035,7 +1093,12 @@ proc xcs_generate_comp_file_for_simulation { comp_file runs_to_launch_arg } {
     # does ip generated simulation products? if not, generate them
     if { ![get_property "IS_IP_GENERATED_SIM" $comp_file] } {
       send_msg_id SIM-utils-002 INFO "Generating simulation products for IP '$ip_name'...\n"
-      set delivered_targets [get_property delivered_targets [get_ips -all -quiet ${ip_name}]]
+      if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+        set ip_obj $a_sim_cache_all_ip_obj($ip_name)
+      } else {
+        set ip_obj [get_ips -all -quiet ${ip_name}]
+      }
+      set delivered_targets [get_property delivered_targets $ip_obj]
       if { [regexp -nocase {simulation} $delivered_targets] } {
         generate_target {simulation} [get_files [list "$comp_file"]] -force
       }
@@ -1075,7 +1138,14 @@ proc xcs_generate_ip_netlist { comp_file runs_to_launch_arg } {
   # Return Value:
 
   upvar $runs_to_launch_arg runs_to_launch
-  set comp_file_obj [get_files [list "$comp_file"]]
+
+  variable a_sim_cache_all_design_files_obj 
+
+  if { [info exists a_sim_cache_all_design_files_obj($comp_file)] } {
+    set comp_file_obj $a_sim_cache_all_design_files_obj($comp_file)
+  } else {
+    set comp_file_obj [get_files [list "$comp_file"]]
+  }
   set comp_file_fs  [get_property "FILESET_NAME" $comp_file_obj]
   if { ![get_property "GENERATE_SYNTH_CHECKPOINT" $comp_file_obj] } {
     send_msg_id SIM-utils-007 INFO "Generate synth checkpoint is 'false':$comp_file\n"
@@ -1125,6 +1195,7 @@ proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
   set noc_libs [list]
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { {functional} == $s_type } {
@@ -1135,7 +1206,9 @@ proc xcs_get_noc_libs_for_netlist_sim { sim_flow s_type } {
         set noc_ip_libs   [list]
         set uniq_noc_libs [list]
         set b_requires_noc_na 0
-        foreach ip_obj [get_ips -all -quiet] {
+        xcs_cache_ip_objs
+        foreach ip [array names a_sim_cache_all_ip_obj] {
+          set ip_obj $a_sim_cache_all_ip_obj($ip)
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { ([regexp {^noc_nmu_} $vlnv_name]) ||
@@ -1178,6 +1251,7 @@ proc xcs_get_noc_ips_for_netlist_sim { sim_flow s_type } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
   set noc_ip_objs [list]
   if { ({post_synth_sim} == $sim_flow) || ({post_impl_sim} == $sim_flow) } {
     if { {functional} == $s_type } {
@@ -1185,7 +1259,9 @@ proc xcs_get_noc_ips_for_netlist_sim { sim_flow s_type } {
       # TODO: need to find out if netlist contains NoC components for the cases where design might not be instantiating NoC IP
       #
       if { {} != [xcs_find_ip "noc"] } {
-        foreach ip_obj [get_ips -all -quiet] {
+        xcs_cache_ip_objs
+        foreach ip [array names a_sim_cache_all_ip_obj] {
+          set ip_obj $a_sim_cache_all_ip_obj($ip)
           set ipdef [get_property -quiet IPDEF $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { ([regexp {^noc_nmu_} $vlnv_name]) ||
@@ -1308,7 +1384,12 @@ proc xcs_get_dynamic_sim_file_core_container { src_file dynamic_repo_dir b_found
   set core_name [file root [file tail $xcix_file]]
 
   set parent_comp_file      [get_property parent_composite_file -quiet $file_obj]
-  set parent_comp_file_type [get_property file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+  if { [info exists a_sim_cache_all_design_files_obj($parent_comp_file)] } {
+    set parent_file_obj $a_sim_cache_all_design_files_obj($parent_comp_file)
+  } else {
+    set parent_file_obj [lindex [get_files -all [list "$parent_comp_file"]] 0]
+  }
+  set parent_comp_file_type [get_property file_type $parent_file_obj]
 
   set ip_dir {}
   if { ({Block Designs} == $parent_comp_file_type) || ({DSP Design Sources} == $parent_comp_file_type) } {
@@ -1398,6 +1479,7 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
   upvar $top_ip_file_name_arg top_ip_file_name
   variable a_sim_cache_all_design_files_obj
   variable a_sim_cache_parent_comp_files
@@ -1441,7 +1523,11 @@ proc xcs_get_ip_output_dir_from_parent_composite { src_file top_ip_file_name_arg
   if { ({Block Designs} == $root_comp_file_type) || ({DSP Design Sources} == $root_comp_file_type) } {
     set ip_output_dir [file dirname $comp_file]
   } else {
-    set ips [get_ips -quiet -all $top_ip_name]
+    if { [info exists a_sim_cache_all_ip_obj($top_ip_name)] } {
+      set ips $a_sim_cache_all_ip_obj($top_ip_name)
+    } else {
+      set ips [get_ips -quiet -all $top_ip_name]
+    }
     if { {} == $ips } {
       return $ip_output_dir
     }
@@ -1658,13 +1744,18 @@ proc xcs_is_core_container { ip_file_name } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
   set b_is_container 1
   if { [get_property sim.use_central_dir_for_ips [current_project]] } {
     return $b_is_container
   }
 
   # get ip file object
-  set ip_file_obj [lindex [get_files -all -quiet ${ip_file_name}] 0]
+  if { [info exists a_sim_cache_all_design_files_obj($ip_file_name)] } {
+    set ip_file_obj $a_sim_cache_all_design_files_obj($ip_file_name)
+  } else {
+    set ip_file_obj [lindex [get_files -all -quiet ${ip_file_name}] 0]
+  }
   if { {} == $ip_file_obj } {
     send_msg_id SIM-utils-071 WARNING "File does not exist! '$ip_file_name' (core-container check not applied)\n"
     set b_is_container 0
@@ -1927,6 +2018,7 @@ proc xcs_add_hard_block_wrapper { fh simulator opts run_dir } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
   variable a_sim_vars
   variable l_hard_blocks
   if { ([llength $l_hard_blocks] == 0) || ({behav_sim} != $a_sim_vars(s_simulation_flow)) } {
@@ -1943,7 +2035,11 @@ proc xcs_add_hard_block_wrapper { fh simulator opts run_dir } {
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   foreach hb $l_hard_blocks {
     set wrapper_file "${hb}_sim_wrapper.v"
-    set wrapper_file_path [get_files -all -quiet $wrapper_file]
+    if { [info exists a_sim_cache_all_design_files_obj($wrapper_file)] } {
+      set wrapper_file_path $a_sim_cache_all_design_files_obj($wrapper_file)
+    } else {
+      set wrapper_file_path [get_files -all -quiet $wrapper_file]
+    }
     if { {} != $wrapper_file_path } {
       set hb_wrapper_file "[xcs_get_relative_file_path $wrapper_file_path $run_dir]"
       switch -exact -- $simulator {
@@ -2002,9 +2098,13 @@ proc xcs_get_libs_from_local_repo { b_pre_compile local_ip_repo_leaf_dir {b_int_
   set b_libs_referenced_from_locked_ips 0
   set b_libs_referenced_from_local_repo 0
 
+  variable a_sim_cache_all_ip_obj 
+
   set lib_info [list]
   set lib_dict [dict create]
-  foreach ip_obj [get_ips -all -quiet] {
+  xcs_cache_ip_objs
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     if { {} == $ip_obj } { continue }
     set b_is_locked 0
     set b_is_locked [get_property -quiet is_locked $ip_obj]
@@ -3018,9 +3118,13 @@ proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
+
   set data_files [list]
   set filter [xcs_get_data_files_filter]
-  foreach ip_obj [get_ips -quiet -all] {
+  xcs_cache_ip_objs
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     set data_files [concat $data_files [get_files -all -quiet -of_objects $ip_obj -filter $filter]]
   }
   set l_fs [list]
@@ -3031,6 +3135,36 @@ proc xcs_export_fs_data_files { s_launch_dir dynamic_repo_dir } {
     set data_files [concat $data_files [get_files -all -quiet -of_objects $fs_obj -filter $filter]]
   }
   xcs_export_data_files $s_launch_dir $dynamic_repo_dir $data_files
+}
+
+proc xcs_export_other_data_files { launch_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  return
+  set noc2_obj [xcs_find_ip "axi_noc2"]
+  if { {} != $noc2_obj } {
+    set inline_ecc [get_property -quiet "config.ddrmc5_inline_ecc" [get_ips -all *_axi_noc2_*]]
+    set crypto     [get_property -quiet "config.ddrmc5_crypto"     [get_ips -all *_axi_noc2_*]]
+    if { ($inline_ecc == 1) ||
+         ("XTS"     == $crypto) ||
+         ("GCM"     == $crypto) ||
+         ("XTS_GCM" == $crypto) } {
+      set proj_obj  [current_project]
+      set proj_dir  [get_property directory $proj_obj]
+      set proj_name [get_property name $proj_obj]
+      set proj_gen_dir "$proj_dir/${proj_name}.gen"
+      set attrs_file "$proj_gen_dir/sources_1/common/nsln/isoutilattrs.cdo"
+      if { [file exists $attrs_file] } {
+        if {[catch {file copy -force $attrs_file $launch_dir} error_msg] } {
+          send_msg_id SIM-utils-057 INFO "Failed to copy file '$attrs_file' to '$launch_dir' : $error_msg\n"
+        } else {
+          send_msg_id SIM-utils-043 INFO "Exported '$attrs_file'\n"
+        }
+      }
+    }
+  }
 }
 
 proc xcs_prepare_ip_for_simulation { s_simulation_flow sp_tcl_obj s_launch_dir } {
@@ -3274,13 +3408,18 @@ proc xcs_set_sim_tcl_obj { s_comp_file s_simset sp_tcl_obj_arg s_sim_top_arg } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
+  
   upvar $sp_tcl_obj_arg sp_tcl_obj
   upvar $s_sim_top_arg s_sim_top
 
   # -of_objects <full-path-to-ip-composite-file>
   if { {} != $s_comp_file } {
-    set sp_tcl_obj [get_files -all -quiet [list "$s_comp_file"]]
-
+    if { [info exists a_sim_cache_all_design_files_obj($s_comp_file)] } {
+      set sp_tcl_obj $a_sim_cache_all_design_files_obj($s_comp_file)
+    } else {
+      set sp_tcl_obj [get_files -all -quiet [list "$s_comp_file"]]
+    }
     # get top based on composite filename
     set s_sim_top [file root [file tail $sp_tcl_obj]]
 
@@ -3383,7 +3522,11 @@ proc xcs_design_contain_sv_ip { } {
   # Argument Usage:
   # Return Value:
 
-  foreach ip_obj [get_ips -all -quiet] {
+  variable a_sim_cache_all_ip_obj
+  
+  xcs_cache_ip_objs
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     set b_requires_vip [get_property -quiet requires_vip $ip_obj]
     if { $b_requires_vip } {
       return true
@@ -3392,7 +3535,9 @@ proc xcs_design_contain_sv_ip { } {
 
   # fallback if property not set
   set vip_ips [xcs_get_vip_ips]
-  foreach ip_obj [get_ips -all -quiet] {
+   
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     set ipdef [get_property -quiet IPDEF $ip_obj]
     set ip_name [lindex [split $ipdef ":"] 2]
     if { [lsearch -nocase $vip_ips $ip_name] != -1 } {
@@ -3407,6 +3552,8 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
+  variable a_sim_cache_all_ip_obj 
   variable a_sim_sv_pkg_libs
 
   #if { $b_int_sm_lib_ref_debug } {
@@ -3416,7 +3563,9 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
   #}
   set tmp_dir "$run_dir/_tmp_ip_comp_"
   set ip_comps [list]
-  foreach ip [get_ips -all -quiet] {
+  xcs_cache_ip_objs
+  foreach ip_name [array names a_sim_cache_all_ip_obj] {
+    set ip $a_sim_cache_all_ip_obj($ip_name)
     set ip_name [get_property name $ip]
     set ip_file [get_property ip_file $ip]
     set ip_dir [get_property ip_output_dir -quiet $ip]
@@ -3439,7 +3588,11 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
     
     if { ![file exists $ip_filename] } {
       # extract files
-      set ip_file_obj [get_files -all -quiet $ip_filename]
+      if { [info exists a_sim_cache_all_design_files_obj($ip_filename)] } {
+        set ip_file_obj $a_sim_cache_all_design_files_obj($ip_filename)
+      } else {
+        set ip_file_obj [get_files -all -quiet $ip_filename]
+      }
       if { ({} != $ip_file_obj) && ([file exists $ip_file_obj]) } {
         set ip_filename [extract_files -files [list "$ip_file_obj"] -base_dir "$tmp_dir"]
       }
@@ -3450,7 +3603,13 @@ proc xcs_find_sv_pkg_libs { run_dir b_int_sm_lib_ref_debug } {
           puts " + ${ip_name} -> (ip_core_container = '$cc_val')"
         }
         if { {} != $cc_val } {
-          set cc_file_coln [extract_files -base_dir "$tmp_dir" [get_files -quiet -all ${ip_name}.xcix]]
+          set tmp_dir "$run_dir/_tmp_ip_comp_"
+          if { [info exists a_sim_cache_all_design_files_obj($cc_val)] } {
+            set cc_file_obj $a_sim_cache_all_design_files_obj($cc_val)
+          } else {
+            set cc_file_obj [get_files -quiet -all $cc_val]
+          }
+          set cc_file_coln [extract_files -base_dir "$tmp_dir" $cc_file_obj]
           set ip_filename "$tmp_dir/${ip_name}/${ip_name}.xml"
           if { $b_int_sm_lib_ref_debug } {
             puts " + extracted '$ip_filename' from '${ip_name}.xcix"
@@ -3862,6 +4021,9 @@ proc xcs_xport_data_files { tcl_obj simset top launch_dir dynamic_repo_dir } {
     # export non-hdl data files to run dir
     xcs_export_fs_non_hdl_data_files $simset $launch_dir $dynamic_repo_dir
 
+    # export other files
+    xcs_export_other_data_files $launch_dir
+
   } else {
     send_msg_id SIM-utils-055 INFO "Unsupported object source: $tcl_obj\n"
     return 1
@@ -4006,6 +4168,50 @@ proc xcs_write_script_header { fh step simulator } {
   puts $fh "$cmt ****************************************************************************"
 }
 
+proc xcs_write_version_id { fh simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+  set sim [string toupper $simulator]
+  if {$::tcl_platform(platform) == "unix"} {
+    puts $fh "export SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
+    puts $fh "export GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
+  } else {
+    puts $fh "set SIM_VER_${sim}=$a_sim_vars(s_sim_version)"
+    puts $fh "set GCC_VER_${sim}=$a_sim_vars(s_gcc_version)"
+  }
+}
+  
+proc xcs_replace_with_var { s_install_path var_name simulator } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  # make sure sim or gcc verison is set for replacement with var 
+  if { ("SIM_VER" == $var_name) && ({} == $a_sim_vars(s_sim_version)) } { return $s_install_path }
+  if { ("GCC_VER" == $var_name) && ({} == $a_sim_vars(s_gcc_version)) } { return $s_install_path }
+
+  set file_path_str $s_install_path
+  set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
+
+  set sim [string toupper $simulator]
+  set env_var_name ${var_name}_${sim}
+
+  set str_to_replace "$a_sim_vars(s_sim_version)"; # sim version
+  if { [regexp {^GCC_VER_} $env_var_name] } {
+    set str_to_replace "$a_sim_vars(s_gcc_version)"; # gcc version
+  }
+  set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
+
+  regsub -all $str_to_replace $file_path_str $str_to_replace_with file_path_str
+
+  return $file_path_str
+}
+
 proc xcs_glbl_dependency_for_xpm {} {
   # Summary:
   # Argument Usage:
@@ -4110,7 +4316,7 @@ proc xcs_get_cx_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fi
   set incl_dirs [list]
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -all -quiet -filter $c_filter] {
+  foreach file [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter] {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
@@ -4209,6 +4415,7 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj 
   variable a_sim_vars
   # find referenced libraries from IP
   set prop_name "systemc_libraries"
@@ -4220,7 +4427,9 @@ proc xcs_get_sc_libs { {b_int_sm_lib_ref_debug 0} } {
   set v_tlm_types         [list]
   set v_sysc_libs         [list]
 
-  foreach ip_obj [get_ips -quiet -all] {
+  xcs_cache_ip_objs
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     if { ([lsearch -exact [list_property -quiet $ip_obj] {SYSTEMC_LIBRARIES}] != -1) && ([lsearch -exact [list_property -quiet $ip_obj] {SELECTED_SIM_MODEL}] != -1) } {
       set ip_name           [get_property -quiet name               $ip_obj]
       set ip_def            [get_property -quiet ipdef              $ip_obj]
@@ -4275,8 +4484,12 @@ proc xcs_find_ip { name } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_ip_obj
+  
   set null_ip_obj {}
-  foreach ip_obj [get_ips -all -quiet] {
+  xcs_cache_ip_objs
+  foreach ip [array names a_sim_cache_all_ip_obj] {
+    set ip_obj $a_sim_cache_all_ip_obj($ip)
     set ipdef [get_property -quiet IPDEF $ip_obj]
     set ip_name [lindex [split $ipdef ":"] 2]
     if { [string first $name $ip_name] != -1} {
@@ -4334,6 +4547,8 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
   # Argument Usage:
   # Return Value:
  
+  variable a_sim_cache_all_design_files_obj
+  
   set c_files [list]
   if { $b_csim_compile_order } {
     foreach file_obj [get_files -quiet -compile_order sources -used_in simulation -filter $c_filter -of_objects [current_fileset -simset]] {
@@ -4351,7 +4566,11 @@ proc xcs_get_c_files { c_filter {b_csim_compile_order 0} } {
           xcs_add_c_files_from_xci $comp_file $c_filter c_files
         } elseif { (".bd" == $file_extn) } {
           set bd_file_name [file tail $comp_file]
-          set bd_obj [get_files -quiet -all $bd_file_name]
+          if { [info exists a_sim_cache_all_design_files_obj($bd_file_name)] } {
+            set bd_obj $a_sim_cache_all_design_files_obj($bd_file_name)
+          } else {
+            set bd_obj [get_files -quiet -all $bd_file_name]
+          }
           if { "" != $bd_obj } {
             if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
               set comp_file [get_property parent_composite_file -quiet $bd_obj]
@@ -4383,6 +4602,8 @@ proc xcs_get_asm_files { asm_filter {b_csim_compile_order 0} } {
   # Argument Usage:
   # Return Value:
  
+  variable a_sim_cache_all_design_files_obj
+  
   set asm_files [list]
   if { $b_csim_compile_order } {
     foreach file_obj [get_files -quiet -compile_order sources -used_in simulation -filter $asm_filter -of_objects [current_fileset -simset]] {
@@ -4400,7 +4621,11 @@ proc xcs_get_asm_files { asm_filter {b_csim_compile_order 0} } {
           xcs_add_asm_files_from_xci $comp_file $asm_filter asm_files
         } elseif { (".bd" == $file_extn) } {
           set bd_file_name [file tail $comp_file]
-          set bd_obj [get_files -quiet -all $bd_file_name]
+          if { [info exists a_sim_cache_all_design_files_obj($bd_file_name)] } {
+            set bd_obj $a_sim_cache_all_design_files_obj($bd_file_name)
+          } else {
+            set bd_obj [get_files -quiet -all $bd_file_name]
+          }
           if { "" != $bd_obj } {
             if { [lsearch -exact [list_property -quiet $bd_obj] {PARENT_COMPOSITE_FILE}] != -1 } {
               set comp_file [get_property parent_composite_file -quiet $bd_obj]
@@ -4434,8 +4659,14 @@ proc xcs_add_c_files_from_xci { comp_file c_filter c_files_arg } {
 
   upvar $c_files_arg c_files
 
+  variable a_sim_cache_all_ip_obj 
+
   set ip_name [file root [file tail $comp_file]]
-  set ip [get_ips -quiet -all $ip_name]
+  if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+    set ip $a_sim_cache_all_ip_obj($ip_name)
+  } else {
+    set ip [get_ips -quiet -all $ip_name]
+  }
   if { "" != $ip } {
     set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
     if { "tlm" == $selected_sim_model } {
@@ -4457,8 +4688,14 @@ proc xcs_add_asm_files_from_xci { comp_file asm_filter asm_files_arg } {
 
   upvar $asm_files_arg asm_files
 
+  variable a_sim_cache_all_ip_obj 
+
   set ip_name [file root [file tail $comp_file]]
-  set ip [get_ips -quiet -all $ip_name]
+  if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+    set ip $a_sim_cache_all_ip_obj($ip_name)
+  } else {
+    set ip [get_ips -quiet -all $ip_name]
+  }
   if { "" != $ip } {
     set selected_sim_model [string tolower [get_property -quiet selected_sim_model $ip]]
     if { "tlm" == $selected_sim_model } {
@@ -5014,6 +5251,11 @@ proc xcs_find_shared_lib_paths { simulator gcc_version clibs_dir custom_sm_lib_d
     if { $b_int_sm_lib_ref_debug } {
       puts " + Finding linked shared library:$shared_libname"
     }
+
+    if { ![info exists a_ip_lib_ref_coln($library)] } {
+      set a_ip_lib_ref_coln($library) false
+    }
+
     # iterate over target paths to search for this library name
     foreach path $target_paths {
       #set path [file normalize $path]
@@ -5709,7 +5951,7 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
-proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } {
+proc xcs_get_design_libs { files {b_realign 0} {b_insert_logical_noc_libs 0} {b_insert_xpm_noc_sub_cores 0} } {
   # Summary:
   # Argument Usage:
   # Return Value:
@@ -5744,6 +5986,27 @@ proc xcs_get_design_libs { files {b_realign 0} {b_insert_xpm_noc_sub_cores 0} } 
   if { $b_realign } {
     if { $b_contains_default_lib } {
       set uniq_libs [linsert $uniq_libs 0 "xil_defaultlib"]
+    }
+  }
+  
+  # add logical noc libs
+  if { $b_insert_logical_noc_libs } {
+    set lnoc_files [list]
+    set uniq_lnoc_libs [list]
+    [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
+    foreach file $lnoc_files {
+      set library [get_property "library" $file]
+      if { "xil_defaultlib" == $library } { continue }
+      if { [lsearch -exact $uniq_lnoc_libs $library] == -1 } {
+        lappend uniq_lnoc_libs $library
+      }
+    }
+    if { [llength $uniq_lnoc_libs] > 0 } {
+      set pos 1
+      foreach elem $uniq_lnoc_libs {
+        set uniq_libs [linsert $uniq_libs $pos $elem]
+        incr pos
+      } 
     }
   }
 
@@ -5845,16 +6108,27 @@ proc xcs_xtract_file { b_extract_ip_sim_files file  } {
   # Argument Usage:
   # Return Value:
 
+  variable a_sim_cache_all_design_files_obj 
+  variable a_sim_cache_all_ip_obj 
   if { [get_param "project.enableCentralSimRepo"] } {
     return $file
   }
 
   if { $b_extract_ip_sim_files } {
-    set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
     set xcix_ip_path [get_property "core_container" $file_obj]
     if { {} != $xcix_ip_path } {
       set ip_name [file root [file tail $xcix_ip_path]]
-      set ip_ext_dir [get_property "ip_extract_dir" [get_ips all -quiet $ip_name]]
+      if { [info exists a_sim_cache_all_ip_obj($ip_name)] } {
+        set ip $a_sim_cache_all_ip_obj($ip_name)
+      } else {
+        set ip [get_ips -quiet -all $ip_name]
+      }
+      set ip_ext_dir [get_property "ip_extract_dir" $ip]
       set ip_file "[xcs_get_relative_file_path $file $ip_ext_dir]"
       # remove leading "../"
       set ip_file [join [lrange [split $ip_file "/"] 1 end] "/"]
@@ -5987,7 +6261,7 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     set sep ":"
   }
 
-  puts $fh_scr "# set library search order"
+  puts $fh_scr "\n# set library search order"
 
   set l_sm_lib_paths [list]
   foreach {library lib_dir} [array get a_shared_library_path_coln] {
@@ -6120,21 +6394,24 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
   puts $fh_scr $ld_path
 
   if { ("elaborate" == $step) || ("simulate" == $step) } {
-    puts $fh_scr "\nexport xv_cxl_lib_path=\"$s_clibs_dir\""
+    puts $fh_scr "\n# set simulation library paths"
+    puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $s_clibs_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
     puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
   } else {
     puts $fh_scr ""
   }
 
-  puts $fh_scr "export xv_cpt_lib_path=\"$sp_cpt_dir\""
+  puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $sp_cpt_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
   if { ("elaborate" == $step) } {
     set ext_dir [xcs_get_simmodel_dir $simulator $s_gcc_version "ext"]
     set rdi_dir [rdi::get_data_dir -quiet -datafile "simmodels/$simulator"]
-    puts $fh_scr "export xv_ext_lib_path=\"$rdi_dir/$ext_dir\""
+    set rdi_ext_dir "$rdi_dir/$ext_dir"
+    puts $fh_scr "export xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $rdi_ext_dir "SIM_VER" "$simulator"] "GCC_VER" "$simulator"]\""
   }
   # for aie
   if { {} != $aie_ip_obj } {
     if { {} != $xilinx_vitis } {
+      puts $fh_scr "\n# set header/runtime library path for AIE compiler"
       puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
       set aie_work_dir $a_sim_vars(s_aie_work_dir)
       if { {} != $aie_work_dir } {

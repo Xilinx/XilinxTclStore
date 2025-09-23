@@ -1,4 +1,18 @@
-2.502 update msg for failed or missing compiled IP
+2.516 updated help text for xsim settings
+2.515 fixed ddrmc5_inline_ecc to string var
+2.514 disable code for isoutilattrs.cdo export to sim dir
+2.513 disable code for isoutilattrs.cdo export
+2.512 export isoutilattrs.cdo for axi_noc2
+2.511 resolve RDI_DATADIR with absolute path
+2.510 set sim gcc version for windows
+2.509 add comments for tasks
+2.508 export sim and gcc version setting for integrated mode
+2.507 replace sim and gcc version with shell var setting
+2.506 add base library bindings for RTL project
+2.505 add logical NoC files
+2.504 add linked library to collection if not found
+2.503 performance improvements using data cache
+2.502 merged 2025.1 to 2025.2
 2.501 deprecate line coverage type
 2.500 export aie_work_dir
 2.499 include axi interface include dir

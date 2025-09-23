@@ -7,12 +7,257 @@
 ###############################################################################
 
 package require Vivado 1.2014.1
+package require json 
 
-package provide ::tclapp::aldec::common::helpers 1.39
+package provide ::tclapp::aldec::common::helpers 1.42
 
 namespace eval ::tclapp::aldec::common {
 
 namespace eval helpers {
+  proc createAxiBusMonitor { {_protoinstFilePath "" } } {
+		variable properties
+		variable scriptPath $properties(launch_directory)
+    variable protocolInstcesList
+    variable protocolInstcesData 
+		variable protoinstFilesList
+		variable _outputPath [file join $scriptPath "axi_bus_monitor"]
+		
+		[catch { file mkdir $_outputPath} error_msg]
+		
+		if { $_protoinstFilePath ne "" } {
+      set file [ open $_protoinstFilePath r ]
+      set protocolInstcesList [read $file]
+      close $file
+    }
+
+    parseProtocolInstcesList
+
+		#Generate axi_bus_monitor.sv file
+		generateAxiBusMonitor [file rootname [file tail $_protoinstFilePath]]
+		
+		#Copy AXI Transaction Recorder		
+    }
+
+    proc parseProtocolInstcesList {} {
+        variable protocolInstcesList
+        variable protocolInstcesData
+
+        set json [ ::json::json2dict $protocolInstcesList ]
+        set modulesContent  [ dict get $json modules ]
+		
+		if {[info exists protocolInstcesData]} { unset protocolInstcesData }
+		
+		foreach _moduleName [ dict keys $modulesContent ] {
+			set _tmp [dict get $modulesContent $_moduleName]
+			set _tmp2 [dict get $_tmp proto_instances]
+			
+			foreach _interfaceName [ dict keys $_tmp2 ] {
+				dict set _interfaceData moduleName $_moduleName
+				dict set _interfaceData interfaceName [ string trimleft $_interfaceName / ]
+				dict set _interfaceData interfaceType [ dict get [ dict get $_tmp2 $_interfaceName ] interface ]
+				
+				#get signals data
+				if {[info exists _portList]} { unset _portList }
+				set _ports [ dict get [ dict get $_tmp2 $_interfaceName ] ports ]
+				foreach _port [dict keys $_ports ] {
+					dict set _portList $_port [ dict get [ dict get $_ports $_port ] actual ]					
+				}				
+				dict set _interfaceData interfacePorts $_portList
+				
+				# Array of collections describing ports for each module/interface
+				#set interfaceList($_interfaceName) $_interfaceData						
+				set protocolInstcesData($_moduleName$_interfaceName) $_interfaceData
+			}
+		}
+    }
+
+	proc generateAxiBusMonitor {_protoinstFilename} {
+		variable properties
+		variable protocolInstcesData
+		variable scriptPath $properties(launch_directory)
+		variable _outputPath
+		variable protoinstFilesList
+		variable path
+		# Output file name		
+		set path "axi_bus_monitor_${_protoinstFilename}.sv"
+		
+		lappend  protoinstFilesList  $path 
+		generateABMFile $_outputPath $path protocolInstcesData $_protoinstFilename
+	}
+	
+	proc generateABMFile { _outputPath _path _templateContent _protoinstFilename } {
+        set directories [ lrange $_path 0 end-1 ]
+        set name [ lindex $_path end ]
+
+
+        set directoryPath [ file normalize [ file join $_outputPath {*}$directories ] ]
+
+        file mkdir $directoryPath
+		
+        set filePath [ file join $directoryPath $name ]
+        set content [ generateABMFileContent $_templateContent $_protoinstFilename]
+
+        set file [ open $filePath "w" ]
+        puts -nonewline $file $content
+        close $file   
+    }
+
+    proc generateABMFileContent { _template _protoinstFilename } {
+        variable protocolInstcesData
+        variable fileContent 
+		
+		variable USE_VECTOR_RANGES
+		
+# Header
+		set fileContent "// (c) Aldec, Inc.\n// All rights reserved.\n\n"
+
+# Parameter defines
+# TODO: currently parameters values are hardcoded - if they cannot by obtained from protoinst then could be possibly read from some kine od cfg file
+		append fileContent \
+			"// The aximm interface parameters\
+			\n`define DATA_BUS_WIDTH 32\
+			\n`define ADDRESS_WIDTH 32\
+			\n`define ID_WIDTH 4\
+			\n`define AWUSER_BUS_WIDTH 16\
+			\n`define ARUSER_BUS_WIDTH 16\
+			\n`define RUSER_BUS_WIDTH 16\
+			\n`define WUSER_BUS_WIDTH 16\
+			\n`define BUSER_BUS_WIDTH 16 \
+			\n// The axis interface parameters\
+			\n`define AXIS_DATA_BUS_WIDTH 32\
+            \n`define TID_WIDTH 8\
+            \n`define TDEST_WIDTH 4\
+            \n`define TUSER_WIDTH 1\
+			\n\n"	
+		
+		append fileContent "module axi_bus_monitor_$_protoinstFilename;\n\n"
+		
+		set localSignalsDeclaration ""
+		set recordersInstantiations ""
+		set initialProcesContent ""
+						
+		foreach _index [array names protocolInstcesData] {
+		    # debug line below displays all parsed data for each protocol instance
+		    #puts "protocolInstcesData($_index): $protocolInstcesData($_index)"
+		
+# TODO - iteration should detect different "moduleName" values - probably for each module name the ekstra bus_monitor_module should be generated
+# Until the *protoinstal file contains one module it will work - later the interfsces and parameters have to be splited between modules
+# Solution: iterate through all protocol names, collect separate list of protocols for each modules then process it seperately or redesign array of parsed data
+#TODO - "_moduleName" is a temporary variable to get module name - to fix in next release
+		    
+			set _moduleName [ dict get $protocolInstcesData($_index) moduleName ]
+			
+			set _underscoredIfaceName [string map { / _ } [ dict get $protocolInstcesData($_index) interfaceName ] ]
+			
+#TODO - start if(protocol type)...
+# We need different recorders for different interfaces types
+# TODO: Consider: Now we checking full name of interface type - mayby we should only the "aximm" or "axis" strings
+			
+		# AXI Memory Mapped (aximm) interfaces	
+	        if { [dict get $protocolInstcesData($_index) interfaceType] eq "xilinx.com:interface:aximm:1.0" } {
+			    # Set a name for the instance of the recorder
+				set _recorderInstanceName $_underscoredIfaceName\_trans_rec_i				
+			    # Header for local monitor signals of current protocol instance
+				append localSignalsDeclaration "\t// Local signals mirrors for " [ dict get $protocolInstcesData($_index) interfaceName ] " aximm interface. \n"
+			    # Header for $signal_agent signals assignments for current protocol instance
+				append initialProcesContent "\t// Setting the mirror signals for " [ dict get $protocolInstcesData($_index) interfaceName ] " aximm interface. \n"			
+			    # Instantations of TransactionRecorderAxi4 module
+				append recordersInstantiations "\t// Monitor for " [ dict get $protocolInstcesData($_index) interfaceName ] " aximm interface. \n"
+				append recordersInstantiations "\tTransactionRecorderAxi4\n"
+			    # Print module parameters list
+				append recordersInstantiations "\t#\(\n\t\t.DATA_BUS_WIDTH(`DATA_BUS_WIDTH), \n\t\t.ADDRESS_WIDTH(`ADDRESS_WIDTH), \n\t\t.ID_WIDTH(`ID_WIDTH),\
+						\n\t\t.AWUSER_BUS_WIDTH(`AWUSER_BUS_WIDTH), \n\t\t.ARUSER_BUS_WIDTH(`ARUSER_BUS_WIDTH), \n\t\t.RUSER_BUS_WIDTH(`RUSER_BUS_WIDTH),\
+						\n\t\t.WUSER_BUS_WIDTH(`WUSER_BUS_WIDTH), \n\t\t.BUSER_BUS_WIDTH(`BUSER_BUS_WIDTH),\n\t\t.INSTANCE(\"$_recorderInstanceName\")\n\t)\n"			
+			    # Generate instance name
+				append recordersInstantiations "\t" $_recorderInstanceName "\n"
+
+				#module port list
+				append recordersInstantiations "\t(\n"
+				
+				set _ports [ dict get $protocolInstcesData($_index) interfacePorts ]
+				set _portsNumber [ dict size $_ports ]
+				
+				foreach _port [dict keys $_ports ] {
+					incr _portsNumber -1				
+					set _signalHierarchy [ dict get $protocolInstcesData($_index) interfaceName ] 
+					set _signalHierarchy [ string range $_signalHierarchy 0 [string last / $_signalHierarchy ] ]
+					set _signalHierarchy [ string map { / . } $_signalHierarchy ]
+					#Rename Vivado notation style port name from ARESETN to ARESETn used by TransactionRecorder
+					if {$_port == "ARESETN"} {
+						append recordersInstantiations "\t\t." "ARESETn" "(" $_underscoredIfaceName\_$_port ")"
+					#Connection of Vivado active high reset port named ARESETN to ARESETn port of TransactionRecorder
+					} elseif {$_port == "ARESET"} {
+						append recordersInstantiations "\t\t." "ARESETn" "(" ~$_underscoredIfaceName\_$_port ")"
+					} else {
+						append recordersInstantiations "\t\t." $_port "(" $_underscoredIfaceName\_$_port ")"
+					}				
+					if { $_portsNumber == 0 } { 
+						append recordersInstantiations "\n"
+					} else {
+						append recordersInstantiations ",\n"
+					}
+				
+				# Create a local monitor signal for each port
+					if {$_port == "AWADDR" || $_port == "ARADDR"} {
+						append localSignalsDeclaration "\treg \[`ADDRESS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "WDATA" || $_port == "RDATA"} {
+						append localSignalsDeclaration "\treg \[`DATA_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "AWID" || $_port == "WID" || $_port == "BID" || $_port == "ARID" || $_port == "RID" } {
+						append localSignalsDeclaration "\treg \[`ID_WIDTH-1:0\]" $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "AWUSER"} {
+						append localSignalsDeclaration "\treg \[`AWUSER_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "ARUSER"} {
+						append localSignalsDeclaration "\treg \[`ARUSER_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "RUSER"} {
+						append localSignalsDeclaration "\treg \[`RUSER_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "WUSER"} {
+						append localSignalsDeclaration "\treg \[`WUSER_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "BUSER"} {
+						append localSignalsDeclaration "\treg \[`BUSER_BUS_WIDTH-1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "ARLEN" || $_port == "AWLEN"} {
+						append localSignalsDeclaration "\treg \[7:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "AWCACHE" || $_port == "AWQOS" || $_port == "AWREGION" || $_port == "ARCACHE" || $_port == "ARQOS" || $_port == "ARREGION" } {
+						append localSignalsDeclaration "\treg \[3:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "AWSIZE" || $_port == "AWPROT" || $_port == "ARSIZE" || $_port == "ARPROT" } {
+						append localSignalsDeclaration "\treg \[2:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} elseif {$_port == "AWBURST" || $_port == "AWLOCK" || $_port == "BRESP" || $_port == "ARBURST" || $_port == "ARLOCK" || $_port == "RRESP" } {
+						append localSignalsDeclaration "\treg \[1:0\] " $_underscoredIfaceName\_$_port ";\n"
+					} else {
+						append localSignalsDeclaration "\treg " $_underscoredIfaceName\_$_port ";\n"
+					}		
+				
+				# Create a $signal_agent assigments for each port
+					variable _portName [dict get $_ports $_port] ]
+					variable _bracketIndex [string first \[ $_portName]
+					if { !$USE_VECTOR_RANGES && $_bracketIndex > 0 } { set _portName [ string range $_portName 0 [ expr { $_bracketIndex-1 } ] ] }
+					append initialProcesContent "\t\t\$signal_agent(\"" $_signalHierarchy $_portName "\", \"" $_underscoredIfaceName\_$_port "\", 0 );\n"
+				}
+				
+				append recordersInstantiations "\t);\n"
+				append localSignalsDeclaration "\n"
+				append initialProcesContent "\n"
+			
+			} else {
+				send_msg_id USF-[usf_aldec_getSimulatorName]-99 WARNING "WARNING: Ommitted monitor generation for unsupported [dict get $protocolInstcesData($_index) interfaceType] protocol!\n"
+			}
+		}
+		
+		append fileContent $localSignalsDeclaration
+		append fileContent $recordersInstantiations "\n"
+		if {$initialProcesContent ne ""} {
+		append fileContent "\tinitial\n\tbegin\n"
+		append fileContent $initialProcesContent
+		append fileContent "\tend\n\n"
+		}
+		append fileContent "endmodule\n\n"
+		
+		
+		append fileContent "// Instantiate AXI_BUS_MONITOR_$_protoinstFilename in top level testbench\n\n"
+		append fileContent "bind " $_moduleName " axi_bus_monitor_$_protoinstFilename axi_bus_monitor_i();\n"
+		
+		
+		return $fileContent
+    }
 
 proc isIpProject {} {
 	set fsFilter \
@@ -683,6 +928,68 @@ proc usf_aldec_get_file_path_from_project { _file } {
     set file $tmp
   }
 }
+proc getProtoinstFiles { dynamic_repo_dir } {
+  
+  set protoinst_f [list]
+  set repo_src_file ""
+  set filter "FILE_TYPE == \"Protocol Instance\""
+  
+  foreach file [get_files -quiet -all -filter $filter] {
+    if { ![file exists $file] } {
+       continue
+    }
+    set file [getProtoFileFromRepo $file $dynamic_repo_dir  repo_src_file]
+    if { {} != $file } {
+      lappend protoinst_f $file
+    }
+  }
+  return $protoinst_f
+}
+proc getProtoFileFromRepo { src_file dynamic_repo_dir  repo_src_file_arg } {
+  
+  upvar $repo_src_file_arg repo_src_file
+
+  variable a_sim_cache_all_design_files_obj
+
+  set filename [file tail $src_file]
+  set file_dir [file dirname $src_file]
+  set file_obj {}
+
+  if { [info exists a_sim_cache_all_design_files_obj($src_file)] } {
+    set file_obj $a_sim_cache_all_design_files_obj($src_file)
+  } else {
+    set file_obj [lindex [get_files -all [list "$src_file"]] 0]
+  }
+
+  set parent_comp_file [get_property -quiet parent_composite_file $file_obj]
+  if { {} == $parent_comp_file } {
+    return $src_file
+  }
+  
+  set parent_comp_file_type [get_property -quiet file_type [lindex [get_files -all [list "$parent_comp_file"]] 0]]
+  set core_name             [file root [file tail $parent_comp_file]]
+
+  set ip_dir {}
+  if { ({Block Designs} == $parent_comp_file_type) } {
+    set top_ip_file_name {}
+    set ip_dir [usf_get_ip_output_dir_from_parent_composite $src_file top_ip_file_name]
+    if { {} == $ip_dir } {
+      return $src_file
+    }
+  } else {
+    return $src_file
+  }
+  
+  set hdl_dir_file [usf_get_sub_file_path $file_dir $ip_dir]
+  set repo_target_dir [file join $dynamic_repo_dir "bd" $core_name $hdl_dir_file]
+  set repo_src_file "$repo_target_dir/$filename"
+
+  if { [file exists $repo_src_file] } {
+    [catch {file copy -force $src_file $repo_target_dir} error_msg]
+    return $repo_src_file
+  }
+  return $src_file
+}
 
 proc usf_aldec_is_file_disabled { _file } {
   # Summary:
@@ -719,7 +1026,7 @@ proc usf_aldec_correctSetupArgs { args } {
 
   upvar $args _args
   regsub -- {-scripts_only} $_args "" _args
-}
+  }
 
 proc usf_aldec_appendSimulationCoverageOptions { _optionsList } {
   # Summary:
@@ -906,6 +1213,9 @@ proc usf_init_vars {} {
 	variable properties
 	variable generateLaibraryMode
 	variable userSetGlbl
+	variable protocolInstcesList
+	variable protoinstFilesList
+	variable USE_VECTOR_RANGES 
 	
 	array unset a_sim_cache_all_bd_files
 	array unset a_sim_cache_parent_comp_files
@@ -1041,6 +1351,10 @@ proc usf_init_vars {} {
 
   # netlist file
   set properties(s_netlist_file)            {}
+
+  # transaction generator
+  set protoinstFilesList {}
+  set USE_VECTOR_RANGES false
   
   xcs_set_common_param_vars
 }

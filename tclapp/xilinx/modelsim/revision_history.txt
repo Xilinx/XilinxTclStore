@@ -1,4 +1,15 @@
-2.361 update msg for failed or missing compiled IP
+2.372 updated help text for simulation settings
+2.371 fixed ddrmc5_inline_ecc to string var
+2.370 disable code for isoutilattrs.cdo export to sim dir
+2.369 disable code for isoutilattrs.cdo export
+2.368 export isoutilattrs.cdo for axi_noc2
+2.367 set sim gcc version for windows
+2.366 add comments for tasks
+2.365 replace sim and gcc version with shell var setting
+2.364 add logical NoC files
+2.363 add linked library to collection if not found
+2.362 performance improvements using data cache
+2.361 merged 2025.1 to 2025.2
 2.360 export aie_work_dir
 2.359 include axi interface include dir
 2.358 reference sim_version from args

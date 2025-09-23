@@ -163,7 +163,7 @@ proc usf_questa_setup_simulation { args } {
   xcs_get_xpm_libraries
 
   # get hard-blocks
-  xcs_get_hard_blocks
+  #xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -226,6 +226,13 @@ proc usf_questa_setup_simulation { args } {
   foreach file_obj [get_files -quiet -all] {
     set name [get_property -quiet "name" $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
+  # cache all IPs
+  variable a_sim_cache_all_ip_obj
+  foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+    set name [get_property -quiet name $ip_obj]
+    set a_sim_cache_all_ip_obj($name) $ip_obj
   }
 
   # cache all system verilog package libraries
@@ -602,7 +609,11 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
   }
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
-    set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    } else {
+      set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    }
   }
 
   set fh 0
@@ -629,7 +640,7 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     puts $fh "${tool_path_str}vlib questa_lib/msim\n"
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
 
   if { $a_sim_vars(b_compile_simmodels) } {
     # get the design simmodel compile order
@@ -1096,7 +1107,11 @@ proc usf_compile_simmodel_sources { fh } {
       #
       set args [list]
       lappend args "-64"
-      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      if {$::tcl_platform(platform) == "unix"} {
+        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      }
+      lappend args "-cpppath $gcc_path"
       
       # <SYSTEMC_COMPILE_OPTION>
       if { {} != $systemc_compile_option } { lappend args $systemc_compile_option }
@@ -1120,7 +1135,11 @@ proc usf_compile_simmodel_sources { fh } {
             regsub -all $str_to_replace $incl_dir $str_replace_with incl_dir 
             set incl_dir [string trimleft $incl_dir {\$}]
           }
-          lappend args "-I $incl_dir"
+          if {$::tcl_platform(platform) == "unix"} {
+            lappend args "-I [xcs_replace_with_var [xcs_replace_with_var $incl_dir "SIM_VER" "questa"] "GCC_VER" "questa"]"
+          } else {
+            lappend args "-I $incl_dir"
+          }
         }
       }
    
@@ -1162,7 +1181,11 @@ proc usf_compile_simmodel_sources { fh } {
       #
       set args [list]
       lappend args "-64"
-      lappend args "-cpppath $a_sim_vars(s_gcc_bin_path)/g++"
+      set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+      if {$::tcl_platform(platform) == "unix"} {
+        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+      }
+      lappend args "-cpppath $gcc_path"
 
       # <SYSTEMC_COMPILE_OPTION>
       if { {} != $systemc_compile_option } {
@@ -1367,6 +1390,9 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
     set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]${DS}"
+    }
   }
 
   set fh 0
@@ -1376,6 +1402,9 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   }
 
   usf_questa_write_header $fh $do_file
+  if {$::tcl_platform(platform) == "unix"} {
+    xcs_write_version_id $fh "questa"
+  }
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op
   } else {
@@ -1383,7 +1412,7 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
   }
 
   set cmd_str [usf_questa_get_elaboration_cmdline]
-  puts $fh "${tool_path_str}$cmd_str"
+  puts $fh "\n${tool_path_str}$cmd_str"
 
   set b_is_unix false
   if {$::tcl_platform(platform) == "unix"} {
@@ -1432,6 +1461,9 @@ proc usf_questa_get_elaboration_cmdline {} {
 
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_contain_systemc_sources) } {
     set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    if {$::tcl_platform(platform) == "unix"} {
+      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    }
     lappend arg_list "-cpppath $gcc_path"
   }
 
@@ -1492,7 +1524,7 @@ proc usf_questa_get_elaboration_cmdline {} {
   set t_opts [join $arg_list " "]
 
   set design_files $a_sim_vars(l_design_files)
-  set design_libs [xcs_get_design_libs $design_files 1 1]
+  set design_libs [xcs_get_design_libs $design_files 1 1 1]
 
   # add simulation libraries
   set arg_list [list]
@@ -1621,6 +1653,13 @@ proc usf_questa_get_elaboration_cmdline {} {
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  # logical noc
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
+  }
 
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
@@ -2071,11 +2110,16 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
   if {$::tcl_platform(platform) == "unix"} {
     puts $fh_scr "[xcs_get_shell_env]"
     xcs_write_script_header $fh_scr $step "questa"
+    xcs_write_version_id $fh_scr "questa"
+    puts $fh_scr "\n# catch pipeline exit status"
+    xcs_write_pipe_exit $fh_scr
     if { {} != $a_sim_vars(s_tool_bin_path) } {
-      puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+      puts $fh_scr "\n# set simulator install path"
+      puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]\""
     }
 
     set aie_ip_obj {}
+    set ld_path_str {}
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_contain_systemc_sources) } {
         if { {simulate} == $step } {
@@ -2106,7 +2150,8 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           foreach {key value} [array get a_shared_library_path_coln] {
             set sc_lib   $key
             set lib_path $value
-            set lib_dir "$lib_path"
+            set resolved_path [xcs_resolve_sim_model_dir "questa" $value $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "obj"]
+            set lib_dir "$resolved_path"
             if { $a_sim_vars(b_compile_simmodels) } {
               set lib_name [file tail $lib_path]
               set lib_type [file tail [file dirname $lib_path]]
@@ -2172,7 +2217,6 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
             if { {} != $aie_ip_obj } {
               append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
             }
-            puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH"
           }
         }
       }
@@ -2214,28 +2258,28 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
     }
 
-    xcs_write_pipe_exit $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+      puts $fh_scr "\n# set simulation library paths"
       if { ("elaborate" == $step) || ("simulate" == $step) } {
-        puts $fh_scr "\nexport xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
+        puts $fh_scr "export xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
         puts $fh_scr "export xv_cxl_ip_path=\"\$xv_cxl_lib_path\""
-      } else {
-        puts $fh_scr ""
       }
-      puts $fh_scr "export xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-      if { $a_sim_vars(b_compile_simmodels) } {
-        puts $fh_scr "export xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
-      } 
+      puts $fh_scr "export xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
+      puts $fh_scr "export xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "questa"] "GCC_VER" "questa"]\""
       # for aie
       if { {} != $aie_ip_obj } {
+        puts $fh_scr "\n# set header/runtime library path for AIE compiler"
         puts $fh_scr "export CHESSDIR=\"\$XILINX_VITIS/aietools/tps/lnx64/target/chessdir\""
         set aie_work_dir $a_sim_vars(s_aie_work_dir)
         if { {} != $aie_work_dir } {
           puts $fh_scr "export AIE_WORK_DIR=\"$aie_work_dir\""
         }
       }
-      puts $fh_scr ""
+      if { ("elaborate" == $step) || ("simulate" == $step) } {
+        puts $fh_scr "\n# set shared library paths"
+        puts $fh_scr "$ld_path_str:\$LD_LIBRARY_PATH\n"
+      }
     }
 
     # add tcl pre hook
@@ -2267,7 +2311,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
     }
  
     if { ({compile} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
-      puts $fh_scr "source $do_filename 2>&1 | tee $log_filename"
+      puts $fh_scr "\nsource $do_filename 2>&1 | tee $log_filename"
       xcs_write_exit_code $fh_scr
     } elseif { ({elaborate} == $step) && [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
       set append_sw " "
@@ -2278,7 +2322,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
       # simulate step
       set gcc_cmd {}
       if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
-        set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+        set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
         set gcc_cmd "-cpppath $gcc_path"
       }
       if { {} != $a_sim_vars(s_tool_bin_path) } {
@@ -2384,6 +2428,7 @@ proc usf_questa_get_sccom_cmd_args {} {
   # Return Value:
  
   variable a_sim_vars
+  variable a_sim_cache_all_ip_obj
 
   set args [list]
   
@@ -2401,6 +2446,9 @@ proc usf_questa_get_sccom_cmd_args {} {
       }
     }
     set gcc_path "$a_sim_vars(s_gcc_bin_path)/g++"
+    if {$::tcl_platform(platform) == "unix"} {
+      set gcc_path "[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "questa"] "GCC_VER" "questa"]/g++"
+    }
     lappend args "-cpppath $gcc_path"
     lappend args "-link"
 
@@ -2470,7 +2518,6 @@ proc usf_questa_get_sccom_cmd_args {} {
 
     # bind IP static librarries
     set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-    set ip_objs [get_ips -all -quiet]
     if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
       puts "------------------------------------------------------------------------------------------------------------------------------------"
       puts "Referenced pre-compiled shared libraries"
@@ -2478,7 +2525,9 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
     set uniq_shared_libs    [list]
     set shared_libs_to_link [list]
-    foreach ip_obj $ip_objs {
+    xcs_cache_ip_objs
+    foreach ip [array names a_sim_cache_all_ip_obj] {
+      set ip_obj $a_sim_cache_all_ip_obj($ip)
       set ipdef [get_property -quiet "ipdef" $ip_obj]
       set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
       set ssm_type [get_property -quiet "selected_sim_model" $ip_obj]
@@ -2608,6 +2657,9 @@ proc usf_questa_set_initial_cmd { fh_scr cmd_str src_file file_type lib prev_fil
   set tool_path_str ""
   if { {} != $a_sim_vars(s_install_path) } {
     set tool_path_str "$a_sim_vars(s_tool_bin_path)${DS}"
+    if {$::tcl_platform(platform) == "unix"} {
+      set tool_path_str "[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "questa"]${DS}"
+    }
   }
 
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {

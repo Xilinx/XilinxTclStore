@@ -45,6 +45,7 @@ proc usf_init_vars {} {
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj
+  variable a_sim_cache_all_ip_obj
   variable a_sim_cache_all_bd_files
   variable a_sim_cache_parent_comp_files
   variable a_sim_cache_parent_comp_files
@@ -55,6 +56,7 @@ proc usf_init_vars {} {
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
+  array unset a_sim_cache_all_ip_obj
   array unset a_sim_cache_all_bd_files
   array unset a_sim_cache_parent_comp_files
   array unset a_sim_cache_parent_comp_files
@@ -247,6 +249,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 
   variable l_compile_order_files
   variable l_compiled_libraries
+  variable a_sim_cache_all_design_files_obj
 
   set files          [list]
   set l_compile_order_files [list]
@@ -379,6 +382,26 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         usf_add_block_fs_files $global_files_str l_incl_dirs_opts files l_compile_order_files
       }
     }
+    # add logical NoC files
+    set lnoc_files [list]
+    [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
+    foreach file $lnoc_files {
+      set file_type [get_property "file_type" $file]
+      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+        set used_in_values [get_property -quiet "USED_IN" $file]
+        if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+          if { $a_sim_vars(b_use_static_lib) } {
+            continue;
+          }
+        }
+        set g_files $global_files_str
+        set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+        if { {} != $cmd_str } {
+          lappend files $cmd_str
+          lappend l_compile_order_files $file
+        }
+      }
+    }
     # add files from simulation compile order
     if { {All} == $a_sim_vars(src_mgmt_mode) } {
       send_msg_id USF-ModelSim-109 INFO "Fetching design files from '$target_obj'..."
@@ -433,11 +456,36 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
         }
       }
     }
+
+    # add logical noc top module file
+    set lnoc_top [get_property -quiet logical_noc_top $a_sim_vars(fs_obj)]
+    if { {} != $lnoc_top } {
+      set lnoc_file "${lnoc_top}.v"
+      set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
+      if { {} != $file } {
+        set file_type [get_property "file_type" $file]
+        if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+          set g_files $global_files_str
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
+          }
+        }
+      }
+    }
+
   } elseif { [xcs_is_ip $target_obj [xcs_get_valid_ip_extns]] } {
     # prepare command line args for fileset ip files
     send_msg_id USF-ModelSim-112 INFO "Fetching design files from IP '$target_obj'..."
     set ip_filename [file tail $target_obj]
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_filename]] {
+    set ip_file_obj {}
+    if { [info exists a_sim_cache_all_design_files_obj($ip_filename)] } {
+      set ip_file_obj $a_sim_cache_all_design_files_obj($ip_filename)
+    } else {
+      set ip_file_obj [get_files -quiet ${ip_filename}]
+    }
+    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_files -quiet $ip_file_obj]] {
       set file_type [get_property "file_type" $file]
       if { ({Verilog} != $file_type) && ({SystemVerilog} != $file_type) && ({VHDL} != $file_type) && ({VHDL 2008} != $file_type) && ({VHDL 2019} != $file_type) } { continue }
       set g_files $global_files_str
@@ -606,9 +654,16 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   upvar $files_arg files
   upvar $compile_order_files_arg compile_order_files
 
+  variable a_sim_cache_all_design_files_obj
+
   set vhdl_filter "FILE_TYPE == \"VHDL\" || FILE_TYPE == \"VHDL 2008\" || FILE_TYPE == \"VHDL 2019\""
   foreach file [xcs_get_files_from_block_filesets $vhdl_filter] {
-    set file_type [get_property "file_type" $file]
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
+    set file_type [get_property "file_type" $file_obj]
     set cmd_str [usf_get_file_cmd_str $file $file_type false {} l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -617,7 +672,12 @@ proc usf_add_block_fs_files { global_files_str l_incl_dirs_opts_arg files_arg co
   }
   set verilog_filter "FILE_TYPE == \"Verilog\" || FILE_TYPE == \"SystemVerilog\""
   foreach file [xcs_get_files_from_block_filesets $verilog_filter] {
-    set file_type [get_property "file_type" $file]
+    if { [info exists a_sim_cache_all_design_files_obj($file)] } {
+      set file_obj $a_sim_cache_all_design_files_obj($file)
+    } else {
+      set file_obj [lindex [get_files -quiet -all [list "$file"]] 0]
+    }
+    set file_type [get_property "file_type" $file_obj]
     set cmd_str [usf_get_file_cmd_str $file $file_type false $global_files_str l_incl_dirs_opts]
     if { {} != $cmd_str } {
       lappend files $cmd_str
@@ -1326,6 +1386,7 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
   variable l_local_design_libraries
   variable a_sim_cache_all_design_files_obj
   variable a_sim_cache_all_bd_files
+  variable a_sim_cache_all_ip_obj
 
   #puts org_file=$orig_src_file
   set src_file $orig_src_file
@@ -1450,7 +1511,12 @@ proc usf_get_source_from_repo { ip_file orig_src_file launch_dir b_is_static_arg
           } else {
             # parent composite is not empty, so get the ip output dir of the parent composite and subtract it from source file
             set parent_ip_name [file root [file tail $parent_comp_file]]
-            set ip_output_dir [get_property "ip_output_dir" [get_ips -all $parent_ip_name]]
+            if { [info exists a_sim_cache_all_ip_obj($parent_ip_name)] } {
+              set ip_obj $a_sim_cache_all_ip_obj($parent_ip_name)
+            } else {
+              set ip_obj [get_ips -all $parent_ip_name]
+            }
+            set ip_output_dir [get_property "ip_output_dir" $ip_obj]
             #puts src_ip_file=$ip_static_file
   
             # get the source ip file dir
