@@ -1,3 +1,25 @@
+2.336 merged 2025.2 to 2026.1
+2.335 fixed ddrmc5_inline_ecc to string var
+2.334 disable code for isoutilattrs.cdo export to sim dir
+2.333 disable code for isoutilattrs.cdo export
+2.332 export isoutilattrs.cdo for axi_noc2
+2.331 skip sim gcc version for windows
+2.330 set sim gcc version for windows
+2.329 add comments for tasks
+2.328 replace sim and gcc version with shell var setting
+2.327 add logical NoC files
+2.326 add linked library to collection if not found
+2.325 performance improvements using data cache
+2.324 merged 2025.1 to 2025.2
+2.323 add vopt options to fix NoC/DDR assertion failures
+2.322 export aie_work_dir
+2.321 include axi interface include dir
+2.320 reference sim_version from args
+2.319 set ext lib path for non-precompile mode
+2.318 print msg for locked, custom ips
+2.317 fixed QIS logic
+2.316 fixed bug with QIS param
+2.315 enable QIS options
 2.314 bind aietools library
 2.313 check current design for intermediate impl stage
 2.312 reset scripts only mode for exec mode

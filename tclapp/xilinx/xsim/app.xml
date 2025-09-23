@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>updated help text for xsim settings</revision_history>
+      <revision_history>merged 2025.2 to 2026.1</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
