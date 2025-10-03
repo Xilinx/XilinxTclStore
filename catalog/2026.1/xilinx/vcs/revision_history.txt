@@ -1,3 +1,4 @@
+17.5 updated version replacement detection
 17.4 merged 2025.2 to 2026.1
 17.3 disable code for isoutilattrs.cdo export to sim dir
 17.2 disable code for isoutilattrs.cdo export

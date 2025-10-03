@@ -1,3 +1,4 @@
+2.373 updated version replacement detection
 2.372 merged 2025.2 to 2026.1
 2.371 fixed ddrmc5_inline_ecc to string var
 2.370 disable code for isoutilattrs.cdo export to sim dir
