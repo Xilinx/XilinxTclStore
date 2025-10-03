@@ -4197,6 +4197,8 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
 
   set file_path_str $s_install_path
   set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
+  set file_path_elems [split $file_path_str "/"]
+  set resolved_path_l [list]
 
   set sim [string toupper $simulator]
   set env_var_name ${var_name}_${sim}
@@ -4207,8 +4209,17 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
   }
   set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
 
-  regsub -all $str_to_replace $file_path_str $str_to_replace_with file_path_str
-
+  foreach elem $file_path_elems {
+    if { $elem == $str_to_replace } {
+      lappend resolved_path_l $str_to_replace_with
+    } elseif {[string first $str_to_replace $elem] != -1} {
+      regsub $str_to_replace $elem $str_to_replace_with resolved_str
+      lappend resolved_path_l $resolved_str
+    } else {
+      lappend resolved_path_l $elem
+    }
+  }
+  set file_path_str [join $resolved_path_l "/"]
   return $file_path_str
 }
 
