@@ -1116,7 +1116,7 @@ proc usf_add_unique_incl_paths { fs_obj unique_paths_arg incl_header_paths_arg }
 
   # setup the filter to include only header types enabled for simulation
   set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
-  set vh_files [get_files -all -quiet -filter $filter]
+  set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter]
   foreach vh_file $vh_files {
     set vh_file_obj {}
     if { [info exists a_sim_cache_all_design_files_obj($vh_file)] } {

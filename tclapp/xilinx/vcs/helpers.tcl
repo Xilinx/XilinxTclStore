@@ -143,7 +143,7 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
     set vh_files [xcs_get_incl_files_from_ip $tcl_obj]
   } else {
     set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
-    set vh_files [get_files -all -quiet -filter $filter]
+    set vh_files [get_files -quiet -compile_order sources -used_in simulation -of_objects [current_fileset -simset] -filter $filter]
   }
 
   # append global files (if any)
