@@ -1,3 +1,4 @@
+2.519 revert fix for scope header files for simulation compile order only
 2.518 scope header files for simulation compile order only
 2.517 pass onerror quit for AIE
 2.516 updated help text for xsim settings

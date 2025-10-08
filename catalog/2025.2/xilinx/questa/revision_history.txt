@@ -1,3 +1,4 @@
+2.338 revert fix for scope header files for simulation compile order only
 2.337 scope header files for simulation compile order only
 2.336 updated help text for simulation settings
 2.335 fixed ddrmc5_inline_ecc to string var
