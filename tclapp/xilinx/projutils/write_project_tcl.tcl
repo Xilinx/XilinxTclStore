@@ -48,6 +48,7 @@ proc write_project_tcl {args} {
   # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
   # [-ignore_msg_control_rules]: Do not imports message control rules in tcl script
   # [-quiet]: Execute the command quietly, returning no messages from the command.
+  # [-ignore_utils] : Ignore the util filesets.
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -97,6 +98,8 @@ proc write_project_tcl {args} {
       "-validate"             { set a_global_vars(b_validate) 1 }
       "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 1 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
+      "-ignore_utils"         { set a_global_vars(b_arg_ignore_utils) 1 }
+
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -252,6 +255,7 @@ proc reset_global_vars {} {
   set a_global_vars(def_val_fh)                 0
   set a_global_vars(script_file)                ""
   set a_global_vars(b_arg_quiet)                0
+  set a_global_vars(b_arg_ignore_utils)         0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -1130,12 +1134,14 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
       lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
     }
     if { {Constrs} == $fs_type } {
-      lappend l_script_data ""
-      write_constrs $proj_dir $proj_name $tcl_obj $type
+    lappend l_script_data ""
+    write_constrs $proj_dir $proj_name $tcl_obj $type
+    } elseif { $a_global_vars(b_arg_ignore_utils) && [string equal $tcl_obj "utils_1"] } {
+           # do not write utils fileset
     } else {
-      write_files $proj_dir $proj_name $tcl_obj $type
+    write_files $proj_dir $proj_name $tcl_obj $type
     }
-  
+
     # is this a IP block fileset? if yes, do not write block fileset properties (block fileset doesnot exist in new project)
     if { [is_ip_fileset $tcl_obj] || [is_inactive_block_fileset $tcl_obj] } {
       # do not write ip fileset properties
@@ -1143,6 +1149,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
       lappend l_script_data "# Set '$tcl_obj' fileset properties"
       lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
       write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+      
     }
   }
 }
@@ -1520,7 +1527,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   
 
   foreach prop $properties {
+
     if { [is_deprecated_property $prop] } { continue }
+
+    if { $a_global_vars(b_arg_ignore_utils) && ([string match "synth*" $tcl_obj]) && ([string equal $prop "INCREMENTAL_CHECKPOINT"]) } {
+      continue
+    }
 
     # is property excluded from being written into the script file
     if { [is_excluded_property $current_obj $prop] } { continue }

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Skip activehdl properties</revision_history>
+      <revision_history>Added new switch to skips util fileset</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
