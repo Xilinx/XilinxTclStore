@@ -1,3 +1,4 @@
+17.7 updated noc sub core version
 17.6 revert fix for scope header files for simulation compile order only
 17.5 scope header files for simulation compile order only
 17.4 fixed ddrmc5_inline_ecc to string var
