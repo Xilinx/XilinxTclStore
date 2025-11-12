@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::xsim 2.519 [list source [file join $dir xsim.tcl]]
+package ifneeded ::tclapp::xilinx::xsim 2.520 [list source [file join $dir xsim.tcl]]
