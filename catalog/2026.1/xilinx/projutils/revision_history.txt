@@ -1,3 +1,4 @@
+3.576 Update is_ip_run logic. Fix for CR-1241643
 3.575 Added new switch to skips util fileset
 3.574 Skip activehdl properties
 3.573 Fix for CR-1218704 Copying run makes GUI to go into infinite loop.
