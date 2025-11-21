@@ -2871,22 +2871,8 @@ proc is_ip_fileset { fileset } {
   # true (1) if success, false (0) otherwise
 
   # make sure fileset is block fileset type
-  set isPRFlow [get_property pr_flow [current_project]]
-  set isRMFileset 0
-
-  if { $isPRFlow == 1 } {
-    set allReconfigModules [get_reconfig_modules]
-    foreach reconfigmodule $allReconfigModules {
-      set rmFileset [get_filesets -of_objects [get_reconfig_modules $reconfigmodule]]
-      if { [string equal $rmFileset $fileset] } {
-        set isRMFileset 1
-        break
-      }
-    }
-  }
-
-  if { $isRMFileset == 1 } {
-    return false
+  if { [is_rm_fileset $fileset] } {
+        return false
   }
 
   if { [is_bc_managed_fileset $fileset] } {
@@ -2911,6 +2897,28 @@ proc is_ip_fileset { fileset } {
     return true
   }
   return false
+}
+
+proc is_rm_fileset { fileset } {
+    # Summary: Check if the given fileset is a reconfiguration module fileset
+    # Argument Usage:
+    # fileset: fileset name
+    # Return Value:
+    # true (1) if it's an RM fileset, false (0) otherwise
+    
+    set isPRFlow [get_property pr_flow [current_project]]
+    
+    if { $isPRFlow == 1 } {
+        set allReconfigModules [get_reconfig_modules]
+        foreach reconfigmodule $allReconfigModules {
+            set rmFileset [get_filesets -of_objects [get_reconfig_modules $reconfigmodule]]
+            if { [string equal $rmFileset $fileset] } {
+                return true
+            }
+        }
+    }
+    
+    return false
 }
 
 proc is_bc_managed_fileset { fileset } {
@@ -2987,7 +2995,37 @@ proc is_ip_run { run } {
   # true (1) if success, false (0) otherwise
   
   set fileset [get_property srcset [get_runs $run]]
-  return [is_ip_fileset $fileset]
+  if { [is_rm_fileset $fileset] } {
+        return false
+    }
+
+    if { [is_bc_managed_fileset $fileset] } {
+        return false
+    }
+
+    if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+        return false
+    }
+
+    if { [is_proxy_ip_fileset $fileset] } {
+        return true
+    }
+    
+    set ip_filter "FILE_TYPE == \"IP\" || FILE_TYPE==\"Block Designs\""
+    set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
+    set b_found false
+    foreach ip $ips {
+        if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all [list "$ip"]] 0]] } {
+            set b_found true
+            break
+        }
+    }
+    
+    if { $b_found } {
+        return true
+    }
+    
+    return false;
 }
 
 proc is_win_os {} {
