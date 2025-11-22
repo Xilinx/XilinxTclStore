@@ -2742,6 +2742,12 @@ proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_
     lappend args_list "\{$cmd_file\}" 
   }
 
+  # for undefined aie_work_dir or aiesim_config, add onerror quit for xsim to exit gracefully
+  set aie_ip_obj [xcs_find_ip "ai_engine"]
+  if { {} != $aie_ip_obj } {
+    lappend args_list "-onerror quit"
+  }
+
   set p_inst_files [xcs_get_protoinst_files $a_sim_vars(dynamic_repo_dir)]
   if { [llength $p_inst_files] > 0 } {
     set target_pinst_dir "$a_sim_vars(s_launch_dir)/protoinst_files"
