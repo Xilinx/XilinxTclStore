@@ -1,3 +1,4 @@
+2.338 updated noc sub core version
 2.337 updated version replacement detection
 2.336 merged 2025.2 to 2026.1
 2.335 fixed ddrmc5_inline_ecc to string var
