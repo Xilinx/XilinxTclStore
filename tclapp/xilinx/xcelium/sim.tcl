@@ -169,7 +169,7 @@ proc usf_xcelium_setup_simulation { args } {
   xcs_get_xpm_libraries
 
   # get hard-blocks
-  xcs_get_hard_blocks
+  #xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -239,6 +239,13 @@ proc usf_xcelium_setup_simulation { args } {
   foreach file_obj [get_files -quiet -all] {
     set name [get_property -quiet "name" $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
+  # cache all IPs
+  variable a_sim_cache_all_ip_obj
+  foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+    set name [get_property -quiet name $ip_obj]
+    set a_sim_cache_all_ip_obj($name) $ip_obj
   }
 
   # cache all system verilog package libraries
@@ -498,7 +505,7 @@ proc usf_xcelium_write_setup_files {} {
     }
   }
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     lappend libs [string tolower $lib]
@@ -618,29 +625,32 @@ proc usf_xcelium_write_compile_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
+      puts $fh_scr ""
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "xcelium"]\""
  
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\"\n"
+        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\"\n"
       }
       # set system sim library paths
       if { $a_sim_vars(b_system_sim_design) } { 
         puts $fh_scr "# set system shared library paths"
-        puts $fh_scr "xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
-        puts $fh_scr "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-        puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\""
+        puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\""
+        puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\""
         puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\""
       }
     }
@@ -1388,6 +1398,7 @@ proc usf_xcelium_write_elaborate_script {} {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_ip_obj
 
   # step exec mode?
   if { $a_sim_vars(b_exec_step) } {
@@ -1410,20 +1421,22 @@ proc usf_xcelium_write_elaborate_script {} {
   variable a_shared_library_path_coln
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "xcelium"]\""
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
-        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "xcelium"] "GCC_VER" "xcelium"]\""
+        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\""
 
         # bind user specified libraries
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
@@ -1442,7 +1455,13 @@ proc usf_xcelium_write_elaborate_script {} {
   if { $a_sim_vars(b_int_perf_analysis) } {
     set access_mode "r"
   }
-  lappend arg_list "-access +$access_mode"
+ 
+  # enable signal visibility
+  set b_acc [get_property -quiet xcelium.elaborate.acc $a_sim_vars(fs_obj)]
+  if { $b_acc } {
+    lappend arg_list "-access +$access_mode"
+  }
+
   lappend arg_list "-namemap_mixgen"
 
   set path_delay 0
@@ -1474,7 +1493,7 @@ proc usf_xcelium_write_elaborate_script {} {
 
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 1]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 1 1]
 
   set arg_list [list]
   # add simulation libraries
@@ -1660,6 +1679,13 @@ proc usf_xcelium_write_elaborate_script {} {
     lappend arg_list "$hb_wrapper"
   }
 
+  # logical noc top
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
+  }
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
@@ -1736,7 +1762,6 @@ proc usf_xcelium_write_elaborate_script {} {
 
         # link IP design libraries
         set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-        set ip_objs [get_ips -all -quiet]
         if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
           puts "Referenced pre-compiled shared libraries"
@@ -1744,7 +1769,9 @@ proc usf_xcelium_write_elaborate_script {} {
         }
         set uniq_shared_libs        [list]
         set shared_lib_objs_to_link [list]
-        foreach ip_obj $ip_objs {
+        xcs_cache_ip_objs
+        foreach ip [array names a_sim_cache_all_ip_obj] {
+          set ip_obj $a_sim_cache_all_ip_obj($ip)
           set ipdef [get_property -quiet "ipdef" $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
@@ -1934,18 +1961,20 @@ proc usf_xcelium_write_simulate_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "xcelium"]\""
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
-        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+        puts $fh_scr "sys_path=\"[xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "xcelium"]\""
         if { $a_sim_vars(b_int_en_vitis_hw_emu_mode) } {
           xcs_write_launch_mode_for_vitis $fh_scr "xcelium"
         }
@@ -2098,6 +2127,7 @@ proc usf_xcelium_create_setup_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "xcelium"
+  xcs_write_version_id $fh_scr "xcelium"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -2116,7 +2146,7 @@ proc usf_xcelium_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "xcelium"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)
@@ -2305,6 +2335,9 @@ proc usf_xcelium_write_verilog_compile_options { fh_scr } {
   if { [get_property "incremental" $a_sim_vars(fs_obj)] } {
     set arg_list [linsert $arg_list end "-update"]
   }
+
+  # search for sv packages
+  #usf_append_sv_pkgs arg_list
   
   set more_xmvlog_options [string trim [get_property "xcelium.compile.xmvlog.more_options" $a_sim_vars(fs_obj)]]
   if { {} != $more_xmvlog_options } {
@@ -2313,6 +2346,31 @@ proc usf_xcelium_write_verilog_compile_options { fh_scr } {
   
   puts $fh_scr "# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+}
+
+proc usf_append_sv_pkgs { args } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  upvar $args arg_list
+  variable a_sim_vars
+
+  set design_libs [list]
+
+  foreach lib [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0] {
+    if {[string length $lib] == 0} { continue; }
+    if { "xil_defaultlib" == $lib } {
+      lappend design_libs "-pkgsearch $lib"
+      continue
+    }
+    set pkg_data_file "$a_sim_vars(s_clibs_dir)/$lib/.cxl.svpkg.dat"
+    if { [file exists $pkg_data_file] } {
+      lappend design_libs "-pkgsearch $lib"
+    }
+  }
+  set lib_str [join $design_libs " "]
+  set arg_list [linsert $arg_list end $lib_str]
 }
 
 proc usf_xcelium_write_systemc_compile_options { fh_scr } {

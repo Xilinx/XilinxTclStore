@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>option to set debug_acc with debug_pp deprecation msg</revision_history>
+      <revision_history>updated noc sub core version</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

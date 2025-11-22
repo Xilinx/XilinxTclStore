@@ -168,7 +168,7 @@ proc usf_vcs_setup_simulation { args } {
   xcs_get_xpm_libraries
  
   # get hard-blocks
-  xcs_get_hard_blocks
+  #xcs_get_hard_blocks
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -233,6 +233,13 @@ proc usf_vcs_setup_simulation { args } {
   foreach file_obj [get_files -quiet -all] {
     set name [get_property -quiet "name" $file_obj]
     set a_sim_cache_all_design_files_obj($name) $file_obj
+  }
+
+  # cache all IPs
+  variable a_sim_cache_all_ip_obj
+  foreach ip_obj [lsort -unique [get_ips -all -quiet]] {
+    set name [get_property -quiet name $ip_obj]
+    set a_sim_cache_all_ip_obj($name) $ip_obj
   }
 
   # cache all system verilog package libraries
@@ -480,7 +487,7 @@ proc usf_vcs_write_setup_files {} {
     }
   }
 
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if {[string length $lib] == 0} { continue; }
     if { ({work} == $lib) } { continue; }
@@ -652,40 +659,35 @@ proc usf_vcs_write_compile_script {} {
   }
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "compile" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     if { $a_sim_vars(b_optimizeForRuntime) } {
+      puts $fh_scr ""
       xcs_write_log_file_cleanup $fh_scr $a_sim_vars(run_logs_compile)
     }
     usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
 
-    if { $a_sim_vars(b_scripts_only) } {
-      if { [info exists ::env(VCS_HOME)] } {
-        set vcs_home $::env(VCS_HOME)
-        if { ({} != $vcs_home) && ([file exists $vcs_home]) && ([file isdirectory $vcs_home]) } {
-          puts $fh_scr "\n# VCS_HOME setting"
-          puts $fh_scr "export VCS_HOME=$vcs_home"
-        }
-      }
-    }
+    usf_set_vcs_home $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\"\n"
+        puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\"\n"
       }
       # set system sim library paths
       if { $a_sim_vars(b_system_sim_design) } {
         puts $fh_scr "# set system shared library paths"
-        puts $fh_scr "xv_cxl_lib_path=\"$a_sim_vars(s_clibs_dir)\""
-        puts $fh_scr "xv_cpt_lib_path=\"$a_sim_vars(sp_cpt_dir)\""
-        puts $fh_scr "xv_ext_lib_path=\"$a_sim_vars(sp_ext_dir)\""
+        puts $fh_scr "xv_cxl_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_clibs_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+        puts $fh_scr "xv_cpt_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_cpt_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+        puts $fh_scr "xv_ext_lib_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(sp_ext_dir) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
         puts $fh_scr "xv_boost_lib_path=\"$a_sim_vars(s_boost_dir)\""
       }
     }
@@ -1422,6 +1424,7 @@ proc usf_vcs_write_elaborate_script {} {
   # Return Value:
 
   variable a_sim_vars
+  variable a_sim_cache_all_ip_obj
 
   # step exec mode?
   if { $a_sim_vars(b_exec_step) } {
@@ -1439,21 +1442,25 @@ proc usf_vcs_write_elaborate_script {} {
   }
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "elaborate" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\"\n"
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
+ 
+    usf_set_vcs_home $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
         # set gcc path
-        puts $fh_scr "gcc_path=\"$a_sim_vars(s_gcc_bin_path)\""
-        puts $fh_scr "sys_path=\"$a_sim_vars(s_sys_link_path)\"\n"
+		puts $fh_scr "gcc_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_gcc_bin_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
+		puts $fh_scr "sys_path=\"[xcs_replace_with_var [xcs_replace_with_var $a_sim_vars(s_sys_link_path) "SIM_VER" "vcs"] "GCC_VER" "vcs"]\""
         
         # bind user specified libraries
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
@@ -1461,7 +1468,6 @@ proc usf_vcs_write_elaborate_script {} {
 
         xcs_write_library_search_order $fh_scr "vcs" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
-      puts $fh_scr ""
     }
   }
   set tool "vcs"
@@ -1631,7 +1637,6 @@ proc usf_vcs_write_elaborate_script {} {
 
         # link IP design libraries
         set shared_ip_libs [xcs_get_shared_ip_libraries $a_sim_vars(s_clibs_dir)]
-        set ip_objs [get_ips -all -quiet]
         if { $a_sim_vars(b_int_sm_lib_ref_debug) } {
           puts "------------------------------------------------------------------------------------------------------------------------------------"
           puts "Referenced pre-compiled shared libraries"
@@ -1639,7 +1644,9 @@ proc usf_vcs_write_elaborate_script {} {
         }
         set uniq_shared_libs        [list]
         set shared_lib_objs_to_link [list]
-        foreach ip_obj $ip_objs {
+        xcs_cache_ip_objs
+        foreach ip [array names a_sim_cache_all_ip_obj] {
+          set ip_obj $a_sim_cache_all_ip_obj($ip)
           set ipdef [get_property -quiet "ipdef" $ip_obj]
           set vlnv_name [xcs_get_library_vlnv_name $ip_obj $ipdef]
           if { [lsearch $shared_ip_libs $vlnv_name] != -1 } {
@@ -1733,9 +1740,9 @@ proc usf_vcs_write_elaborate_script {} {
     if { [llength $l_link_c_libs] > 0 } { foreach lib $l_link_c_libs { lappend arg_list $lib } }
   }
 
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
-  puts $fh_scr "# run elaboration"
+  puts $fh_scr "\n# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
+  puts $fh_scr "\n# run elaboration"
 
   set tool_path_val "\$bin_path/$tool"
   if { {} == $a_sim_vars(s_tool_bin_path) } {
@@ -1799,6 +1806,14 @@ proc usf_vcs_write_elaborate_script {} {
   }
 
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
+
+  # logical noc top
+  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+  if { {} != $lnoc_top } {
+    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    lappend arg_list "${lib}.${lnoc_top}"
+  }
+
   set top_level_inst_names {}
   usf_add_glbl_top_instance arg_list $top_level_inst_names
 
@@ -2006,15 +2021,19 @@ proc usf_vcs_write_simulate_script {} {
  
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "simulate" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
   if { {} != $a_sim_vars(s_tool_bin_path) } {
     usf_vcs_init_env $fh_scr
     set b_set_shell_var_exit false
     [catch {set b_set_shell_var_exit [get_param "project.setShellVarsForSimulationScriptExit"]} err]
     if { $b_set_shell_var_exit } {
+      puts $fh_scr "\n# catch pipeline exit status"
       xcs_write_pipe_exit $fh_scr
     }
     puts $fh_scr "\n# installation path setting"
-    puts $fh_scr "bin_path=\"$a_sim_vars(s_tool_bin_path)\""
+    puts $fh_scr "bin_path=\"[xcs_replace_with_var $a_sim_vars(s_tool_bin_path) "SIM_VER" "vcs"]\""
+
+    usf_set_vcs_home $fh_scr
 
     if { $a_sim_vars(b_int_systemc_mode) } {
       if { $a_sim_vars(b_system_sim_design) } {
@@ -2030,14 +2049,13 @@ proc usf_vcs_write_simulate_script {} {
         xcs_write_library_search_order $fh_scr "vcs" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
       }
     }
-    puts $fh_scr ""
   }
 
   set ip_obj [xcs_find_ip "gt_quad_base"]
   if { {} != $ip_obj } {
     set secureip_dir "$a_sim_vars(compiled_library_dir)/secureip"
     if { [file exists $secureip_dir] } {
-      puts $fh_scr "# set library search order"
+      puts $fh_scr "\n# set library search order"
       puts $fh_scr "LD_LIBRARY_PATH=$secureip_dir:\$LD_LIBRARY_PATH"
     }
   }
@@ -2070,18 +2088,40 @@ proc usf_vcs_write_simulate_script {} {
     }
   }
 
-  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
-  puts $fh_scr ""
   set arg_list [list "./$a_sim_vars(s_sim_top)_simv"]
   set arg_list [list $arg_list "\$${tool}_opts"]
   lappend arg_list "-do"
   lappend arg_list "$do_filename"
   set cmd_str [join $arg_list " "]
 
-  puts $fh_scr "# run simulation"
+  puts $fh_scr "\n# run simulation"
   puts $fh_scr "$cmd_str"
   close $fh_scr
+}
+
+proc usf_set_vcs_home { fh_scr } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+  
+  variable a_sim_vars
+  if { $a_sim_vars(b_scripts_only) } {
+    if { {} == $a_sim_vars(s_vcs_home) } {
+      if { [info exists ::env(VCS_HOME)] } {
+        set a_sim_vars(s_vcs_home) $::env(VCS_HOME)
+      } else {
+        set a_sim_vars(s_vcs_home) [file dirname $a_sim_vars(s_install_path)]
+        send_msg_id USF-VCS-099 WARNING "VCS_HOME env variable not found! Setting it to '$a_sim_vars(s_vcs_home)' in the generated scripts using install path '$a_sim_vars(s_install_path)'\n"
+        set ::env(VCS_HOME) $a_sim_vars(s_vcs_home)
+      }
+    }
+    if { ({} != $a_sim_vars(s_vcs_home)) && ([file exists $a_sim_vars(s_vcs_home)]) && ([file isdirectory $a_sim_vars(s_vcs_home)]) } {
+      puts $fh_scr "\n# VCS_HOME setting"
+      puts $fh_scr "export VCS_HOME=[xcs_replace_with_var $a_sim_vars(s_vcs_home) "SIM_VER" "vcs"]"
+    }
+  }
 }
 
 proc usf_vcs_map_pre_compiled_libs { fh } {
@@ -2155,6 +2195,7 @@ proc usf_vcs_create_setup_script {} {
 
   puts $fh_scr "[xcs_get_shell_env]"
   xcs_write_script_header $fh_scr "setup" "vcs"
+  xcs_write_version_id $fh_scr "vcs"
 
   puts $fh_scr "\n# Script usage"
   puts $fh_scr "usage()"
@@ -2173,7 +2214,7 @@ proc usf_vcs_create_setup_script {} {
   puts $fh_scr "\{"
   set simulator "vcs"
   set libs [list]
-  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0]
+  set design_libs [xcs_get_design_libs $a_sim_vars(l_design_files) 0 0 0]
   foreach lib $design_libs {
     if { $a_sim_vars(b_use_static_lib) && ([xcs_is_static_ip_lib $lib $l_ip_static_libs]) } {
       # continue if no local library found or continue if this library is precompiled (not local)
@@ -2338,8 +2379,8 @@ proc usf_vcs_write_vhdl_compile_options { fh_scr } {
     set arg_list [linsert $arg_list end "$more_vhdlan_options"]
   }
 
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+  puts $fh_scr "\n# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
 }
 
 proc usf_vcs_write_verilog_compile_options { fh_scr } {
@@ -2371,12 +2412,12 @@ proc usf_vcs_write_verilog_compile_options { fh_scr } {
     set arg_list [linsert $arg_list end "$more_vlogan_options"]
   }
 
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+  puts $fh_scr "\n# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
 
   if { $a_sim_vars(b_uvm) } {
-    puts $fh_scr "# set UVM command line args"
-    puts $fh_scr "uvm_opts=\"-ntb_opts uvm-1.2\"\n"
+    puts $fh_scr "\n# set UVM command line args"
+    puts $fh_scr "uvm_opts=\"-ntb_opts uvm-1.2\""
   }
 
 }
@@ -2390,7 +2431,7 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
 
   if { $a_sim_vars(b_optimizeForRuntime) } {
     set tool "g++"
-    puts $fh_scr "# set ${tool} command line args for systemC shared library and systemC/HDL interface model"
+    puts $fh_scr "\n# set ${tool} command line args for systemC shared library and systemC/HDL interface model"
     set arg_list [list "-fPIC -O3 -std=c++11 -g -DCOMMON_CPP_DLL -DSC_INCLUDE_DYNAMIC_PROCESSES"]
     if { [get_property "32bit" $a_sim_vars(fs_obj)] } {
       set arg_list [linsert $arg_list 0 "-m32"]
@@ -2400,7 +2441,7 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
     puts $fh_scr "gpp_sysc_opts=\"[join $arg_list " "]\""
 
     set arg_list [list "-fPIC -O3 -std=c++11 -Wall -Wno-deprecated -DSC_INCLUDE_DYNAMIC_PROCESSES"]
-    puts $fh_scr "gpp_sysc_hdl_opts=\"[join $arg_list " "]\"\n"
+    puts $fh_scr "gpp_sysc_hdl_opts=\"[join $arg_list " "]\""
   }
 
   set tool "syscan"
@@ -2424,7 +2465,7 @@ proc usf_vcs_write_systemc_compile_options { fh_scr } {
     set arg_list [linsert $arg_list end "$more_syscan_options"]
   }
 
-  puts $fh_scr "# set ${tool} command line args"
+  puts $fh_scr "\n# set ${tool} command line args"
   puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
 
   # syscan gcc options
@@ -2524,8 +2565,8 @@ proc usf_vcs_write_cpp_compile_options { fh_scr } {
   if { {} != $more_gplus_options } {
     set arg_list [linsert $arg_list end "$more_gplus_options"]
   }
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "gpp_opts=\"[join $arg_list " "]\"\n"
+  puts $fh_scr "\n# set ${tool} command line args"
+  puts $fh_scr "gpp_opts=\"[join $arg_list " "]\""
 }
 
 proc usf_vcs_write_c_compile_options { fh_scr } {
@@ -2546,8 +2587,8 @@ proc usf_vcs_write_c_compile_options { fh_scr } {
   if { {} != $more_gcc_options } {
     set arg_list [linsert $arg_list end "$more_gcc_options"]
   }
-  puts $fh_scr "# set ${tool} command line args"
-  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\"\n"
+  puts $fh_scr "\n# set ${tool} command line args"
+  puts $fh_scr "${tool}_opts=\"[join $arg_list " "]\""
 }
 
 proc usf_vcs_write_compile_order_files_opt { fh_scr } {
@@ -3137,7 +3178,7 @@ proc usf_vcs_init_env { fh_scr } {
     puts $fh_scr "  export VG_GNU_PACKAGE=\"$gnu_pkg_dir\""
     puts $fh_scr "fi\n"
     puts $fh_scr "echo \"VG_GNU_PACKAGE=\$VG_GNU_PACKAGE\""
-    puts $fh_scr "source \$VG_GNU_PACKAGE/source_me_gcc920_64.sh\n"
+    puts $fh_scr "source \$VG_GNU_PACKAGE/source_me_gcc920_64.sh"
   }
 }
 

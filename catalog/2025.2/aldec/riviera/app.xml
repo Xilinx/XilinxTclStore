@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT82437 - Launching ActiveHDL from Vivado - Gets Stuck</revision_history>
+      <revision_history>BKO2283 - Change shell in the *.sh linux scripts</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

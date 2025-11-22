@@ -1,4 +1,19 @@
-11.177 update msg for failed or missing compiled IP
+11.194 updated noc sub core version
+11.193 revert fix for scope header files for simulation compile order only
+11.192 scope header files for simulation compile order only
+11.191 fixed ddrmc5_inline_ecc to string var
+11.190 disable code for isoutilattrs.cdo export to sim dir
+11.189 disable code for isoutilattrs.cdo export
+11.188 export isoutilattrs.cdo for axi_noc2
+11.187 add comment for signal visibility
+11.184 set sim gcc version for windows
+11.183 add comments for tasks
+11.182 replace sim and gcc version with shell var setting
+11.181 add logical NoC files
+11.180 add linked library to collection if not found
+11.179 pass -pkgsearch for finding system verilog packages
+11.178 performance improvements using data cache
+11.177 merged 2025.1 to 2025.2
 11.176 export aie_work_dir
 11.175 include axi interface include dir
 11.174 reference sim_version from args

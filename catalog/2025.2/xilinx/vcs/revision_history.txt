@@ -1,4 +1,30 @@
-15.1 option to set debug_acc with debug_pp deprecation msg
+17.7 updated noc sub core version
+17.6 revert fix for scope header files for simulation compile order only
+17.5 scope header files for simulation compile order only
+17.4 fixed ddrmc5_inline_ecc to string var
+17.3 disable code for isoutilattrs.cdo export to sim dir
+17.2 disable code for isoutilattrs.cdo export
+17.1 export isoutilattrs.cdo for axi_noc2
+17.0 set sim gcc version for windows
+16.9 add comments for tasks
+16.8 replace sim and gcc version with shell var setting
+16.7 add logical NoC files
+16.6 add linked library to collection if not found
+16.5 check for VG_GNU_PACKAGE env
+16.4 source VCS GNU pkg gcc script explicitly to load VCS libraries first
+16.3 source gcc920_64 version in script
+16.2 auto set VCS_HOME in simulation scripts if not found
+16.1 performance improvements using data cache
+16.0 merged 2025.1 to 2025.2
+15.9 include axi interface include dir
+15.8 reference sim_version from args
+15.7 print msg for locked, custom ips
+15.6 bind dmv sip libs
+15.5 generate dmv compiled lib dirs
+15.4 dmv simulation support
+15.3 compile for uvm design
+15.2 removed deprecated debug_pp
+15.1 merged 2024.2 to 2025.1
 15.0 check current design for intermediate impl stage
 14.9 reset scripts only mode for exec mode
 14.8 remove equal sign for empty define value
