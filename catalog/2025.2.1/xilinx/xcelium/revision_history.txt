@@ -1,0 +1,277 @@
+11.194 updated noc sub core version
+11.193 revert fix for scope header files for simulation compile order only
+11.192 scope header files for simulation compile order only
+11.191 fixed ddrmc5_inline_ecc to string var
+11.190 disable code for isoutilattrs.cdo export to sim dir
+11.189 disable code for isoutilattrs.cdo export
+11.188 export isoutilattrs.cdo for axi_noc2
+11.187 add comment for signal visibility
+11.184 set sim gcc version for windows
+11.183 add comments for tasks
+11.182 replace sim and gcc version with shell var setting
+11.181 add logical NoC files
+11.180 add linked library to collection if not found
+11.179 pass -pkgsearch for finding system verilog packages
+11.178 performance improvements using data cache
+11.177 merged 2025.1 to 2025.2
+11.176 export aie_work_dir
+11.175 include axi interface include dir
+11.174 reference sim_version from args
+11.173 print msg for locked, custom ips
+11.172 fix bin util lib path
+11.171 merged 2024.2 to 2025.1
+11.170 reset scripts only mode for exec mode
+11.169 remove equal sign for empty define value
+11.168 set current design in memory if design opened
+11.167 check for LD_LIBRARY_PATH env before appending
+11.166 add files from simulation fileset compile order for manual hierarchy mode
+11.165 append aietools lib path for designs containing AIE
+11.164 resolve xmsc_run path from install
+11.163 bind noc2 sub-cores
+11.162 support for sys-config simulation
+11.161 disable vivado/vitis lib path for LD_LIBRARY_PATH
+11.160 generate and bind dpi shared library
+11.159 append paths to find installed libs
+11.158 bind NoC legacy if param or env set
+11.156 bind NoC sub-core library based on comp type
+11.155 compile xpm noc sources locally in xpm_noc library
+11.154 realign local xpm compiled library mapping
+11.153 get xpm libraries from API
+11.152 compile xpm NoC sources with the design
+11.151 include NoC subcores for XPM_NOC
+11.150 bind noc2
+11.149 refactored procs for fetching simmodel and ext dirs
+11.148 filter noc_common_v and xsc_utility_v libs
+11.147 use xv variables for pointing to compiled models
+11.146 find object files into collection if param false
+11.145 append _0 descriptor for xmsc object files if param set
+11.144 fetch header files from compile order
+11.143 fetch production simulator version from API
+11.142 merged 2023.2 to 2024.1
+11.141 fixed copyright string
+11.140 filter protected libs from design libs collection
+11.139 filter xcs_utility from design libs collection
+11.138 performance fix
+11.137 bind aie_cluster
+11.136 company name update
+11.135 copyright message update
+11.133 sync utils
+11.132 support for vhdl 2019
+11.131 detect shell env for script execution
+11.130 merged 2023.1 to 2023.2
+11.129 comments for IP library processing logistics
+11.128 print debug message for local IP compilation
+11.127 merged 2022.2 to 2023.1
+11.126 option for invoking simulator gui in scripts mode
+11.125 code cleanup for aie_cluster binding
+11.124 support for defines and generics for export flow
+11.123 fixed aie directory path
+11.122 detect AIE config type
+11.121 helpers for define, generic
+11.120 script cleanup
+11.119 helpers for define and generic
+11.118 check for aie ml env and bind aie2
+11.117 pass g++ switches
+11.116 pass object files for library creation
+11.116 add dummy simprims mapping for behavioral simulation
+11.115 delete src dir for non-precompile export flow
+11.114 find simulation model directory paths from rdi datadir env values
+11.113 get and fix library path for VCS
+11.112 set ip repository directory name based on property
+11.111 helper proc to call execute_script task for linux
+11.110 allow ip_repo or iprepo based on property local_ip_repo_leaf_dir_name
+11.109 disable binding of versal_cips when param is set
+11.108 throw error message in catch
+11.107 support for asm file compilation
+11.106 set ABI 0 for previous release version
+11.102 hide debug message under var
+11.101 gcc version name fix for gccvers option
+11.100 helper to detect gcc version mismatch
+11.99 refactored gcc path and version detection
+11.98 helper proc to fetch simulation model version
+11.97 pass internal switch for gcc and simulator version
+11.96 debug proc to print static file info
+11.95 fixed options for non-precompile mode
+11.94 remvoved debug print message
+11.93 fixed library search order to pass launch dir
+11.92 support for local VCS compiled simmodel library path for non-precompile flow
+11.91 source vitis_params for setting region path variables
+11.90 donot initialize variables for step flow
+11.89 sanity check to determine if glbl top is required
+11.88 support for configuration options for sim models
+11.87 debug msg for reporting missing shared library for a given vlnv
+11.86 bind user specified systemc/C/C++ libraries during elaboration
+11.85 refactored library search order proc to utils
+11.84 define xv_cxl_lib_path and xv_cxl_ip_path to point to compiled libraries
+11.83 set verilog options for pure vhdl design if glbl.v compiled
+11.82 define xv_cxl_ip_path to point to compiled IP libraries
+11.81 refactored generics proc to common helpers
+11.80 added common helpers
+11.79 enable non precompile flow
+11.78 export xv_cxl_lib_path for simulate step only
+11.77 export xv_cxl_lib_path for simulate step
+11.76 fixes for non pre-compile flow
+11.75 fixed install path var
+11.74 support for step execution
+11.73 initialize vars from utils
+11.72 code refactoring
+11.71 check for leaf dir name wrt library name for linked library
+11.70 Extract IP file name from core-container to determine SV package libraries
+11.69 add simprims_ver mapping to resolve duplicate bindings
+11.68 fixed systemc library install path detection
+11.67 enable optimization and shell setting for pipefail
+11.66 export chess library env
+11.65 bind noc_na for netlist simulation
+11.64 set optional arg for simulate step
+11.63 enabled optimized flow for Xcelium
+11.62 find available boost library from RDI_DATA_DIR
+11.61 check for file before inspecting core container property
+11.60 refactored gcc version support
+11.59 support for simulator launch mode
+11.58 disable debug msgs
+11.57 enabled Vitis code for post-sim script and launch mode
+11.56 enabled protected library linkage
+11.55 enabled runtime setting for Vitis
+11.54 enabled USER_PRE_SIM_SCRIPT code-hook
+11.53 helper for fetching NoC IP objects
+11.52 Vitis post-sim code-hook
+11.51 fixes for Vitis code-hooks
+11.50 disabled Vitis code-hooks
+11.49 find data dir from VIVADO if not found from rdi data_dir
+11.48 support for VCS auto gcc executable path detection
+11.47 disable binding of aie_cluster
+11.46 merge 2020.3 to 2021.1
+11.45 bind libraries and shell script from aietools
+11.44 set shell variables to catch error condition under param
+11.43 set shell variables to catch error condition for step execution
+11.42 set shell variables to catch error conditions
+11.41 add check for protobuf static library
+11.40 check for gen dir in path before replacing for rev control
+11.39 re-aligned source file paths for rev control for classic use case
+11.38 pass rev control var for fetching static header sources
+11.37 calculate ip filename from ip_output_dir for revision control
+11.36 update composite file path for revision control
+11.35 fixed gcc install message
+11.34 find gcc compiler path from simulator install
+11.33 param to bind protobuf shared library
+11.32 trim trailing slashes for the gcc path
+11.31 support for setting up include and obj path for non-precompile flow
+11.30 support for setting up gcc compiler paths with GCC_SIM_EXE_PATH
+11.29 support for setting up gcc compiler paths
+11.28 use simulator compiled object lib dir var
+11.27 compile simmodel sources into compiled dir
+11.26 get compiler order for referenced simmodels
+11.25 compile hbm for post synth and impl simulation
+11.24 added debug messages for library path references
+11.23 fixed -waveform switch for probe in GUI mode
+11.22 implement code to find system libraries faster
+11.21 do not launch simulator gui in batch mode
+11.20 compile glbl if force_compile_glbl is true
+11.19 support for uvm
+11.18 donot append compiled log on consecutive execution of compile step
+11.17 helpers for determining design language of same type
+11.16 bind DPI-C model if param is set
+11.15 merged fixes from 2020.1
+11.14 fixed used_in values check for simulation tag
+11.13 added helper proc to find out object files for IPs referenced in the design
+11.12 fix for referencing linked shared library paths for Questa
+11.11 compile xpm sv sources into xpm library for non-precompile mode
+11.10 pass -noedg if param set to skip systemC design analysis for xmsc compiler
+11.9 pass -noedg if param set to skip systemC design analysis
+11.8 fixed typo from install path check message
+11.7 fixed install path setting
+11.6 pass -sv_root and -sv_lib for referencing gtye5_quad shared library
+11.5 reference gty shared library
+11.4 set install path if xmroot not set
+11.3 set LD_LIBRARY_PATH for simulate step
+11.2 reference precompiled shared libraries
+11.1 skip protected shared library from elab
+11.0 reference system sim design shared libraries
+9.9 add compiler types for xcelium co-simulation support
+9.8 added file existence check for protoinst sources
+9.7 fixed boost include dir path
+9.6 updated test
+9.5 force compile glbl when param set to true
+9.4 fixed xv_boost_lib_path variable for windows for finding include directory
+9.3 top level attribute change to integer for sv port type
+9.2 revert sv file type determination fix
+9.1 process library type information for all precompiled shared libraries
+9.0 updated warning msg for boost library
+8.9 exit simulation step or sub-compilation step on error
+8.8 return exit status for the command
+8.7 helper to fetch boost header include path from RDI_DATADIR
+8.6 vars to reference protected and ext library paths
+8.5 helper to construct vlnv name from ip definition
+8.4 resolve simulation model library path with xv_cxl_lib_path variable
+8.3 find systemc library for Questa from internal path
+8.2 use compile order for cosim using internal switch
+8.1 disable gt quad
+8.0 support for static memory data file
+7.8 fetch systemc sources for the BD if it is a top level BD with no parent composite
+7.7 fetch systemc sources from the parent composite file for a BD if selected sim model is tlm
+7.6 the XLNX_REAL_CELL_SV_PINS not accessible from list_property, returns -1
+7.4 fetch output directory from IP file name if IP_OUTPUT_DIR not set
+7.3 compile glbl for post simulation when internal glbl flag is set
+7.2 set debug msgs as optional arg for sc libs proc
+7.1 check for ipdef var before getting the xml filename
+7.0 support for linking quad library
+6.9 support for exporting CSV files to simulation run dir
+6.8 support for printing debug msgs for library referencing
+6.7 helper proc to find C, SystemC, CPP sources in the design
+6.6 donot reference glbl by default unless conditions met
+6.5 helper proc to determine if pure vhdl design required for glbl determination
+6.4 print debug information for referenced shared libraries
+6.3 inspect TLM property value for IP while determining systemc libraries
+6.2 do not compile XPM component file if simulator language is verilog
+6.1 compile glbl if set by internal flow for VHDL designs instantiating verilog primitives
+6.0 update protoinst file in repo directory
+5.9 updated algorithm to reference compiled simulation library from custom paths
+5.8 reference compiled simulation library from custom paths
+5.7 added helper proc to resolve verilog header sources from ip_user_files dir
+5.6 export addr_map.xml sources into simulation run dir
+5.5 fixed xsim ip compiled library dir path
+5.4 find library info from ip compiled library dir
+5.3 check for IP in quiet mode and return default header file if IP does not exist
+5.2 updated target paths for finding simulation models
+5.1 helper proc to find shared libraries
+5.0 changed floorplan attribute to XLNX_REAL_CELL_SV_PINS
+4.9 process referenced linked libraries from IPs
+4.8 fixed dat_file var while fetching library info
+4.7 delete stale static files for precompiled library for sync mode
+4.6 consider BD SystemC sources
+4.5 add BD file type to the file extension check while fetching SystemC sources
+4.4 consider SV design sources if param set for compiling vip library
+4.3 proc to read library info from dat file
+4.2 reference SystemC include directory
+4.1 compile xilinx_vip locally if mapping not found or if running in non-precompile mode
+4.0 fixed library dir var for export_sim, wdb file path to run dir, pass -nocellnet for power add, sync IP static files on upgrade
+3.9 detect and fetch protoinst file from the ip_user_files for xsim
+3.8 support for compling c, cpp source types
+3.7 donot process static files
+3.6 fetch unique systemc libraries
+3.5 find systemc dependent libraries from property for a given IP
+3.4 fetch systemc libraries from ip
+3.3 support for compiling C sources with gcc
+3.2 fetch systemc include file path
+3.1 find shared libraries from the cxl data file
+3.0 check for gt quad base for mem file export
+2.9 support for mixed file type export and compilation for Questa
+2.8 helper procedure to find IP
+2.7 check for file existence before extracting
+2.6 reference xilinx_vip include directory for ovm/uvm based designs
+2.5 support for SystemC file type while determining files for XSC
+2.4 fetch requires_vip property on the fetched IP object
+2.3 reference xilinx_vip if requires_vip property is set on the IP instance
+2.2 reference xilinx_vip if requires_vip property is set on the IP
+2.1 initial support for systemC source compilation
+2.0 support for systemC source compilation
+1.9 compile glbl if XPM_CDC core is being referenced in the design
+1.8 additionally reference precompiled AXI-VIP library if param is set
+1.7 reference precompiled AXI-VIP library if param is set
+1.6 reference precompiled AXI-VIP library
+1.5 use global incremental property on simulation fileset
+1.4 add software build info in script header
+1.3 compile files into simulator library dir with _lib suffix
+1.2 add copyright version header in script files
+1.1 reference user specified XPM data if param set
+1.0 Initial app code for Xcelium parallel simulator

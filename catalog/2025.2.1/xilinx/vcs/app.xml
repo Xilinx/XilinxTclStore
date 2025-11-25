@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>updated noc sub core version</revision_history>
+      <name>vcs</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Advanced Micro Devices, Inc.</company_display>
+      <summary>This is a Synopsys VCS&amp;reg;/VCS-MX Simulator integration app that implements the simulation flow in Vivado IDE to allow users to compile, elaborate and simulate a design. To simulate a design using this app, set the target simulator in the simulation settings to &apos;Verilog Compiler Simulator (VCS)&apos; and then click on the &apos;Run Simulation&apos; button in the IDE to launch the simulation. You can also generate simulation scripts for the design in the &apos;scripts only&apos; mode in which case these self-contained generated scripts can be executed in the simulation run directory. The simulation can also be launched from the Tcl console using the launch_simulation command. The list of target simulators can be obtained by running get_simulators Tcl command. The simulation flow for this app requires that this simulator is installed with the license and Xilinx Simulation libraries compiled.</summary>
+      <display>Verilog Compiler Simulator VCS&amp;reg;</display>
+      <visible>project.enableUnifiedSimulation</visible>
+    </app>
+  </apps>
+</catalog>
