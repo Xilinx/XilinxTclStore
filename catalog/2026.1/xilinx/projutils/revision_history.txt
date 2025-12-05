@@ -1,3 +1,4 @@
+3.577 Do not add the same file twice using both add_files and import_files commands
 3.576 Update is_ip_run logic. Fix for CR-1241643
 3.575 Added new switch to skips util fileset
 3.574 Skip activehdl properties
