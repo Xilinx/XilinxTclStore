@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update is_ip_run logic. Fix for CR-1241643</revision_history>
+      <revision_history>Do not add the same file twice using both add_files and import_files commands</revision_history>
       <name>projutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

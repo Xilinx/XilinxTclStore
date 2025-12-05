@@ -3481,19 +3481,17 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
         lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
         lappend l_local_file_list $file
       } else {
+         # add file to collection
+        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
+            set file_no_quotes [string trim $file "\""]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+            set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+            lappend add_file_coln "$file1"
+        } else {
+            lappend add_file_coln "$file"
+        }
         lappend l_remote_file_list $file
       }
-
-      # add file to collection
-      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
-        set file_no_quotes [string trim $file "\""]
-        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
-        set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
-        lappend add_file_coln "$file1"
-      } else {
-        lappend add_file_coln "$file"
-      }
-
     }
   }
 
@@ -3846,3 +3844,5 @@ proc is_switch_network_source { file } {
   return false
 }
 }
+
+
