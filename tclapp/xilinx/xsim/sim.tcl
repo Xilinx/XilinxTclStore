@@ -2209,6 +2209,18 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    if { [get_param "project.enableParallelTopXlnocSim"] } {
+      # add snoc header
+      set snoc_h [get_files -quiet -all *xlnoc_snoc_sysc_inst*0.h]
+      if { {} != $snoc_h } {
+        set snoc_h_dir [file dirname $snoc_h]
+        set incl_dir "[xcs_get_relative_file_path $snoc_h_dir $a_sim_vars(s_launch_dir)]"
+        lappend args_list "--include \"$incl_dir\""
+      }
+    }
+  }
+
   # -i
   #set unique_incl_dirs [list]
   #foreach incl_dir [get_property "include_dirs" $a_sim_vars(fs_obj)] {
