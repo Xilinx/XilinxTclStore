@@ -450,6 +450,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
     foreach file $lnoc_files {
       set file_type [get_property "file_type" $file]
+puts "foo1:$file ($file_type)"
       if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
         set used_in_values [get_property -quiet "USED_IN" $file]
         if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
