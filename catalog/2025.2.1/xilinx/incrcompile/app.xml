@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Adding new procs for auto incremental compile flow</revision_history>
+      <name>incrcompile</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of utility application for Incremental flow</summary>
+      <display>Incremental Compile</display>
+      <procs>
+        <proc>
+          <name>analyze_critical_path</name>
+          <summary>highlight reused pins of given timing paths given by &apos;get_timing_paths&apos; command</summary>
+        </proc>
+        <proc>
+          <name>disable_auto_incremental_compile</name>
+          <summary>Disables the auto detection and enablement of incremental flow. </summary>
+        </proc>
+        <proc>
+          <name>enable_auto_incremental_compile</name>
+          <summary>Enables the auto detection and enablement of incremental flow. </summary>
+        </proc>
+        <proc>
+          <name>get_non_reused</name>
+          <summary>get non reused objects</summary>
+        </proc>
+        <proc>
+          <name>get_reused</name>
+          <summary>get reused objects</summary>
+        </proc>
+        <proc>
+          <name>highlight_non_reused</name>
+          <summary>highlight non reused objects</summary>
+        </proc>
+        <proc>
+          <name>highlight_reused</name>
+          <summary>highlight reused objects</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

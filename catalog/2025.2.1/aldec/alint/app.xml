@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Add ALINT-PRO plugin (aldec::alint)</revision_history>
+      <name>alint</name>
+      <company>aldec</company>
+      <company_display>Aldec, Inc.</company_display>
+      <summary>This is an Aldec ALINT-PRO Linter integration app that allows users to convert a Vivado project to an ALINT-PRO project. ALINT-PRO is a design verification solution for RTL code written in VHDL, Verilog, and SystemVerilog, which is focused on verifying coding style and naming conventions, RTL and post-synthesis simulation mismatches, smooth and optimal synthesis, correct FSM descriptions, avoiding problems on further design stages, clocks and reset tree issues, CDC, RDC, DFT, and coding for portability and reuse. You can generate an ALINT-PRO project and also start ALINT-PRO in GUI mode with the converted project directly from Vivado IDE. The ALINT-PRO project files are saved in the same location as the currently opened Vivado project. To run ALINT-PRO conversion, please ensure that the ALINT-PRO software and required licenses are available. For more details, please check the help message for the Tcl Procs below.</summary>
+      <display>ALINT-PRO Linter</display>
+      <procs>
+        <proc>
+          <name>convert_project</name>
+          <summary>Convert Vivado project to ALINT-PRO</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
