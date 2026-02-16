@@ -723,7 +723,6 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   upvar $global_files_str_arg global_files_str
 
   variable a_sim_vars
-
   variable l_compile_order_files
 
   set files         [list]
