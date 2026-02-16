@@ -102,6 +102,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		puts "  report_timing command. The Verilog and associated XDC file can be used in Vivado"
 		puts "  to simulate the path behavior from a larger design."
 		puts ""
+		puts "  Note: The timing_report_to_verilog command doesn't work for DFX designs."
+		puts ""
         puts "Example:"
 		puts ""
 		puts "  The following example creates a Verilog structural netlist using the -of_objects option and"
@@ -128,6 +130,25 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 	} else {
 		## Set Timing Report String to the string given as an argument
 		set timingReportString $opts(-report_string)
+
+		set endpointCellsDict [dict create]
+
+		## Parse timing report string to extract endpoint cells
+                foreach line [split $timingReportString "\n"] {
+                        ## Look for Destination: line
+                        if {[regexp {Destination:\s+(\S+)} $line matchString destinationPath]} {
+                                ## Extract cell name (everything before the last /)
+                                if {[regexp {^(.+)/[^/]+$} $destinationPath matchString cellPath]} {
+                                        ## Get the actual cell object
+                                        set endpointCell [get_cells -quiet $cellPath]
+                                        if {[llength $endpointCell] > 0} {
+                                                ## Store endpoint cell in dictionary
+                                                dict set endpointCellsDict $endpointCell 1
+                                        }
+                                }
+                        }
+                }
+
 	}
 	
 	## Check if a Verilog file exists with -filename option and error if -force option is not used
@@ -146,6 +167,19 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		if {[llength $objectList]==0} {
 			return -code error "ERROR: \[timing_report_to_verilog\] No Timing Path Objects found from -of_objects option."
 		} else {
+			## Extract endpoint cells from timing path objects
+                        set endpointCellsDict [dict create]
+                        foreach pathObj $objectList {
+                                set endpointPin [get_property -quiet ENDPOINT_PIN $pathObj]
+                                if {[llength $endpointPin] > 0} {
+                                        set endpointCell [get_cells -quiet -of_objects $endpointPin]
+                                        if {[llength $endpointCell] > 0} {
+                                                ## Store endpoint cell (dict key is cell object)
+                                                dict set endpointCellsDict $endpointCell 1
+                                        }
+                                }
+                        }
+
 			## Report timing on the list of timing paths
 			set timingReportString [report_timing -of_objects $objectList -return_string]
 		}
@@ -186,7 +220,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		#}
 		
 		## Build the Verilog objects from the timing paths
-		set verilogObjectsDict [build_verilog_objects_from_timing_path_dict -dict $timingPathCellsDict]
+		set verilogObjectsDict [build_verilog_objects_from_timing_path_dict -dict $timingPathCellsDict -endpoint_cells $endpointCellsDict]
 	}
 	
     ## Write the Verilog test case based on the Verilog objects
@@ -218,12 +252,18 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::build_verilog_obje
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
 		    {-d(i(c(t)?)?)?$}     { set opts(-dict) [lshift args]}
+		    {-e(n(d(p(o(i(n(t(_(c(e(l(l(s)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-endpoint_cells) [lshift args]}
             {-h(e(l(p)?)?)?$}     { set opts(-help) 1}
             default {
                 return -code error "ERROR: \[build_verilog_objects_from_timing_path_dict\] Unknown option '[lindex $args 0]', please type 'build_verilog_objects_from_timing_path_dict -help' for usage info."
             }
         }
     }
+
+        ## Initialize endpoint cells dict if not provided
+        if {![info exists opts(-endpoint_cells)]} {
+                set opts(-endpoint_cells) [dict create]
+        }
 	
 	## Initialize the Verilog Objects dictionary
 	set verilogObjectsDict [dict create]
@@ -233,7 +273,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::build_verilog_obje
 	## Loop through each path object in the timing path dictionary
 	foreach cellTimingPathDictID [dict keys $opts(-dict)] {
 		## Set the Verilog object dictionary from the path object
-		set verilogDict [path_to_verilog_dict -dict_object [dict get $opts(-dict) $cellTimingPathDictID] -verilog_dict $verilogObjectsDict -generated_ports_dict $verilogGeneratedPortsDict]
+		set verilogDict [path_to_verilog_dict -dict_object [dict get $opts(-dict) $cellTimingPathDictID] -verilog_dict $verilogObjectsDict -generated_ports_dict $verilogGeneratedPortsDict -endpoint_cells $opts(-endpoint_cells)]
 		## Store the Verilog object in the Verilog Object dictionary
 		dict set verilogObjectsDict [dict get $verilogDict verilog_object orig_name] [dict get $verilogDict verilog_object]
 		## Update the generated ports dictionary
@@ -1238,8 +1278,13 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 	
 	## Loop through each Path for the Section of the Timing Report
 	foreach reportLine [split $reportString \n] {
+		set origLine $reportLine
 		## Remove Excess Whitespace
 		regsub -all {\s+} $reportLine " " reportLine
+
+		if {[regexp {\(clock.*edge\)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(r|f)(\s+.*)$} $reportLine full value1 value2 edge newreportLine]} {
+			set reportLine $newreportLine
+                }
 		
 		#dbg "Path $pathIndex: $reportLine"
 		
@@ -1328,6 +1373,16 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 			set inputPinObj   [get_pins -quiet $pinName]
 			## Store Output Port Object
 			set outputPortObj [get_ports -quiet $pinName]
+			if {([llength $inputPinObj]==0) && ([llength $outputPortObj]==0)} {
+                                set pin_port_index [lsearch [split $reportString \n] $origLine]
+                                incr pin_port_index
+                                set pinName [lindex [split $reportString \n] $pin_port_index]
+                                regsub -all { } $pinName {} pinName
+                                ## Store Input Pin Object
+                                set inputPinObj   [get_pins -quiet $pinName]
+                                ## Store Output Port Object
+                                set outputPortObj [get_ports -quiet $pinName]
+                        }
 							
 			## Check if Input Pin Object or Output Port Object exists
 			if {([llength $inputPinObj]==0) && ([llength $outputPortObj]==0)} {
@@ -1357,6 +1412,15 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		} elseif {[regexp {^\s*((\w+)\s)*(\S+)\s\((\S+)\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString tmpValue locValue libraryName arcName incrValue pathValue edgeValue outputPin] || [regexp {^\s*(\S+)\s(\S+)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue libraryName incrValue pathValue edgeValue outputPin]} {
 			## Store Output Pin Object
 			set outputPinObj [get_pins -quiet $outputPin]
+
+		        if {[llength $outputPinObj]==0} {
+                                set pin_port_index [lsearch [split $reportString \n] $origLine]
+                                incr pin_port_index
+                                set outputPin [lindex [split $reportString \n] $pin_port_index]
+                                regsub -all { } $outputPin {} outputPin
+                                ## Store Output Pin Object
+                                set outputPinObj [get_pins -quiet $outputPin]
+                        }
 			
 			# Check if Output Pin Object exists
 			if {[llength $outputPinObj]==0} {
@@ -2215,6 +2279,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 		## Check for the option name in the regular expression
         switch -regexp -- $optionName {
             {-d(i(c(t_(o(b(j(e(c(t)?)?)?)?)?)?)?)?)?$}                                        { set opts(-dict_object)          [lshift args]}
+	    {-e(n(d(p(o(i(n(t(_(c(e(l(l(s)?)?)?)?)?)?)?)?)?)?)?)?)?$}                             { set opts(-endpoint_cells)       [lshift args]}
 			{-g(e(n(e(r(a(t(e(d(_(p(o(r(t(s(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?)?$} { set opts(-generated_ports_dict) [lshift args]}
 			{-v(e(r(i(l(o(g(_(d(i(c(t)?)?)?)?)?)?)?)?)?)?)?$}                                 { set opts(-verilog_dict)         [lshift args]}
             {-h(e(l(p)?)?)?$}                                                                 { set opts(-help)                 1}
@@ -2223,6 +2288,11 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
             }
         }
     }
+
+        ## Initialize endpoint cells dict if not provided
+        if {![info exists opts(-endpoint_cells)]} {
+                set opts(-endpoint_cells) [dict create]
+        }
 	
 	## Get object type from the cell dictionary
 	set objectType	[dict get $opts(-dict_object) type]
@@ -2292,113 +2362,186 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 					## Check to ensure the output pin is of type "pin"
 					if {[dict get $inputPinDict type] eq "pin"} {
 						## Get all pins attached to the internal primitive net
-						set netPinList [get_pins -quiet -of_objects [get_nets -quiet -of_objects [get_pins -quiet [dict get $inputPinDict name]]]]
+						## Initialize search pin and found flag
+						set currentPinObj [get_pins -quiet [dict get $inputPinDict name]]
+						set macroFound 0
+						set visitedCells [list]
+						lappend visitedCells $cellObj
 						
-						## Loop through each pin found on the net 
-						foreach netPinObj $netPinList {
-							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPinObj]
-				
-							## Check if Cell object is a MACRO level primitive
-							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
-								## Add the retargeted cell object to the retarget dictionary
-								dict set retargetCellDict name $netCellObj
+						## Continue searching while MACRO not found
+						while {!$macroFound && [llength $currentPinObj] > 0} {
+							## Get net from current pin
+							set netObj [get_nets -quiet -of_objects $currentPinObj]
+							set netPinList [get_pins -quiet -of_objects $netObj]
+							
+							## Loop through each pin found on the net 
+							foreach netPinObj $netPinList {
+								## Get cell from the pin object
+								set netCellObj [get_cells -quiet -of_objects $netPinObj]
 								
-								## Add Output Pin to retargeted output Dictionary
-								dict set retargetInputPinDict $netPinObj type "pin"
-								dict set retargetInputPinDict $netPinObj name $netPinObj
-								dict set retargetInputPinDict $netPinObj net_name [dict get $inputPinDict net_name]
-								
-								if {[dict exists $inputPinDict fixed_route]} {
-									dict set retargetInputPinDict $netPinObj fixed_route [dict get $inputPinDict fixed_route]
+								## Skip if we've already visited this cell
+								if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+									continue
 								}
 								
-								if {[dict exists $inputPinDict lock_pins]} {
-									set lockPinsString [dict get $inputPinDict lock_pins]
-									set lockPinsList [split $lockPinsString ":"]
-									dict set retargetInputPinDict $netPinObj lock_pins "[get_property REF_PIN_NAME $netPinObj]:[lindex $lockPinsList 1]"
+								## Check if Cell object is a MACRO level primitive
+								if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
+									## Add the retargeted cell object to the retarget dictionary
+									dict set retargetCellDict name $netCellObj
+									
+									## Add Output Pin to retargeted output Dictionary
+									dict set retargetInputPinDict $netPinObj type "pin"
+									dict set retargetInputPinDict $netPinObj name $netPinObj
+									dict set retargetInputPinDict $netPinObj net_name [dict get $inputPinDict net_name]
+									
+									if {[dict exists $inputPinDict fixed_route]} {
+										dict set retargetInputPinDict $netPinObj fixed_route [dict get $inputPinDict fixed_route]
+									}
+									
+									if {[dict exists $inputPinDict lock_pins]} {
+										set lockPinsString [dict get $inputPinDict lock_pins]
+										set lockPinsList [split $lockPinsString ":"]
+										dict set retargetInputPinDict $netPinObj lock_pins "[get_property REF_PIN_NAME $netPinObj]:[lindex $lockPinsList 1]"
+									}
+									
+									## Set the retargeted Cell Object
+									set retargetedCellObj $netCellObj
+									set macroFound 1
+									
+									dbgVar retargetedCellObj
+									break
 								}
-								
-								## Set the retargeted Cell Object
-								set retargetedCellObj $netCellObj
-								
-								dbgVar retargetedCellObj
-							}							
+							}
+							
+							## If MACRO not found, continue with another pin from an INTERNAL cell
+							if {!$macroFound} {
+								## Try to find a pin from an INTERNAL cell to continue search
+								set currentPinObj ""
+								foreach netPinObj $netPinList {
+									set netCellObj [get_cells -quiet -of_objects $netPinObj]
+									## Skip if already visited
+									if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+										continue
+									}
+									## Select pin from INTERNAL cell to continue traversal
+									if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "INTERNAL"} {
+										set currentPinObj $netPinObj
+										lappend visitedCells $netCellObj
+										break
+									}
+								}
+							}
 						}
 					} else {
 						puts "CRITICAL WARNING: \[path_to_verilog\] Unable to process object type [dict get $inputPinDict type] for internal cell retargeting."
 					}
 				}
-				
+
 				## Loop through each output pin in the dictionary to find equivalent pin on the MACRO level cell
 				foreach outputPinDictID [dict keys $outputPinsDict] {
 					## Get the dictionary pin object from the Output Pins Dictionary
 					set outputPinDict [dict get $outputPinsDict $outputPinDictID]
-					
+
 					## Check to ensure the output pin is of type "pin"
 					if {[dict get $outputPinDict type] eq "pin"} {
-						## Get all pins attached to the internal primitive net
-						set netPinList [get_pins -quiet -of_objects [get_nets -quiet -of_objects [get_pins -quiet [dict get $outputPinDict name]]]]
-						
-						## Loop through each pin found on the net 
-						foreach netPinObj $netPinList {
-							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPinObj]
-							
-							## Check if Cell object is a MACRO level primitive
-							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
-								## Add the retargeted cell object to the retargeted dictionary
-								dict set retargetCellDict name $netCellObj
-								
-								## Add Output Pin to Retarget output Dictionary
-								dict set retargetOutputPinDict $netPinObj type "pin"
-								dict set retargetOutputPinDict $netPinObj name $netPinObj
-								dict set retargetOutputPinDict $netPinObj net_name [dict get $outputPinDict net_name]
-								
-								## Get any clock objects that exist on the output pin
-								set clockObj [get_clocks -quiet -of_objects $netPinObj]
-								
-								## Check if any clock objects exist
-								if {[llength $clockObj]!=0} {
-									## Check if the source pin of the clock object is equal to the current output pin
-									if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $netPinObj]>=0} {
-										dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted Clock Object $clockObj"
-										## Add the clock object to the output pin
-										dict set retargetOutputPinDict $netPinObj clock_object name $clockObj
-										
-										## Check if the clock is user generated
-										if {[get_property -quiet IS_GENERATED $clockObj]} {
-											dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted $clockObj found as generated clock"
-											## Determine the updated net name for the source clock pin
-											set sourceClockPinObj [get_pins -quiet [get_property -quiet SOURCE $clockObj]]
-											## Check if the source clock pin was found
-											if {[llength $sourceClockPinObj]==0} {
-												puts "CRITICAL WARNING: \[path_to_verilog\] Unable to determine source clock pin for retargeted generated clock $clockObj"
-											} else {
-												## Get the source clock pin cell object
-												set sourceClockCellObj [get_cells -quiet -of_objects $sourceClockPinObj]
-												## Check if Cell already exists in Path Dictionary
-												if {[path_cell_name_exists? -dict $opts(-dict) -value $sourceClockCellObj]} {
-													## Get the previous path instance from the Path Dictionary
-													set sourceClockPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $sourceClockCellObj]
+						## Initialize search pin and found flag
+						set currentPinObj [get_pins -quiet [dict get $outputPinDict name]]
+						set macroFound 0
+						set visitedCells [list]
+						lappend visitedCells $cellObj
 
-													## Add the source clock pin net_name to the output pin
-													dict set retargetOutputPinDict $netPinObj clock_object source_clock_pin "[dict get $sourceClockPathDict instance]/[get_property -quiet REF_PIN_NAME $sourceClockPinObj]"
-													## Add whether the clock is a user generated clock
-													dict set retargetOutputPinDict $netPinObj clock_object is_user_generated [get_property -quiet IS_USER_GENERATED $clockObj]
+						## Continue searching while MACRO not found
+						while {!$macroFound && [llength $currentPinObj] > 0} {
+							## Get net from current pin
+							set netObj [get_nets -quiet -of_objects $currentPinObj]
+							set netPinList [get_pins -quiet -of_objects $netObj]
+
+							## Loop through each pin found on the net
+							foreach netPinObj $netPinList {
+								## Get cell from the pin object
+								set netCellObj [get_cells -quiet -of_objects $netPinObj]
+
+								## Skip if we've already visited this cell
+								if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+									continue
+								}
+
+								## Check if Cell object is a MACRO level primitive
+								if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
+									## Add the retargeted cell object to the retargeted dictionary
+									dict set retargetCellDict name $netCellObj
+
+									## Add Output Pin to Retarget output Dictionary
+									dict set retargetOutputPinDict $netPinObj type "pin"
+									dict set retargetOutputPinDict $netPinObj name $netPinObj
+									dict set retargetOutputPinDict $netPinObj net_name [dict get $outputPinDict net_name]
+
+									## Get any clock objects that exist on the output pin
+									set clockObj [get_clocks -quiet -of_objects $netPinObj]
+
+									## Check if any clock objects exist
+									if {[llength $clockObj]!=0} {
+										## Check if the source pin of the clock object is equal to the current output pin
+										if {[lsearch [get_property -quiet SOURCE_PINS $clockObj] $netPinObj]>=0} {
+											dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted Clock Object $clockObj"
+											## Add the clock object to the output pin
+											dict set retargetOutputPinDict $netPinObj clock_object name $clockObj
+
+											## Check if the clock is user generated
+											if {[get_property -quiet IS_GENERATED $clockObj]} {
+												dbg "[get_property -quiet LIB_CELL $cellObj]: Retargeted $clockObj found as generated clock"
+												## Determine the updated net name for the source clock pin
+												set sourceClockPinObj [get_pins -quiet [get_property -quiet SOURCE $clockObj]]
+												## Check if the source clock pin was found
+												if {[llength $sourceClockPinObj]==0} {
+													puts "CRITICAL WARNING: \[path_to_verilog\] Unable to determine source clock pin for retargeted generated clock $clockObj"
 												} else {
-													puts "CRITICAL WARNING: \[path_to_verilog\] Source clock pin $sourceClockPinObj for retargeted generated clock $clockObj not previously found in timing report"
+													## Get the source clock pin cell object
+													set sourceClockCellObj [get_cells -quiet -of_objects $sourceClockPinObj]
+													## Check if Cell already exists in Path Dictionary
+													if {[path_cell_name_exists? -dict $opts(-dict) -value $sourceClockCellObj]} {
+														## Get the previous path instance from the Path Dictionary
+														set sourceClockPathDict [get_path_dict_by_cell_name -dict $opts(-dict) -value $sourceClockCellObj]
+
+														## Add the source clock pin net_name to the output pin
+														dict set retargetOutputPinDict $netPinObj clock_object source_clock_pin "[dict get $sourceClockPathDict instance]/[get_property -quiet REF_PIN_NAME $sourceClockPinObj]"
+														## Add whether the clock is a user generated clock
+														dict set retargetOutputPinDict $netPinObj clock_object is_user_generated [get_property -quiet IS_USER_GENERATED $clockObj]
+													} else {
+														puts "CRITICAL WARNING: \[path_to_verilog\] Source clock pin $sourceClockPinObj for retargeted generated clock $clockObj not previously found in timing report"
+													}
 												}
 											}
 										}
 									}
-								}			
-								
-								## Set the Retargeted Cell Object
-								set retargetedCellObj $netCellObj
-								
-								dbgVar retargetedCellObj
-							}							
+
+									## Set the Retargeted Cell Object
+									set retargetedCellObj $netCellObj
+									set macroFound 1
+
+									dbgVar retargetedCellObj
+									break
+								}
+							}
+
+							## If MACRO not found, continue with another pin from an INTERNAL cell
+							if {!$macroFound} {
+								## Try to find a pin from an INTERNAL cell to continue search
+								set currentPinObj ""
+								foreach netPinObj $netPinList {
+									set netCellObj [get_cells -quiet -of_objects $netPinObj]
+									## Skip if already visited
+									if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+										continue
+									}
+									## Select pin from INTERNAL cell to continue traversal
+									if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "INTERNAL"} {
+										set currentPinObj $netPinObj
+										lappend visitedCells $netCellObj
+										break
+									}
+								}
+							}
 						}
 					} else {
 						puts "CRITICAL WARNING: \[path_to_verilog\] Unable to process object type [dict get $outputPinDict type] for internal cell retargeting."
@@ -2409,47 +2552,83 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 				foreach clockPinDictID [dict keys $clockPinsDict] {
 					## Get the dictionary pin object from the Output Pins Dictionary
 					set clockPinDict [dict get $clockPinsDict $clockPinDictID]
-					
+
 					## Check to ensure the output pin is of type "pin"
 					if {[dict get $clockPinDict type] eq "pin"} {
-						## Get all pins attached to the internal primitive net
-						set netPinList [get_pins -quiet -of_objects [get_nets -quiet -of_objects [get_pins -quiet [dict get $clockPinDict name]]]]
-						
-						## Loop through each pin found on the net 
-						foreach netPinObj $netPinList {
-							## Get cell from the pin object
-							set netCellObj [get_cells -quiet -of_objects $netPinObj]
-							
-							## Check if Cell object is a MACRO level primitive
-							if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
-								## Add the retargeted cell object to the retarget dictionary
-								dict set retargetCellDict name $netCellObj
-								
-								## Add Output Pin to Retarget output Dictionary
-								dict set retargetClockPinDict $netPinObj type "pin"
-								dict set retargetClockPinDict $netPinObj name $netPinObj
-								dict set retargetClockPinDict $netPinObj net_name [dict get $clockPinDict net_name]
-								
-								if {[dict exists $clockPinDict fixed_route]} {
-									dict set retargetClockPinDict $netPinObj fixed_route [dict get $clockPinDict fixed_route]
+						## Initialize search pin and found flag
+						set currentPinObj [get_pins -quiet [dict get $clockPinDict name]]
+						set macroFound 0
+						set visitedCells [list]
+						lappend visitedCells $cellObj
+
+						## Continue searching while MACRO not found
+						while {!$macroFound && [llength $currentPinObj] > 0} {
+							## Get net from current pin
+							set netObj [get_nets -quiet -of_objects $currentPinObj]
+							set netPinList [get_pins -quiet -of_objects $netObj]
+
+							## Loop through each pin found on the net
+							foreach netPinObj $netPinList {
+								## Get cell from the pin object
+								set netCellObj [get_cells -quiet -of_objects $netPinObj]
+
+								## Skip if we've already visited this cell
+								if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+									continue
 								}
-								
-								if {[dict exists $clockPinDict lock_pins]} {
-									set lockPinsString [dict get $clockPinDict lock_pins]
-									set lockPinsList [split $lockPinsString ":"]
-									dict set retargetClockPinDict $netPinObj lock_pins "[get_property REF_PIN_NAME $netPinObj]:[lindex $lockPinsList 1]"
+
+								## Check if Cell object is a MACRO level primitive
+								if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "MACRO"} {
+									## Add the retargeted cell object to the retarget dictionary
+									dict set retargetCellDict name $netCellObj
+
+									## Add Output Pin to Retarget output Dictionary
+									dict set retargetClockPinDict $netPinObj type "pin"
+									dict set retargetClockPinDict $netPinObj name $netPinObj
+									dict set retargetClockPinDict $netPinObj net_name [dict get $clockPinDict net_name]
+
+									if {[dict exists $clockPinDict fixed_route]} {
+										dict set retargetClockPinDict $netPinObj fixed_route [dict get $clockPinDict fixed_route]
+									}
+
+									if {[dict exists $clockPinDict lock_pins]} {
+										set lockPinsString [dict get $clockPinDict lock_pins]
+										set lockPinsList [split $lockPinsString ":"]
+										dict set retargetClockPinDict $netPinObj lock_pins "[get_property REF_PIN_NAME $netPinObj]:[lindex $lockPinsList 1]"
+									}
+
+									## Set the Retargeted Cell Object
+									set retargetedCellObj $netCellObj
+									set macroFound 1
+
+									dbgVar retargetedCellObj
+									break
 								}
-								
-								## Set the Retargeted Cell Object
-								set retargetedCellObj $netCellObj
-								
-								dbgVar retargetedCellObj
-							}							
+							}
+
+							## If MACRO not found, continue with another pin from an INTERNAL cell
+							if {!$macroFound} {
+								## Try to find a pin from an INTERNAL cell to continue search
+								set currentPinObj ""
+								foreach netPinObj $netPinList {
+									set netCellObj [get_cells -quiet -of_objects $netPinObj]
+									## Skip if already visited
+									if {[lsearch -exact $visitedCells $netCellObj] >= 0} {
+										continue
+									}
+									## Select pin from INTERNAL cell to continue traversal
+									if {[get_property PRIMITIVE_LEVEL $netCellObj] eq "INTERNAL"} {
+										set currentPinObj $netPinObj
+										lappend visitedCells $netCellObj
+										break
+									}
+								}
+							}
 						}
 					} else {
 						puts "CRITICAL WARNING: \[path_to_verilog\] Unable to process object type [dict get $clockPinDict type] for internal cell retargeting."
 					}
-				}	
+				}
 
 				puts "INFO: \[path_to_verilog\] Retargeting INTERNAL primitive [get_property LIB_CELL $cellObj] to [get_property LIB_CELL $retargetedCellObj] primitive."
 				
@@ -2511,10 +2690,26 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 				
 				## Check if the Direction of the cell pin object is an input
 				if {[get_property DIRECTION $cellPinObj] eq "IN"} {
+					set net_exist false
+					set existingNetsPinObj ""
+					if {![dictionary_value_exists? -dict $inputPinsDict -key "name" -value $cellPinObj]} {
+						set net_pins [get_pins -quiet -of [get_nets -quiet -of [get_pins $cellPinObj]] -filter PARENT_CELL==$cellObj]
+                                                foreach net_pin $net_pins {
+                                                        if {[dictionary_value_exists? -dict $inputPinsDict -key "name" -value $net_pin]} {
+                                                                set net_exist true
+                                                                set existingNetsPinObj $net_pin
+                                                                break
+                                                        }
+                                                }
+                                        }
 					## Check if the cell pin object exists in the input pin dictionary
-					if {[dictionary_value_exists? -dict $inputPinsDict -key "name" -value $cellPinObj]} {
+					if {[dictionary_value_exists? -dict $inputPinsDict -key "name" -value $cellPinObj] || $net_exist==true} {
 						## Get the input pin dictionary from the input pins dictionary
-						set inputPinDict [dict get $inputPinsDict $cellPinObj]
+						if {$net_exist==true} {
+							set inputPinDict [dict get $inputPinsDict $existingNetsPinObj]
+                                                } else {
+						        set inputPinDict [dict get $inputPinsDict $cellPinObj]
+					        }
 						
 						## Set the fixed route property for the net, if exists
 						if {[dict exists $inputPinDict fixed_route]} {
@@ -2712,7 +2907,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 				## Check if the Direction of the cell pin object is an output
 				} elseif {[get_property DIRECTION $cellPinObj] eq "OUT"} {
 					## Check if output pins dictionary is empty
-					if {[llength $outputPinsDict]==0} {
+					if {[llength $outputPinsDict]==0 || (![dictionary_value_exists? -dict $outputPinsDict -key "name" -value $cellPinObj] && [dict exists $opts(-endpoint_cells) $cellObj])} {
 						## Dump debug information for cell endpoint output pin
 						dbgVar outputPinsDict
 						dbgVar cellPinObj
@@ -3222,21 +3417,25 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::write_verilog_inst
 		} else {
 			## Initialize vector list variable for the pin
 			set pinVectorList {}
-			
-			## Loop through all keys in the dictionary to find the vector numeric keys
-			foreach cellPinDictKey [dict keys [dict get $cellPinDict bus_index]] {
-				## Check if the cell pin dictionary key is a integer value equivalent to the bit location
-				if {[regexp {\d+} $cellPinDictKey]} {
-					## Insert the net name in the cell pins dictionary for the given vector bit to the pin vector list
-					set pinVectorList [linsert $pinVectorList $cellPinDictKey [dict get $cellPinDict bus_index $cellPinDictKey value]]
-				}
-			}
-			
-			## Order the signal list to match the required Verilog instantiation format
-			set orderedPinVectorList [join [lreverse $pinVectorList] ","]
-			
-			## Append the vector signals to the instantiation
-			append verilogInstantiationString "\t\t.[dict get $cellPinDict pin_name]\(\{$orderedPinVectorList\}\),\n"			
+
+			if {[dict exists $cellPinDict bus_index]} {
+				## Loop through all keys in the dictionary to find the vector numeric keys
+                                foreach cellPinDictKey [dict keys [dict get $cellPinDict bus_index]] {
+                                        ## Check if the cell pin dictionary key is a integer value equivalent to the bit location
+                                        if {[regexp {\d+} $cellPinDictKey]} {
+                                                ## Insert the net name in the cell pins dictionary for the given vector bit to the pin vector list
+                                                set pinVectorList [linsert $pinVectorList $cellPinDictKey [dict get $cellPinDict bus_index $cellPinDictKey value]]
+                                        }
+                                }
+
+                                ## Order the signal list to match the required Verilog instantiation format
+                                set orderedPinVectorList [join [lreverse $pinVectorList] ","]
+
+                                ## Append the vector signals to the instantiation
+                                append verilogInstantiationString "\t\t.[dict get $cellPinDict pin_name]\(\{$orderedPinVectorList\}\),\n"
+                        } else {
+				append verilogInstantiationString "\t\t.[dict get $cellPinDict pin_name]\(\),\n"
+                        }
 		}
     }
     

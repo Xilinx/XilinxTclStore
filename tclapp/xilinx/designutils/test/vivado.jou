@@ -1,0 +1,27 @@
+#-----------------------------------------------------------
+# Vivado v2026.1.0 (64-bit)
+# SW Build 6368940 on Sun Feb 15 16:04:05 MST 2026
+# IP Build 6362821 on Sun Feb 08 12:49:23 MST 2026
+# SharedData Build 6368722 on Sat Feb 14 20:44:20 MST 2026
+# Start of session at: Mon Feb 16 10:58:41 2026
+# Process ID         : 1824268
+# Current directory  : /home/gnersisy/git/2026.1/XilinxTclStore/tclapp/xilinx/designutils/test
+# Command line       : vivado
+# Log file           : /home/gnersisy/git/2026.1/XilinxTclStore/tclapp/xilinx/designutils/test/vivado.log
+# Journal file       : /home/gnersisy/git/2026.1/XilinxTclStore/tclapp/xilinx/designutils/test/vivado.jou
+# Running On         : xedl210038
+# Platform           : RedHatEnterprise
+# Operating System   : Red Hat Enterprise Linux release 8.10 (Ootpa)
+# Processor Detail   : AMD EPYC 7302 16-Core Processor
+# CPU Frequency      : 3000.000 MHz
+# CPU Physical cores : 32
+# CPU Logical cores  : 64
+# Host memory        : 540075 MB
+# Swap memory        : 34359 MB
+# Total Virtual      : 574435 MB
+# Available Virtual  : 569231 MB
+#-----------------------------------------------------------
+start_gui
+internal::enable_all_devices
+source ./test.tcl
+source tb_write_ip_integrator_testbench_0001.tcl
