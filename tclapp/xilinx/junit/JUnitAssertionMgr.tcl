@@ -154,9 +154,11 @@ proc run_command _args {
   variable results
   variable testsuite
 
-  set startTime [ clock milliseconds ] 
+  #set startTime [ clock milliseconds ] 
+  set startTime [ expr [exec date +%s%N] / 1000000 ] 
   set failure [ catch { uplevel $_args } returned ]
-  set endTime [ clock milliseconds ]
+  #set endTime [ clock milliseconds ]
+  set endTime [ expr [exec date +%s%N] / 1000000 ]
   set wallTime [ expr ( $endTime - $startTime ) / 1000.0 ]
   
   set commandName [ lindex $_args 0 ]
@@ -188,9 +190,11 @@ proc run_silent _args {
   variable results
   variable testsuite
 
-  set startTime [ clock milliseconds ] 
+  #set startTime [ clock milliseconds ] 
+  set startTime [ expr [exec date +%s%N] / 1000000 ]
   set failure [ catch { uplevel $_args } returned ]
-  set endTime [ clock milliseconds ]
+  #set endTime [ clock milliseconds ]
+  set endTime [ expr [exec date +%s%N] / 1000000 ]
   set wallTime [ expr ( $endTime - $startTime ) / 1000.0 ]
   
   if { $failure } {
@@ -891,7 +895,8 @@ proc init {} {
    
   variable results
   #if { "[ info command $results ]" == "$results" } { return }
-  set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
+  #set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ]
+  set time [ exec date +%Y-%m-%dT%H:%M:%S ]  
   set hostname [ info hostname ]
   new_results $results 
   set testsuites [ new_testsuites $results ]
