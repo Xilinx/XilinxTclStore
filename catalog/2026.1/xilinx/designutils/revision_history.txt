@@ -1,3 +1,4 @@
+1.67 Enhancements to the timing_report_to_verilog script (xilinx::designutils) for 2026.1-dev
 1.66 Update equivalent directves for new directives
 1.65 Remove version check out of enable_equiv_dir util
 1.64 Added new proc run_equiv_vivado_directives.tcl
