@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>&#32;</revision_history>
+      <name>template</name>
+      <company>mycompany</company>
+      <procs>
+        <proc>
+          <name>my_command1</name>
+          <summary>Multi-lines summary of 
+what the proc is doing</summary>
+        </proc>
+        <proc>
+          <name>my_command2</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+        <proc>
+          <name>my_command3</name>
+          <summary>A one line summary of what this proc does</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Remove temporary build directory after running test script</revision_history>
+      <name>pcbutils</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by relevance to help interfacing with PCB.</summary>
+      <display>PCB Utilities</display>
+      <procs>
+        <proc>
+          <name>export_symbol</name>
+          <summary>Export symbol information</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

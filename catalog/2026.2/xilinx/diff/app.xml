@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>added unit tests and fixed compare_designs to serialize objects</revision_history>
+      <name>diff</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The Diff App compares two different designs at a time. Designs can be any combination of checkpoints or runs. With two designs loaded into memory this App enables the user to compare reports, lists, or first-class object properties between the two designs.  The output is generated in the form of interactive reporting (stdout), a text report, or an html report. The app can be used to compare a design against a reference or golden design or to dtermine where divergence occurred (isolation of problems and root cause analysis).</summary>
+      <display>Design Comparison</display>
+      <procs>
+        <proc>
+          <name>activate_design</name>
+          <summary>Activates (makes active) the project and design of the number specified, 
+options are 1 or 2.  The project and design are set via set_compare_objects 
+(or open_checkpoints).</summary>
+        </proc>
+        <proc>
+          <name>assert_fail</name>
+          <summary>Ensures that the command fails.</summary>
+        </proc>
+        <proc>
+          <name>assert_false</name>
+          <summary>Compares boolean to false.</summary>
+        </proc>
+        <proc>
+          <name>assert_file_exists</name>
+          <summary>Ensures file exists.</summary>
+        </proc>
+        <proc>
+          <name>assert_pass</name>
+          <summary>Ensures that the command passes. This is normally not needed as a failing command will throw on it&apos;s own.</summary>
+        </proc>
+        <proc>
+          <name>assert_same</name>
+          <summary>Compares two values to ensure that they are the same.</summary>
+        </proc>
+        <proc>
+          <name>assert_same_file</name>
+          <summary>Compares files to ensure that they are the same.</summary>
+        </proc>
+        <proc>
+          <name>assert_string_in_file</name>
+          <summary>Ensures string is in file.</summary>
+        </proc>
+        <proc>
+          <name>assert_string_not_in_file</name>
+          <summary>Ensures string is not in file.</summary>
+        </proc>
+        <proc>
+          <name>assert_true</name>
+          <summary>Compares boolean to true.</summary>
+        </proc>
+        <proc>
+          <name>compare_designs</name>
+          <summary>References the design/project combinations set with set_compare_objects. Then a &apos;design_command&apos; 
+is executed with each design being made active and the outputs of those commands are captured. 
+Those outputs are then compared using the specified &apos;difference_command&apos;. The design/project 
+values must have been set with set_compare_objects (or open_checkpoints) before executing this command. 
+ 
+e.g. 
+open_checkpoints design1.dcp design2.dcp; # calls set_compare_objects for us and opens the DCPs 
+compare_designs compare_lines { report_timing -return_string -max_paths 1000 }</summary>
+        </proc>
+        <proc>
+          <name>compare_dirs</name>
+          <summary>Compares directory contents.</summary>
+        </proc>
+        <proc>
+          <name>compare_files</name>
+          <summary>Compares file contents. Similar to the linux diff command. This algorithm is designed to be fast and 
+does not find the best matches between files. For best matching use linux diff or the compare_lines_lcs 
+command, but be aware: the compare_lines_lcs has a long runtime.</summary>
+        </proc>
+        <proc>
+          <name>compare_lines</name>
+          <summary>Compares data by lines, and looks for the closest next line match when it encounters a difference.</summary>
+        </proc>
+        <proc>
+          <name>compare_objects</name>
+          <summary>Compare first-class Tcl object properties.</summary>
+        </proc>
+        <proc>
+          <name>compare_ordered_lists</name>
+          <summary>Compare ordered lists and finds in-order differences.  Uniqueness is not considered in this algorithm.</summary>
+        </proc>
+        <proc>
+          <name>compare_serialized_objects</name>
+          <summary>Compare serialized object properties. To serialize objects use the command serialize_objects. 
+To read in objects that have been serialized to disk use serialize_from_file.</summary>
+        </proc>
+        <proc>
+          <name>compare_unordered_lists</name>
+          <summary>Compare unordered lists and finds unique objects that exist in each list/set.</summary>
+        </proc>
+        <proc>
+          <name>get_checkpoints</name>
+          <summary>Gets checkpoints to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>get_compare_objects</name>
+          <summary>Gets design and project objects to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>get_global_report</name>
+          <summary>Gets global report value. The output of this command is what resource will be used to output data 
+if unique resources are not provided to the print_* commands.  Use set_global_report to change.</summary>
+        </proc>
+        <proc>
+          <name>get_verbose</name>
+          <summary>Gets verbosity mode.</summary>
+        </proc>
+        <proc>
+          <name>html_escape</name>
+          <summary>Escapes all XML characters. 
+&amp; = &amp;amp; 
+&quot; = &amp;quot; 
+&apos; = &amp;apos; 
+&lt; = &amp;lt; 
+&gt; = &amp;gt;</summary>
+        </proc>
+        <proc>
+          <name>open_checkpoints</name>
+          <summary>Opens checkpoints while capturing the corresponding design and project objects. 
+Channel is not specified here, and cannot be used with the design comparison flow. 
+Use the set_global_report for controlling the outputs channel with design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>print_alert</name>
+          <summary>Print an alert message. For HTML reports this shows in dark red.</summary>
+        </proc>
+        <proc>
+          <name>print_css</name>
+          <summary>Return Cascaded Stylesheet (CSS) information for HTML report</summary>
+        </proc>
+        <proc>
+          <name>print_end</name>
+          <summary>Print end of the report. If using an HTML report, then this prints the ending HTML tags.</summary>
+        </proc>
+        <proc>
+          <name>print_header</name>
+          <summary>Print a heading. For HTML reports this begins the different sections of the report.</summary>
+        </proc>
+        <proc>
+          <name>print_info</name>
+          <summary>Print a info message. For HTML reports this shows in dark blue.</summary>
+        </proc>
+        <proc>
+          <name>print_js</name>
+          <summary>Return JavaScript (JS) information for HTML report</summary>
+        </proc>
+        <proc>
+          <name>print_msg</name>
+          <summary>Print generic message. Most print_* commands use this as the base proc for reporting.</summary>
+        </proc>
+        <proc>
+          <name>print_results</name>
+          <summary>Print a result message. For HTML reports this shows in dark gray.</summary>
+        </proc>
+        <proc>
+          <name>print_stamp</name>
+          <summary>Print current time stamp, current build, current changelist, and process ID.</summary>
+        </proc>
+        <proc>
+          <name>print_start</name>
+          <summary>Print report title, if using HTML, then this generates the head content of the HTML report.</summary>
+        </proc>
+        <proc>
+          <name>print_subheader</name>
+          <summary>Print a sub-heading. For HTML reports this begins the pre-formatted area under each heading.</summary>
+        </proc>
+        <proc>
+          <name>print_success</name>
+          <summary>Print a success message. For HTML reports this shows in dark green.</summary>
+        </proc>
+        <proc>
+          <name>remove_comments</name>
+          <summary>Removes all comments</summary>
+        </proc>
+        <proc>
+          <name>remove_datestamps</name>
+          <summary>Removes all date stamps</summary>
+        </proc>
+        <proc>
+          <name>remove_special</name>
+          <summary>Removes all special characters, except &apos;-&apos;, &apos;_&apos;, and whitespace</summary>
+        </proc>
+        <proc>
+          <name>remove_whitespace</name>
+          <summary>Removes all whitespace</summary>
+        </proc>
+        <proc>
+          <name>serialize_from_file</name>
+          <summary>Read data from file. Can be used as a generic file reader.</summary>
+        </proc>
+        <proc>
+          <name>serialize_objects</name>
+          <summary>Serializes all provided first-class Tcl objects.</summary>
+        </proc>
+        <proc>
+          <name>serialize_to_file</name>
+          <summary>Writes data to file. Can be used as a generic file writer, but this command always appends.</summary>
+        </proc>
+        <proc>
+          <name>set_checkpoints</name>
+          <summary>Sets checkpoints to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>set_compare_objects</name>
+          <summary>Sets design and project objects to be used for design comparisons.</summary>
+        </proc>
+        <proc>
+          <name>set_global_report</name>
+          <summary>Sets global report file name and can be set to stdout or stderr. If not specified, then each 
+print_* command requires a file name be provided to the channel argument. If the file name 
+has the extension &apos;htm&apos; or &apos;html&apos;, then an HTML report will be generated.</summary>
+        </proc>
+        <proc>
+          <name>set_verbose</name>
+          <summary>Sets verbosity mode. True or 1 will print verbose, false or 0 will not.</summary>
+        </proc>
+        <proc>
+          <name>unique_in_both_sets</name>
+          <summary>Find the unique items in set1 and in set2. Also known as the &apos;Symmetric Difference&apos; or 
+(A\B) U (B\A) [ ( $set1 \ $set2 ) U ( $set2 \ $set1 ) ].</summary>
+        </proc>
+        <proc>
+          <name>unique_in_first_set</name>
+          <summary>Find the unique items in set1. Also known as the &apos;Set Difference&apos; or U\A [ $set1 \ $set2 ].</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

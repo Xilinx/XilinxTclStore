@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Fix for missing global includes. Fix for black boxed IP</revision_history>
+      <name>bpsvvs</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>bluepearl</company>
+      <company_display>Blue Pearl Software, Inc.</company_display>
+      <summary>This is a Blue Pearl Software Visual Verification Suite (VVS) integration app that helps you load your Xilinx design into Blue Pearl&apos;s Visual Verification Suite RTL debugging environment.</summary>
+      <display>Blue Pearl Visual Verification Suite</display>
+      <procs>
+        <proc>
+          <name>generate_bps_project</name>
+          <summary>Generates the Blue Pearl Tcl project file</summary>
+        </proc>
+        <proc>
+          <name>launch_bps</name>
+          <summary>Launches Blue Pearl Visual Verification Suite</summary>
+        </proc>
+        <proc>
+          <name>update_vivado_into_bps</name>
+          <summary>Updates the current results into the Blue Pearl Visual Verification Suite</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

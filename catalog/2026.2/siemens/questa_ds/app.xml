@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Unification of CDC RDC Lint and Autocheck scripts</revision_history>
+      <name>questa_ds</name>
+      <company>siemens</company>
+      <company_display>Siemens</company_display>
+      <summary>This application comprises four distinct tools designed for executing Clock Domain Crossing (CDC), Reset Domain Crossing (RDC), lint and autocheck verification procedures. These tools generate run scripts intended for utilization within the Questa Design Solutions environment. The App takes user inputs for the design-top name and an optional argument for the output directory in which the script files will be generated: eg-: write_questa_cdc_script top -output_directory QCDC_FILES, where top is the design-top and QCDC_FILES is the name of the output directory. To run in Questa Design Solutions , ensure that the required software and the licenses are available. </summary>
+      <display>Questa Design Solutions</display>
+      <procs>
+        <proc>
+          <name>write_questa_autocheck_script</name>
+          <summary>This proc generates the Questa AutoCheck script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_cdc_script</name>
+          <summary>This proc generates the Questa CDC script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_lint_script</name>
+          <summary>This proc generates the Questa Lint script file</summary>
+        </proc>
+        <proc>
+          <name>write_questa_rdc_script</name>
+          <summary>This proc generates the Questa RDC script file</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>
