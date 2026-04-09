@@ -7,13 +7,9 @@
 ####################################################################################
 package require Vivado 1.2014.1
 
-#namespace eval ::tclapp::xilinx::customqorflows {
+namespace eval ::tclapp::xilinx::customqorflows {
 	
-#}
-
-# Trick to silence the linter
-eval [list namespace eval ::tclapp::xilinx::customqorflows {
- } ]
+}
 
 namespace eval ::tclapp::xilinx::customqorflows {
 
