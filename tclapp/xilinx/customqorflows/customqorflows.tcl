@@ -24,4 +24,4 @@ namespace eval ::tclapp::xilinx::customqorflows {
     source [file join $home customrqachecks rqa_checks.tcl]
 
 }
-package provide ::tclapp::xilinx::customqorflows 1.0
+package provide ::tclapp::xilinx::customqorflows 1.01

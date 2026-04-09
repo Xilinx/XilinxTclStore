@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial release</revision_history>
+      <revision_history>Initial release of RQS and RQA in Custom QoR Flows</revision_history>
       <name>customqorflows</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
