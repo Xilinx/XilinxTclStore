@@ -1,4 +1,4 @@
-2.521 add logical noc source when property enabled
+2.521 merged 2026.1 to 2026.2
 2.520 test fix to remove empty line
 2.518 updated noc sub core version
 2.517 updated version replacement detection

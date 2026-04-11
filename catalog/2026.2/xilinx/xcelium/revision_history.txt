@@ -1,7 +1,7 @@
-11.194 updated noc sub core version
-11.193 revert fix for scope header files for simulation compile order only
-11.192 scope header files for simulation compile order only
-11.191 fixed ddrmc5_inline_ecc to string var
+11.194 merged 2026.1 to 2026.2
+11.193 updated noc sub core version
+11.192 updated version replacement detection
+11.191 merged 2025.2 to 2026.1
 11.190 disable code for isoutilattrs.cdo export to sim dir
 11.189 disable code for isoutilattrs.cdo export
 11.188 export isoutilattrs.cdo for axi_noc2

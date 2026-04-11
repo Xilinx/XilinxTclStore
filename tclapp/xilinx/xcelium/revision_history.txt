@@ -1,4 +1,4 @@
-11.194 add logical noc source when property enabled
+11.194 merged 2026.1 to 2026.2
 11.193 updated noc sub core version
 11.192 updated version replacement detection
 11.191 merged 2025.2 to 2026.1
