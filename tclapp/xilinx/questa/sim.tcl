@@ -1658,7 +1658,9 @@ proc usf_questa_get_elaboration_cmdline {} {
   set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
   if { {} != $lnoc_top } {
     set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    lappend arg_list "${lib}.${lnoc_top}"
+    if { $a_sim_vars(b_enable_xlnoc_top) } {
+      lappend arg_list "${lib}.${lnoc_top}"
+    }
   }
 
   set top_level_inst_names {}

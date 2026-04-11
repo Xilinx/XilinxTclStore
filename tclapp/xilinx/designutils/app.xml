@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Update equivalent directves for new directives</revision_history>
+      <revision_history>Make enhancements to timing_report_to_verilog to fix the issues</revision_history>
       <name>designutils</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

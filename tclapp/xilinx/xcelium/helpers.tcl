@@ -761,16 +761,18 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # add logical noc top module file
     set lnoc_top [get_property -quiet logical_noc_top $a_sim_vars(fs_obj)]
     if { {} != $lnoc_top } {
-      set lnoc_file "${lnoc_top}.v"
-      set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
-      if { {} != $file } {
-        set file_type [get_property "file_type" $file]
-        if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
-          set g_files $global_files_str
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend l_compile_order_files $file
+      if { $a_sim_vars(b_enable_xlnoc_top) } {
+        set lnoc_file "${lnoc_top}.v"
+        set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
+        if { {} != $file } {
+          set file_type [get_property "file_type" $file]
+          if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+            set g_files $global_files_str
+            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files l_incl_dirs_opts]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
+              lappend l_compile_order_files $file
+            }
           }
         }
       }

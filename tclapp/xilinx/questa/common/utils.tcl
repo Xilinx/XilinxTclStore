@@ -75,6 +75,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(ipstatic_dir)               [get_property "sim.ipstatic.source_dir"           $a_sim_vars(curr_proj)]
   set a_sim_vars(b_use_static_lib)           [get_property "sim.ipstatic.use_precompiled_libs" $a_sim_vars(curr_proj)]
   set a_sim_vars(s_local_ip_repo_leaf_dir)   [get_property "local_ip_repo_leaf_dir_name"       $a_sim_vars(curr_proj)]
+  set a_sim_vars(b_enable_xlnoc_top)         [get_property "enable_logical_noc_top"            $a_sim_vars(curr_proj)]
 
   #
   # simset settings 
@@ -4197,6 +4198,8 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
 
   set file_path_str $s_install_path
   set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
+  set file_path_elems [split $file_path_str "/"]
+  set resolved_path_l [list]
 
   set sim [string toupper $simulator]
   set env_var_name ${var_name}_${sim}
@@ -4207,8 +4210,17 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
   }
   set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
 
-  regsub -all $str_to_replace $file_path_str $str_to_replace_with file_path_str
-
+  foreach elem $file_path_elems {
+    if { $elem == $str_to_replace } {
+      lappend resolved_path_l $str_to_replace_with
+    } elseif {[string first $str_to_replace $elem] != -1} {
+      regsub $str_to_replace $elem $str_to_replace_with resolved_str
+      lappend resolved_path_l $resolved_str
+    } else {
+      lappend resolved_path_l $elem
+    }
+  }
+  set file_path_str [join $resolved_path_l "/"]
   return $file_path_str
 }
 

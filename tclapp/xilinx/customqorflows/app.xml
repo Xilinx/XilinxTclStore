@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial release</revision_history>
+      <name>customqorflows</name>
+      <pkg_require>Vivado 2014.1</pkg_require>
+      <company>xilinx</company>
+      <company_display>Advanced Micro Devices, Inc.</company_display>
+      <summary>This package provides custom QoR flow scripts and utilities for design analysis and optimization. It creates new QoR checks that can be called with RQS or RQA to analyze and improve the design. The package does not expose individual utility procedures directly to users; instead, it sources common utility and check procedures internally and registers the relevant QoR checks.</summary>
+      <display>Custom QoR Flows</display>
+    </app>
+  </apps>
+</catalog>
