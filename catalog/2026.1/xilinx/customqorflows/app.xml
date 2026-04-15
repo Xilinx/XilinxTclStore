@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Initial release of custom qor tools (xilinx::customqorflows) for 2026.1-dev</revision_history>
+      <revision_history>Added support for custom rqa checks (xilinx::customqorflows) for 2026.1-dev</revision_history>
       <name>customqorflows</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

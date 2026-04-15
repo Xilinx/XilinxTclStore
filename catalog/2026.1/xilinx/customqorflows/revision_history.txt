@@ -1,1 +1,2 @@
-1.0 Initial release of custom qor tools (xilinx::customqorflows) for 2026.1-dev
+1.01 Added support for custom rqa checks (xilinx::customqorflows) for 2026.1-dev
+1.0 Initial release
