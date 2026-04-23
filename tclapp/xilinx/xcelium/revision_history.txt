@@ -1,3 +1,4 @@
+11.195 check for NoC blocks before adding logical top
 11.194 add logical noc source when property enabled
 11.193 updated noc sub core version
 11.192 updated version replacement detection
