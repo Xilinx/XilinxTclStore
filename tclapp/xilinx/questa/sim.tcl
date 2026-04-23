@@ -1655,11 +1655,11 @@ proc usf_questa_get_elaboration_cmdline {} {
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   # logical noc
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    if { $a_sim_vars(b_enable_xlnoc_top) } {
-      lappend arg_list "${lib}.${lnoc_top}"
+  if { $a_sim_vars(b_contains_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend arg_list "${lnoc_lib}.${lnoc_top}"
     }
   }
 
