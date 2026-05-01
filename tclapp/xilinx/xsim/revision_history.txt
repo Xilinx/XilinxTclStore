@@ -1,3 +1,4 @@
+2.523 include xlnoc systemc files
 2.522 check for NoC blocks before adding logical top
 2.521 add logical noc source when property enabled
 2.520 test fix to remove empty line

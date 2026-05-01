@@ -1,3 +1,4 @@
+2.341 include xlnoc systemc files
 2.340 check for NoC blocks before adding logical top
 2.339 add logical noc source when property enabled
 2.338 updated noc sub core version
