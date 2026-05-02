@@ -1,3 +1,4 @@
+2.341 include xlnoc systemc files
 2.339 merged 2026.1 to 2026.2
 2.338 updated noc sub core version
 2.337 updated version replacement detection

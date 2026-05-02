@@ -1,3 +1,4 @@
+11.196 include xlnoc systemc files
 11.194 merged 2026.1 to 2026.2
 11.193 updated noc sub core version
 11.192 updated version replacement detection
