@@ -198,6 +198,9 @@ proc usf_modelsim_setup_simulation { args } {
     set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries
   set global_files_str {}

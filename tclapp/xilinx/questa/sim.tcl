@@ -258,6 +258,9 @@ proc usf_questa_setup_simulation { args } {
     set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries
   set global_files_str {}
@@ -1655,11 +1658,11 @@ proc usf_questa_get_elaboration_cmdline {} {
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   # logical noc
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    if { $a_sim_vars(b_enable_xlnoc_top) } {
-      lappend arg_list "${lib}.${lnoc_top}"
+  if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend arg_list "${lnoc_lib}.${lnoc_top}"
     }
   }
 
@@ -2149,13 +2152,14 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           }
 
           variable a_shared_library_path_coln
+          set b_protobuf 0
           foreach {key value} [array get a_shared_library_path_coln] {
             set sc_lib   $key
             set lib_path $value
+            set lib_name [file tail $lib_path]
             set resolved_path [xcs_resolve_sim_model_dir "questa" $value $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "obj"]
             set lib_dir "$resolved_path"
             if { $a_sim_vars(b_compile_simmodels) } {
-              set lib_name [file tail $lib_path]
               set lib_type [file tail [file dirname $lib_path]]
               if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
                 # skip
@@ -2163,7 +2167,20 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
                 set lib_dir "questa_lib/$lib_name"
               }
             }
+            if { "protobuf" == $lib_name } {
+              set b_protobuf 1
+            }
             lappend shared_ip_libs $lib_dir
+          }
+
+          # add protobuf, if not advertized in simmodel shared lib collection
+          if { !$a_sim_vars(b_compile_simmodels) } {
+            if { !$b_protobuf } {
+              if { [lsearch $shared_ip_libs "protobuf"] == -1 } {
+                set lib_dir "\$xv_ext_lib_path/protobuf"
+                lappend shared_ip_libs $lib_dir
+              }
+            }
           }
 
           # bind IP static librarries
@@ -2216,6 +2233,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
             set ld_path_str "export LD_LIBRARY_PATH=$shared_ip_libs_env_path"
+            append ld_path_str ":\$XILINX_VIVADO/lib/lnx64.o" ;# librdizlib.so
             if { {} != $aie_ip_obj } {
               append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
             }
@@ -2468,6 +2486,7 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
 
     variable a_shared_library_path_coln
+    set b_protobuf 0
     foreach {key value} [array get a_shared_library_path_coln] {
       set sc_lib   $key
       set lib_path $value
@@ -2478,9 +2497,17 @@ proc usf_questa_get_sccom_cmd_args {} {
       if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
         lappend args "-L$lib_dir"
         lappend args "-l$lib_name"
+        if { {protobuf} == $lib_name } {
+          set b_protobuf 1
+        }
       } else {
         lappend args "-lib $lib_name"
       }
+    }
+    if { !$b_protobuf } {
+      set lib_name "protobuf"
+      lappend args "-L\$xv_ext_lib_path/$lib_name"
+      lappend args "-l$lib_name"
     }
 
     # bind user specified systemC/C/C++ libraries

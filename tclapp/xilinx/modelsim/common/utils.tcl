@@ -48,6 +48,7 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   set a_sim_vars(b_int_export_source_files)  0
 
   set a_sim_vars(b_use_legacy_noc)           0
+  set a_sim_vars(b_contains_logical_noc)     0
 
   #
   # project, simset object setting
@@ -107,6 +108,11 @@ proc xcs_set_common_vars { a_sim_vars_arg a_sim_mode_types_arg} {
   # Simulation model versions
   #
   set a_sim_vars(l_sim_model_versions)       [rdi::get_sim_model_versions]
+
+  #
+  # logical noc file
+  #
+  set a_sim_vars(logical_noc_top_file)       "xlnoc_top.v"
 }
 
 proc xcs_set_common_sysc_vars { a_sim_vars_arg } {
@@ -4251,7 +4257,14 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
   set incl_dirs [list]
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter] {
+  set c_files [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter]
+  if { [regexp "SystemC Header" $c_filter] } {
+    variable a_xlnoc_files
+    if { [llength $a_xlnoc_files] > 0 } {
+      set c_files [concat $c_files $a_xlnoc_files]
+    }
+  }
+  foreach file $c_files {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
@@ -4273,7 +4286,7 @@ proc xcs_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
     if { $b_xport_src_files } {
       set export_dir "$launch_dir/srcs/incl"
       if {[catch {file copy -force $sc_header_file $export_dir} error_msg] } {
-        send_msg_id SIM-utils-057 INFO "Failed to copy file '$vh_file' to '$export_dir' : $error_msg\n"
+        send_msg_id SIM-utils-057 INFO "Failed to copy file '$sc_header_file' to '$export_dir' : $error_msg\n"
       }
     }
 
@@ -4328,7 +4341,14 @@ proc xcs_get_cx_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fi
   set incl_dirs [list]
   set uniq_incl_dirs [list]
 
-  foreach file [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter] {
+  set c_files [get_files -compile_order sources -used_in simulation -quiet -filter $c_filter]
+  if { [regexp "SystemC Header" $c_filter] } {
+    variable a_xlnoc_files
+    if { [llength $a_xlnoc_files] > 0 } {
+      set c_files [concat $c_files $a_xlnoc_files]
+    }
+  }
+  foreach file $c_files {
     set file_extn [file extension $file]
 
     # consider header (.h) files only
@@ -5963,6 +5983,19 @@ proc xcs_find_uvm_library { } {
   return $uvm_lib_path
 }
 
+proc xcs_init_logical_noc { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars 
+  # detect logical noc source
+  set xlnoc_file [file tail [lindex [get_files -quiet -all $a_sim_vars(logical_noc_top_file) -of_objects $a_sim_vars(fs_obj)] 0]]
+  if { ({} != $xlnoc_file) && [string equal $xlnoc_file $a_sim_vars(logical_noc_top_file)] } {
+    set a_sim_vars(b_contains_logical_noc) 1
+  }
+}
+
 proc xcs_get_design_libs { files {b_realign 0} {b_insert_logical_noc_libs 0} {b_insert_xpm_noc_sub_cores 0} } {
   # Summary:
   # Argument Usage:
@@ -6387,6 +6420,10 @@ proc xcs_write_library_search_order { fh_scr simulator step b_compile_simmodels 
     }
   }
 
+  if { ("vcs" == $simulator) && (("elaborate" == $step) || ("simulate" == $step)) } {
+    append ld_path ":\$XILINX_VIVADO/lib/lnx64.o"
+  }
+
   append ld_path ":\$sys_path"
   if { {} != $aietools_lib_path } {
     append ld_path ":$aietools_lib_path"
@@ -6786,7 +6823,7 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
       }
     } else {
       # bind respective sub-core library based on comp type
-      if { [lsearch -exact $comp_types "PL_NMU"] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_0"]     }
+      if { [lsearch -exact $comp_types "PL_NMU"] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_1"]     }
       if { [lsearch -exact $comp_types "PL_NMU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nmu_sim_v1_0_0"]     }
       if { [lsearch -exact $comp_types "PL_NSU"] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_1"]     }
       if { [lsearch -exact $comp_types "PL_NSU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nsu_sim_v1_0_1"]     }

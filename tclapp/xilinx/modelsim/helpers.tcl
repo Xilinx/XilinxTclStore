@@ -460,7 +460,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # add logical noc top module file
     set lnoc_top [get_property -quiet logical_noc_top $a_sim_vars(fs_obj)]
     if { {} != $lnoc_top } {
-      if { $a_sim_vars(b_enable_xlnoc_top) } {
+      if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
         set lnoc_file "${lnoc_top}.v"
         set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
         if { {} != $file } {

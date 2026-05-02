@@ -437,6 +437,9 @@ proc usf_xsim_setup_simulation { args } {
     set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries 
   set global_files_str {}
@@ -3116,11 +3119,11 @@ proc usf_xsim_get_top_level_instance_names {} {
   }
 
   # logical noc
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    if { $a_sim_vars(b_enable_xlnoc_top) } {
-      lappend top_level_instance_names [usf_get_top_name $lnoc_top $lib]
+  if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend top_level_instance_names [usf_get_top_name $lnoc_top $lnoc_lib]
     }
   }
 
