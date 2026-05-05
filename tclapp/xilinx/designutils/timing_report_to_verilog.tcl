@@ -104,6 +104,8 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::timing_report_to_v
 		puts ""
 		puts "  Note: The timing_report_to_verilog command doesn't work for DFX designs."
 		puts ""
+		puts "  Note: The timing_report_to_verilog command still does not fully support timing paths that contain macro cells."
+		puts ""
         puts "Example:"
 		puts ""
 		puts "  The following example creates a Verilog structural netlist using the -of_objects option and"
@@ -616,6 +618,9 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 	
 	## Parse string for multiple report paths
 	set reportPaths [regexp -inline -all -- {(Slack\s.+?)slack\s+-*\d+\.\d+} $opts(-report_string)]
+	if {[regexp {Partition} $reportPaths]} {
+		return -code error "ERROR: The timing_report_to_verilog command doesn't work for DFX designs. Please use -help for more information"
+        }
 	
 	## Initialize Timing Path Cells Dictionary variable
 	unset -nocomplain timingPathCellsDict
@@ -1289,7 +1294,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 		#dbg "Path $pathIndex: $reportLine"
 		
 		## Check if timing report line is of a Port Object or a datapath_only pin object
-		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName] || [regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*\((IN|OUT|INOUT)\)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName tmpDirection]} {
+		if {[regexp {^\s*(\w+)*\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName] || [regexp {^\s*\(.*\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString incrValue pathValue edgeValue tmpInc tmpPath tmpEdge portName] || [regexp {^\s*(\w+)*(?:\s(-*\d+\.\d+)\s(-*\d+\.\d+))?\s(r|f)\s(\S+)\s*\((IN|OUT|INOUT)\)\s*$} $reportLine matchString locValue incrValue pathValue edgeValue portName tmpDirection]} {
 			## Store the Port Object
 			set portObj [get_ports -quiet $portName]
 			
@@ -1368,7 +1373,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 			incr pathIndex
 		
 		## Use Regular Expression to check for Input Pin or Output Pad Path
-		} elseif {[regexp {^\s*(\w+)*\s*(\w+)*\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue libraryName edgeValue pinName]} {
+		} elseif {[regexp {^\s*(\w+)*\s*(\w+)*\s(r|f)\s(\S+)(\s+\(([^)]+))?(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString locValue libraryName edgeValue pinName] || [regexp {^\s*(\w+)*\s*(\w+)*\s(r|f)\s(\S+)\s(\S+)(\s+\(([^)]+))?(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString locValue libraryName edgeValue pbname pinName]} {
 			## Store Input Pin Object
 			set inputPinObj   [get_pins -quiet $pinName]
 			## Store Output Port Object
@@ -1409,7 +1414,7 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::parse_timing_repor
 			incr pathIndex
 		
 		## Use Regular Expression to check for Output Pin Path
-		} elseif {[regexp {^\s*((\w+)\s)*(\S+)\s\((\S+)\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString tmpValue locValue libraryName arcName incrValue pathValue edgeValue outputPin] || [regexp {^\s*(\S+)\s(\S+)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s*$} $reportLine matchString locValue libraryName incrValue pathValue edgeValue outputPin]} {
+		} elseif {[regexp {^\s*((\w+)\s)*(\S+)\s\((\S+)\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString tmpValue locValue libraryName arcName incrValue pathValue edgeValue outputPin] || [regexp {^\s*(\S+)\s(\S+)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString locValue libraryName incrValue pathValue edgeValue outputPin] || [regexp {^\s*((\w+)\s)*(\S+)\s\((\S+)\)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s(\S+)(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString tmpValue locValue libraryName arcName incrValue pathValue edgeValue pbname outputPin] || [regexp {^\s*(\S+)\s(\S+)\s(-*\d+\.\d+)\s(-*\d+\.\d+)\s(r|f)\s(\S+)\s(\S+)(?:\s+\(([^)]+)\))?\s*$} $reportLine matchString locValue libraryName incrValue pathValue edgeValue pbname outputPin]} {
 			## Store Output Pin Object
 			set outputPinObj [get_pins -quiet $outputPin]
 
@@ -2630,8 +2635,12 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::path_to_verilog_di
 					}
 				}
 
-				puts "INFO: \[path_to_verilog\] Retargeting INTERNAL primitive [get_property LIB_CELL $cellObj] to [get_property LIB_CELL $retargetedCellObj] primitive."
-				
+				if {[info exists retargetedCellObj]} {
+					puts "INFO: \[path_to_verilog\] Retargeting INTERNAL primitive [get_property LIB_CELL $cellObj] to [get_property LIB_CELL $retargetedCellObj] primitive."
+			        } else {
+					return -code error "ERROR: Timing path contains a macro cell, which is not fully supported by this script. Please use -help for more information."
+                                }
+
 				## Set input pin dictionary to the retargeted cell input_pins
 				if {[info exists retargetInputPinDict]} {
 					set inputPinsDict  $retargetInputPinDict
@@ -3305,7 +3314,19 @@ proc ::tclapp::xilinx::designutils::timing_report_to_verilog::write_verilog_test
     
 	## Print the Verilog port declarations to the filehandle channel id
     puts $opts(-channel_id) "\tinput  [join [concat {*}$inputPortList] ", "];\n"
-    puts $opts(-channel_id) "\toutput [join [concat {*}$outputPortList] ", "];\n"
+
+    set outputPortListEmpty 1
+    foreach outputport $outputPortList {
+	    if {$outputport ne {}} {
+		    set outputPortListEmpty 0
+		    break
+            }
+    }
+    if {!$outputPortListEmpty} {
+	    puts $opts(-channel_id) "\toutput [join [concat {*}$outputPortList] ", "];\n"
+    } else {
+	    puts $opts(-channel_id) "\t//output ;\n"
+    }
 	
 	## Flatten the lists of inout ports
 	set inoutPortList [concat {*}$inoutPortList]

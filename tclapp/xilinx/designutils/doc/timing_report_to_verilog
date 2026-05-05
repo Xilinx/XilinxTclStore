@@ -5,6 +5,10 @@
     report_timing command. The Verilog and assocaited XDC file can be used in Vivado
     to simulate the path behavior from a larger design.
 
+    Note: The timing_report_to_verilog command doesn't work for DFX designs.
+
+    Note: The timing_report_to_verilog command still does not fully support timing paths that contain macro cells.
+
   Example:
 
     The following example creates a Verilog structural netlist using the -of_objects option and
