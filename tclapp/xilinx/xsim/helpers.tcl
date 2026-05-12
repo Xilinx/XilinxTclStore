@@ -451,7 +451,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     [catch {set a_xlnoc_files [rdi::get_logical_noc_files]} err]
     foreach file $a_xlnoc_files {
       set file_type [get_property "file_type" $file]
-      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({VHDL} == $file_type) } {
         set used_in_values [get_property -quiet "USED_IN" $file]
         if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
           if { $a_sim_vars(b_use_static_lib) } {
