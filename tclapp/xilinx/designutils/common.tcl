@@ -33,7 +33,7 @@ proc ::tclapp::xilinx::designutils::getArchitecture {} {
   # Argument Usage:
   # Return Value:
 
-  # Example of returned value: artix7 diabloevalarch elbertevalarch kintex7 kintexu kintexum olyevalarch v7evalarch virtex7 virtex9 virtexu virtexum zynq zynque ...
+  # Example of returned value: artix7 kintex7 kintexu kintexum virtex7 virtex9 virtexu virtexum zynq zynque ...
   #    7-Serie    : artix7 kintex7 virtex7 zynq
   #    UltraScale : kintexu kintexum virtexu virtexum
   #    Diablo (?) : virtex9 virtexum zynque
