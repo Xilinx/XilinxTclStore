@@ -1,3 +1,4 @@
+18.0 compile xlnoc.vhd file for target language vhdl
 17.9 include xlnoc systemc files
 17.8 check for NoC blocks before adding logical top
 17.7 add logical noc source when property enabled

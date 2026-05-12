@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>include xlnoc systemc files</revision_history>
+      <revision_history>compile xlnoc.vhd file for target language vhdl</revision_history>
       <name>xcelium</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

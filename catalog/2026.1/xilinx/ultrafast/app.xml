@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Minor cleanup (xilinx::ultrafast, xilinx::designutils) for Vivado 2026.1</revision_history>
+      <revision_history>Minor cleanup</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
