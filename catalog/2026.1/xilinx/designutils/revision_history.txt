@@ -1,3 +1,4 @@
+1.69 Minor cleanup (xilinx::ultrafast, xilinx::designutils) for Vivado 2026.1
 1.68 Various enhancements (timing_report_to_verilog)
 1.67 Make enhancements to timing_report_to_verilog to fix the issues
 1.66 Update equivalent directves for new directives
