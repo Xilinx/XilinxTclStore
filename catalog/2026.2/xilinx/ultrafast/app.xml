@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Improved memory requirement for large reports (report_reset_signals)</revision_history>
+      <revision_history>Minor cleanup (xilinx::ultrafast, xilinx::designutils) for Vivado 2026.2</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

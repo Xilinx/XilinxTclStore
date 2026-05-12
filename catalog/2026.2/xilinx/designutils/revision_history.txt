@@ -1,4 +1,5 @@
-1.68 Enhancements to timing_report_to_verilog.tcl (xilinx::designutils) for 2026.2-dev
+1.69 Minor cleanup (xilinx::ultrafast, xilinx::designutils) for Vivado 2026.2
+1.68 Various enhancements (timing_report_to_verilog)
 1.67 Fix for CR-1218704 Copying run makes GUI to go into infinite loop.
 1.66 Update equivalent directves for new directives
 1.65 Remove version check out of enable_equiv_dir util
