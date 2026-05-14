@@ -1,3 +1,4 @@
+2.379 group files as compilation unit
 2.378 compile xlnoc.vhd file for target language vhdl
 2.377 include xlnoc systemc files
 2.376 check for NoC blocks before adding logical top
