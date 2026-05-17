@@ -1,3 +1,4 @@
+2.526 updated version for noc_nsu_sim
 2.525 group files as compilation unit
 2.524 compile xlnoc.vhd file for target language vhdl
 2.523 include xlnoc systemc files

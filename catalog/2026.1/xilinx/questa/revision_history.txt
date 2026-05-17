@@ -1,3 +1,4 @@
+2.345 updated version for noc_nsu_sim
 2.344 pass vhdl 2019 option if set
 2.343 group files as compilation unit
 2.342 compile xlnoc.vhd file for target language vhdl
