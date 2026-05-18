@@ -1,4 +1,4 @@
-1.69 Minor cleanup (xilinx::ultrafast, xilinx::designutils) for Vivado 2026.2
+1.69 Minor cleanup
 1.68 Various enhancements (timing_report_to_verilog)
 1.67 Fix for CR-1218704 Copying run makes GUI to go into infinite loop.
 1.66 Update equivalent directves for new directives
