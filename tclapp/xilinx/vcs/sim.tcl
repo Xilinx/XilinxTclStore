@@ -2722,69 +2722,178 @@ proc usf_vcs_write_compile_order_files_opt { fh_scr } {
   # RTL - vhdlan/vlogan
   #####################
   set rdap {}
-  set b_first true
 
   puts $fh_scr "echo \"Compiling RTL sources...\""
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-    set compiler [file tail [lindex [split $cmd_str " "] 0]]
-    switch -exact -- $compiler {
-      "vhdlan" -
-      "vlogan" {
-        # vlogan expects double back slash
-        if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
-          set src_file [string trim $src_file "\""]
-          regsub -all { } $src_file {\\\\ } src_file
-        }
-
-        if { $b_first } {
-          set b_first false
-          usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
-            puts $fh_scr "$src_file \\"
+  if { [get_param "project.groupSimFilesForLangType"] } {
+    # Collect files into type-based groups (Verilog first, SystemVerilog next, VHDL last)
+    array set vlog_group_files {}
+    array set vlog_group_cmd   {}
+    array set sv_group_files   {}
+    array set sv_group_cmd     {}
+    array set vhdl_group_files {}
+    array set vhdl_group_cmd   {}
+    set vlog_libs {}
+    set sv_libs   {}
+    set vhdl_libs {}
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "vhdlan" -
+        "vlogan" {
+          # vlogan expects double back slash
+          if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+            set src_file [string trim $src_file "\""]
+            regsub -all { } $src_file {\\\\ } src_file
+          }
+          if { $file_type eq {SystemVerilog} } {
+            if { ![info exists sv_group_files($lib)] } {
+              set sv_group_files($lib) {}
+              set sv_group_cmd($lib)   $cmd_str
+              lappend sv_libs $lib
+            }
+            lappend sv_group_files($lib) $src_file
+          } elseif { $type eq {VHDL} } {
+            if { ![info exists vhdl_group_files($lib)] } {
+              set vhdl_group_files($lib) {}
+              set vhdl_group_cmd($lib)   $cmd_str
+              lappend vhdl_libs $lib
+            }
+            lappend vhdl_group_files($lib) $src_file
           } else {
-            set rdcs "$redirect_cmd_str"
-            set cstr "$a_sim_vars(clog)"
-            if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
-            append rdcs " $cstr"
-            append rdcs "; cat $a_sim_vars(tmp_log_file)"
-            if { "vhdlan.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
-            if { "vlogan.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
-            append rdcs $rdap
-            puts $fh_scr "$rdcs\n"
-            incr n_file_group
-            usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+            if { ![info exists vlog_group_files($lib)] } {
+              set vlog_group_files($lib) {}
+              set vlog_group_cmd($lib)   $cmd_str
+              lappend vlog_libs $lib
+            }
+            lappend vlog_group_files($lib) $src_file
           }
         }
       }
     }
-  }
-  # last redirect command for vhdl/verilog file groups
-  if { ("vhdlan.log" == $log) || ("vlogan.log" == $log) } {
-    if { "vhdlan.log" == $log } { incr n_vhd_file_group   }
-    if { "vlogan.log" == $log } { incr n_ver_file_group   }
-    if { ($n_vhd_file_group > 1) || ($n_vhd_file_group > 1) } { incr n_file_group }
-    set rdcs "$redirect_cmd_str"
-    set cstr "$a_sim_vars(clog)"
-    if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
-    append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
-    # only 1 vhdl or verilog file to compile?
-    if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
-      set rdap " > $log $null"
-    } else {
-      if {"vhdlan.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
-      if {"vlogan.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+  
+    # Write Verilog (.v) blocks first
+    foreach lib $vlog_libs {
+      set hdr $vlog_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $vlog_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_ver_file_group
+      if { $n_ver_file_group == 1 } { set rdap " > vlogan.log $null" } else { set rdap " >> vlogan.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
     }
-    append rdcs $rdap
-    puts $fh_scr "$rdcs"
+  
+    # Write SystemVerilog (.sv) blocks next
+    foreach lib $sv_libs {
+      set hdr $sv_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $sv_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_ver_file_group
+      if { $n_ver_file_group == 1 } { set rdap " > vlogan.log $null" } else { set rdap " >> vlogan.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
+    }
+  
+    # Write VHDL blocks last
+    foreach lib $vhdl_libs {
+      set hdr $vhdl_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $vhdl_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_vhd_file_group
+      if { $n_vhd_file_group == 1 } { set rdap " > vhdlan.log $null" } else { set rdap " >> vhdlan.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
+    }
+  } else {
+    set b_first true
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      switch -exact -- $compiler {
+        "vhdlan" -
+        "vlogan" {
+          # vlogan expects double back slash
+          if { ([regexp { } $src_file] && [regexp -nocase {vlogan} $cmd_str]) } {
+            set src_file [string trim $src_file "\""]
+            regsub -all { } $src_file {\\\\ } src_file
+          }
+  
+          if { $b_first } {
+            set b_first false
+            usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+          } else {
+            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } { 
+              puts $fh_scr "$src_file \\"
+            } else {
+              set rdcs "$redirect_cmd_str"
+              set cstr "$a_sim_vars(clog)"
+              if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+              append rdcs " $cstr"
+              append rdcs "; cat $a_sim_vars(tmp_log_file)"
+              if { "vhdlan.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+              if { "vlogan.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+              append rdcs $rdap
+              puts $fh_scr "$rdcs\n"
+              incr n_file_group
+              usf_vcs_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+            }
+          }
+        }
+      }
+    }
+    # last redirect command for vhdl/verilog file groups
+    if { ("vhdlan.log" == $log) || ("vlogan.log" == $log) } {
+      if { "vhdlan.log" == $log } { incr n_vhd_file_group   }
+      if { "vlogan.log" == $log } { incr n_ver_file_group   }
+      if { ($n_vhd_file_group > 1) || ($n_vhd_file_group > 1) } { incr n_file_group }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      # only 1 vhdl or verilog file to compile?
+      if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
+        set rdap " > $log $null"
+      } else {
+        if {"vhdlan.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+        if {"vlogan.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+      }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs"
+    }
   }
 
   ########################
