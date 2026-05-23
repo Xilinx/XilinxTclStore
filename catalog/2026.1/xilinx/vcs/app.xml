@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>updated version for noc_nsu_sim</revision_history>
+      <revision_history>updated version for noc2_nsu_sim noc2_nmu_sim subcores</revision_history>
       <name>vcs</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

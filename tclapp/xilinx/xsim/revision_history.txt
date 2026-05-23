@@ -1,3 +1,4 @@
+2.527 updated version for noc2_nsu_sim noc2_nmu_sim subcores
 2.526 updated version for noc_nsu_sim
 2.525 group files as compilation unit
 2.524 compile xlnoc.vhd file for target language vhdl

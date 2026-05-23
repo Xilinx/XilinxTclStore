@@ -1,3 +1,4 @@
+2.346 updated version for noc2_nsu_sim noc2_nmu_sim subcores
 2.345 updated version for noc_nsu_sim
 2.344 pass vhdl 2019 option if set
 2.343 group files as compilation unit
