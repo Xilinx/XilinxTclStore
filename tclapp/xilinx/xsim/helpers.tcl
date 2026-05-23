@@ -69,6 +69,7 @@ proc usf_init_vars {} {
   variable l_xpm_libraries                   [list]
   variable l_hard_blocks                     [list]
   variable a_sim_sv_pkg_libs                 [list]
+  variable a_xlnoc_files                     [list]
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj
@@ -446,11 +447,11 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
     # add logical NoC files
-    set lnoc_files [list]
-    [catch {set lnoc_files [rdi::get_logical_noc_files]} err]
-    foreach file $lnoc_files {
+    variable a_xlnoc_files
+    [catch {set a_xlnoc_files [rdi::get_logical_noc_files]} err]
+    foreach file $a_xlnoc_files {
       set file_type [get_property "file_type" $file]
-      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+      if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) || ({VHDL} == $file_type) } {
         set used_in_values [get_property -quiet "USED_IN" $file]
         if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
           if { $a_sim_vars(b_use_static_lib) } {
@@ -523,16 +524,18 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
     # add logical noc top module file
     set lnoc_top [get_property -quiet logical_noc_top $a_sim_vars(fs_obj)]
     if { {} != $lnoc_top } {
-      set lnoc_file "${lnoc_top}.v"
-      set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
-      if { {} != $file } {
-        set file_type [get_property "file_type" $file]
-        if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
-          set g_files $global_files_str
-          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
-          if { {} != $cmd_str } {
-            lappend files $cmd_str
-            lappend l_compile_order_files $file
+      if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+        set lnoc_file "${lnoc_top}.v"
+        set file [get_files -all $lnoc_file -of_objects $a_sim_vars(fs_obj)]
+        if { {} != $file } {
+          set file_type [get_property "file_type" $file]
+          if { ({Verilog} == $file_type) || ({SystemVerilog} == $file_type) } {
+            set g_files $global_files_str
+            set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
+            if { {} != $cmd_str } {
+              lappend files $cmd_str
+              lappend l_compile_order_files $file
+            }
           }
         }
       }
@@ -605,6 +608,27 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           if { {} != $cmd_str } {
             lappend files $cmd_str
             lappend compile_order_files $file
+          }
+        }
+      }
+
+      # fetch xlnoc systemc files
+      variable a_xlnoc_files
+      foreach file $a_xlnoc_files {
+        set file_type [get_property "file_type" $file]
+        if { ({SystemC} == $file_type) } {
+          set used_in_values [get_property -quiet "USED_IN" $file]
+          if { [lsearch -exact $used_in_values "ipstatic"] != -1 } {
+            if { $a_sim_vars(b_use_static_lib) } {
+              continue;
+            }
+          }
+          set g_files {}
+          set other_ver_opts {}
+          set cmd_str [usf_get_file_cmd_str $file $file_type false $g_files other_ver_opts]
+          if { {} != $cmd_str } {
+            lappend files $cmd_str
+            lappend l_compile_order_files $file
           }
         }
       }
@@ -723,7 +747,6 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   upvar $global_files_str_arg global_files_str
 
   variable a_sim_vars
-
   variable l_compile_order_files
 
   set files         [list]

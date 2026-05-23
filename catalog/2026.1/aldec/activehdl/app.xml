@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>SPT82437 - Launching ActiveHDL from Vivado - Gets Stuck</revision_history>
+      <revision_history>merged 2025.2 to 2026.1</revision_history>
       <name>activehdl</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>

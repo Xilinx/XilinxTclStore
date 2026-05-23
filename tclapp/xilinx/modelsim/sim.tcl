@@ -198,6 +198,9 @@ proc usf_modelsim_setup_simulation { args } {
     set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries
   set global_files_str {}
@@ -633,40 +636,121 @@ proc usf_modelsim_create_do_file_for_compilation { do_file } {
 
   puts $fh ""
 
-  set b_first true
-  set prev_lib  {}
-  set prev_file_type {}
-  set b_redirect false
-  set b_appended false
-
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
-
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-
-    if { $b_first } {
-      set b_first false
-      usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-    } else {
-      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-        puts $fh "$src_file \\"
-        set b_redirect true
+  if { [get_param "project.groupSimFilesForLangType"] } {
+    # Collect files into type-based groups (Verilog first, SystemVerilog next, VHDL last)
+    array set vlog_group_files {}
+    array set vlog_group_cmd   {}
+    array set sv_group_files   {}
+    array set sv_group_cmd     {}
+    array set vhdl_group_files {}
+    array set vhdl_group_cmd   {}
+    set vlog_libs {}
+    set sv_libs   {}
+    set vhdl_libs {}
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+  
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+  
+      if { $file_type eq {SystemVerilog} } {
+        if { ![info exists sv_group_files($lib)] } {
+          set sv_group_files($lib) {}
+          set sv_group_cmd($lib)   $cmd_str
+          lappend sv_libs $lib
+        }
+        lappend sv_group_files($lib) $src_file
+      } elseif { $type eq {VHDL} } {
+        if { ![info exists vhdl_group_files($lib)] } {
+          set vhdl_group_files($lib) {}
+          set vhdl_group_cmd($lib)   $cmd_str
+          lappend vhdl_libs $lib
+        }
+        lappend vhdl_group_files($lib) $src_file
       } else {
-        puts $fh ""
-        usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-        set b_appended true
+        if { ![info exists vlog_group_files($lib)] } {
+          set vlog_group_files($lib) {}
+          set vlog_group_cmd($lib)   $cmd_str
+          lappend vlog_libs $lib
+        }
+        lappend vlog_group_files($lib) $src_file
       }
     }
-  }
-
-  if { (!$b_redirect) || (!$b_appended) } {
-    puts $fh ""
+  
+    # Write Verilog (.v) blocks first
+    foreach lib $vlog_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "${tool_path_str}$vlog_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $vlog_group_cmd($lib) \\"
+      }
+      foreach src_file $vlog_group_files($lib) { puts $fh "$src_file \\" }
+      puts $fh ""
+    }
+  
+    # Write SystemVerilog (.sv) blocks next
+    foreach lib $sv_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "${tool_path_str}$sv_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $sv_group_cmd($lib) \\"
+      }
+      foreach src_file $sv_group_files($lib) { puts $fh "$src_file \\" }
+      puts $fh ""
+    }
+  
+    # Write VHDL blocks last
+    foreach lib $vhdl_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "${tool_path_str}$vhdl_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $vhdl_group_cmd($lib) \\"
+      }
+      foreach src_file $vhdl_group_files($lib) { puts $fh "$src_file \\" }
+      puts $fh ""
+    }
+  } else {
+    set b_first true
+    set prev_lib  {}
+    set prev_file_type {}
+    set b_redirect false
+    set b_appended false
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+  
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+  
+      if { $b_first } {
+        set b_first false
+        usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh "$src_file \\"
+          set b_redirect true
+        } else {
+          puts $fh ""
+          usf_modelsim_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          set b_appended true
+        }
+      }
+    }
+  
+    if { (!$b_redirect) || (!$b_appended) } {
+      puts $fh ""
+    }
   }
 
   set glbl_file "glbl.v"

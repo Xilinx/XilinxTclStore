@@ -437,6 +437,9 @@ proc usf_xsim_setup_simulation { args } {
     set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries 
   set global_files_str {}
@@ -2209,6 +2212,18 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
 
+  if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
+    if { [get_param "project.enableParallelTopXlnocSim"] } {
+      # add snoc header
+      set snoc_h [get_files -quiet -all *xlnoc_snoc_sysc_inst*0.h]
+      if { {} != $snoc_h } {
+        set snoc_h_dir [file dirname $snoc_h]
+        set incl_dir "[xcs_get_relative_file_path $snoc_h_dir $a_sim_vars(s_launch_dir)]"
+        lappend args_list "--include \"$incl_dir\""
+      }
+    }
+  }
+
   # -i
   #set unique_incl_dirs [list]
   #foreach incl_dir [get_property "include_dirs" $a_sim_vars(fs_obj)] {
@@ -3104,10 +3119,12 @@ proc usf_xsim_get_top_level_instance_names {} {
   }
 
   # logical noc
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    lappend top_level_instance_names [usf_get_top_name $lnoc_top $lib]
+  if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend top_level_instance_names [usf_get_top_name $lnoc_top $lnoc_lib]
+    }
   }
 
   return $top_level_instance_names
@@ -3444,45 +3461,111 @@ proc usf_xsim_write_verilog_prj { b_contain_verilog_srcs fh_scr } {
 
   variable a_sim_vars
 
-  set b_first true
-  set prev_lib  {}
-  set prev_file_type {}
-
-  set vlog_filename $a_sim_vars(s_sim_top);append vlog_filename "_vlog.prj"
-  set vlog_file [file normalize [file join $a_sim_vars(s_launch_dir) $vlog_filename]]
-  set fh_vlog 0
-  if {[catch {open $vlog_file w} fh_vlog]} {
-    send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
-    return 1
-  }
-
-  puts $fh_vlog "# compile verilog/system verilog design source files"
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-    switch $type {
-      {VERILOG} {
-        if { $b_first } {
-          set b_first false
-          usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-            puts $fh_vlog "\"$src_file\" \\"
+  if { [get_param "project.groupSimFilesForLangType"] } {
+    set vlog_filename $a_sim_vars(s_sim_top);append vlog_filename "_vlog.prj"
+    set vlog_file [file normalize [file join $a_sim_vars(s_launch_dir) $vlog_filename]]
+    set fh_vlog 0
+    if {[catch {open $vlog_file w} fh_vlog]} {
+      send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
+      return 1
+    }
+    puts $fh_vlog "# compile verilog/system verilog design source files"
+    # Collect files into type-based groups (Verilog first, SystemVerilog next)
+    array set vlog_group_files {}
+    array set vlog_group_cmd   {}
+    array set sv_group_files   {}
+    array set sv_group_cmd     {}
+    set vlog_libs {}
+    set sv_libs   {}
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      switch $type {
+        {VERILOG} {
+          if { $file_type eq {SystemVerilog} } {
+            if { ![info exists sv_group_files($lib)] } {
+              set sv_group_files($lib) {}
+              set sv_group_cmd($lib)   $cmd_str
+              lappend sv_libs $lib
+            }
+            lappend sv_group_files($lib) $src_file
           } else {
-            puts $fh_vlog ""
+            if { ![info exists vlog_group_files($lib)] } {
+              set vlog_group_files($lib) {}
+              set vlog_group_cmd($lib)   $cmd_str
+              lappend vlog_libs $lib
+            }
+            lappend vlog_group_files($lib) $src_file
+          }
+        }
+      }
+    }
+  
+    # Write Verilog (.v) blocks first
+    foreach lib $vlog_libs {
+      puts $fh_vlog "$vlog_group_cmd($lib) \\"
+      foreach src_file $vlog_group_files($lib) {
+        puts $fh_vlog "\"$src_file\" \\"
+      }
+      puts $fh_vlog ""
+    }
+  
+    # Write SystemVerilog (.sv) blocks next
+    foreach lib $sv_libs {
+      puts $fh_vlog "$sv_group_cmd($lib) \\"
+      foreach src_file $sv_group_files($lib) {
+        puts $fh_vlog "\"$src_file\" \\"
+      }
+      puts $fh_vlog ""
+    }
+  } else {
+    set b_first true
+    set prev_lib  {}
+    set prev_file_type {}
+  
+    set vlog_filename $a_sim_vars(s_sim_top);append vlog_filename "_vlog.prj"
+    set vlog_file [file normalize [file join $a_sim_vars(s_launch_dir) $vlog_filename]]
+    set fh_vlog 0
+    if {[catch {open $vlog_file w} fh_vlog]} {
+      send_msg_id USF-XSim-012 ERROR "Failed to open file to write ($vlog_file)\n"
+      return 1
+    }
+  
+    puts $fh_vlog "# compile verilog/system verilog design source files"
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      switch $type {
+        {VERILOG} {
+          if { $b_first } {
+            set b_first false
             usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          } else {
+            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+              puts $fh_vlog "\"$src_file\" \\"
+            } else {
+              puts $fh_vlog ""
+              usf_xsim_set_initial_cmd $fh_vlog $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+            }
           }
         }
       }
     }
   }
- 
+
   xcs_add_hard_block_wrapper $fh_vlog "xsim" "" $a_sim_vars(s_launch_dir)
 
   set glbl_file "glbl.v"

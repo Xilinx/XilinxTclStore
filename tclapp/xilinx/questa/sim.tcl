@@ -258,6 +258,9 @@ proc usf_questa_setup_simulation { args } {
     set a_sim_vars(sp_xlnoc_bd_obj) [get_files -all -quiet "xlnoc.bd"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries
   set global_files_str {}
@@ -766,40 +769,125 @@ proc usf_questa_create_do_file_for_compilation { do_file } {
     usf_compile_simmodel_sources $fh
   }
   
-  set b_first true
-  set prev_lib  {}
-  set prev_file_type {}
-  set b_redirect false
-  set b_appended false
-
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
-
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
-
-    if { $b_first } {
-      set b_first false
-      usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-    } else {
-      if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-        puts $fh "$src_file \\"
-        set b_redirect true
+  if { [get_param "project.groupSimFilesForLangType"] } {
+    # Collect files into type-based groups (Verilog first, SystemVerilog next, VHDL last)
+    array set vlog_group_files {}
+    array set vlog_group_cmd   {}
+    array set sv_group_files   {}
+    array set sv_group_cmd     {}
+    array set vhdl_group_files {}
+    array set vhdl_group_cmd   {}
+    set vlog_libs {}
+    set sv_libs   {}
+    set vhdl_libs {}
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+      if { $file_type eq {SystemVerilog} } {
+        if { ![info exists sv_group_files($lib)] } {
+          set sv_group_files($lib) {}
+          set sv_group_cmd($lib)   $cmd_str
+          lappend sv_libs $lib
+        }
+        lappend sv_group_files($lib) $src_file
+      } elseif { $type eq {VHDL} } {
+        if { ![info exists vhdl_group_files($lib)] } {
+          set vhdl_group_files($lib) {}
+          set vhdl_group_cmd($lib)   $cmd_str
+          lappend vhdl_libs $lib
+        }
+        lappend vhdl_group_files($lib) $src_file
       } else {
-        puts $fh ""
-        usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
-        set b_appended true
+        if { ![info exists vlog_group_files($lib)] } {
+          set vlog_group_files($lib) {}
+          set vlog_group_cmd($lib)   $cmd_str
+          lappend vlog_libs $lib
+        }
+        lappend vlog_group_files($lib) $src_file
       }
     }
-  }
-
-  if { (!$b_redirect) || (!$b_appended) } {
-    puts $fh ""
+  
+    # Write Verilog (.v) blocks first
+    foreach lib $vlog_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "$vlog_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $vlog_group_cmd($lib) \\"
+      }
+      foreach src_file $vlog_group_files($lib) {
+        puts $fh "$src_file \\"
+      }
+      puts $fh ""
+    }
+  
+    # Write SystemVerilog (.sv) blocks next
+    foreach lib $sv_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "$sv_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $sv_group_cmd($lib) \\"
+      }
+      foreach src_file $sv_group_files($lib) {
+        puts $fh "$src_file \\"
+      }
+      puts $fh ""
+    }
+  
+    # Write VHDL blocks last
+    foreach lib $vhdl_libs {
+      if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
+        puts $fh "$vhdl_group_cmd($lib) \\"
+      } else {
+        puts $fh "eval $vhdl_group_cmd($lib) \\"
+      }
+      foreach src_file $vhdl_group_files($lib) {
+        puts $fh "$src_file \\"
+      }
+      puts $fh ""
+    }
+  } else {
+    set b_first true
+    set prev_lib  {}
+    set prev_file_type {}
+    set b_redirect false
+    set b_appended false
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+  
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } { continue }
+  
+      if { $b_first } {
+        set b_first false
+        usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+      } else {
+        if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+          puts $fh "$src_file \\"
+          set b_redirect true
+        } else {
+          puts $fh ""
+          usf_questa_set_initial_cmd $fh $cmd_str $src_file $file_type $lib prev_file_type prev_lib
+          set b_appended true
+        }
+      }
+    }
+  
+    if { (!$b_redirect) || (!$b_appended) } {
+      puts $fh ""
+    }
   }
 
   xcs_add_hard_block_wrapper $fh "questa" "-64 -incr -mfcu" $a_sim_vars(s_launch_dir)
@@ -1655,10 +1743,12 @@ proc usf_questa_get_elaboration_cmdline {} {
   lappend arg_list "${top_lib}.$a_sim_vars(s_sim_top)"
 
   # logical noc
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    lappend arg_list "${lib}.${lnoc_top}"
+  if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend arg_list "${lnoc_lib}.${lnoc_top}"
+    }
   }
 
   set top_level_inst_names {}
@@ -2147,13 +2237,14 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           }
 
           variable a_shared_library_path_coln
+          set b_protobuf 0
           foreach {key value} [array get a_shared_library_path_coln] {
             set sc_lib   $key
             set lib_path $value
+            set lib_name [file tail $lib_path]
             set resolved_path [xcs_resolve_sim_model_dir "questa" $value $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) $a_sim_vars(sp_ext_dir) b_resolved $a_sim_vars(b_compile_simmodels) "obj"]
             set lib_dir "$resolved_path"
             if { $a_sim_vars(b_compile_simmodels) } {
-              set lib_name [file tail $lib_path]
               set lib_type [file tail [file dirname $lib_path]]
               if { ("protobuf" == $lib_name) || ("protected" == $lib_type) } {
                 # skip
@@ -2161,7 +2252,20 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
                 set lib_dir "questa_lib/$lib_name"
               }
             }
+            if { "protobuf" == $lib_name } {
+              set b_protobuf 1
+            }
             lappend shared_ip_libs $lib_dir
+          }
+
+          # add protobuf, if not advertized in simmodel shared lib collection
+          if { !$a_sim_vars(b_compile_simmodels) } {
+            if { !$b_protobuf } {
+              if { [lsearch $shared_ip_libs "protobuf"] == -1 } {
+                set lib_dir "\$xv_ext_lib_path/protobuf"
+                lappend shared_ip_libs $lib_dir
+              }
+            }
           }
 
           # bind IP static librarries
@@ -2214,6 +2318,7 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
           if { [llength $shared_ip_libs] > 0 } {
             set shared_ip_libs_env_path [join $shared_ip_libs ":"]
             set ld_path_str "export LD_LIBRARY_PATH=$shared_ip_libs_env_path"
+            append ld_path_str ":\$XILINX_VIVADO/lib/lnx64.o" ;# librdizlib.so
             if { {} != $aie_ip_obj } {
               append ld_path_str ":\$XILINX_VITIS/aietools/lib/lnx64.o"
             }
@@ -2466,6 +2571,7 @@ proc usf_questa_get_sccom_cmd_args {} {
     }
 
     variable a_shared_library_path_coln
+    set b_protobuf 0
     foreach {key value} [array get a_shared_library_path_coln] {
       set sc_lib   $key
       set lib_path $value
@@ -2476,9 +2582,17 @@ proc usf_questa_get_sccom_cmd_args {} {
       if { ([xcs_is_c_library $lib_name]) || ([xcs_is_cpp_library $lib_name]) } {
         lappend args "-L$lib_dir"
         lappend args "-l$lib_name"
+        if { {protobuf} == $lib_name } {
+          set b_protobuf 1
+        }
       } else {
         lappend args "-lib $lib_name"
       }
+    }
+    if { !$b_protobuf } {
+      set lib_name "protobuf"
+      lappend args "-L\$xv_ext_lib_path/$lib_name"
+      lappend args "-l$lib_name"
     }
 
     # bind user specified systemC/C/C++ libraries

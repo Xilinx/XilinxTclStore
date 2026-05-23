@@ -1,7 +1,14 @@
-2.339 updated noc sub core version
-2.338 revert fix for scope header files for simulation compile order only
-2.337 scope header files for simulation compile order only
-2.336 updated help text for simulation settings
+2.346 updated version for noc2_nsu_sim noc2_nmu_sim subcores
+2.345 updated version for noc_nsu_sim
+2.344 pass vhdl 2019 option if set
+2.343 group files as compilation unit
+2.342 compile xlnoc.vhd file for target language vhdl
+2.341 include xlnoc systemc files
+2.340 check for NoC blocks before adding logical top
+2.339 add logical noc source when property enabled
+2.338 updated noc sub core version
+2.337 updated version replacement detection
+2.336 merged 2025.2 to 2026.1
 2.335 fixed ddrmc5_inline_ecc to string var
 2.334 disable code for isoutilattrs.cdo export to sim dir
 2.333 disable code for isoutilattrs.cdo export

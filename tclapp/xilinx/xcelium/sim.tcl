@@ -256,6 +256,9 @@ proc usf_xcelium_setup_simulation { args } {
     set a_sim_vars(sp_hbm_ip_obj) [xcs_find_ip "hbm"]
   }
 
+  # detect logical noc
+  xcs_init_logical_noc
+
   # fetch design files
   variable l_local_design_libraries
   set global_files_str {}
@@ -1680,10 +1683,12 @@ proc usf_xcelium_write_elaborate_script {} {
   }
 
   # logical noc top
-  set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
-  if { {} != $lnoc_top } {
-    set lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
-    lappend arg_list "${lib}.${lnoc_top}"
+  if { $a_sim_vars(b_contains_logical_noc) && $a_sim_vars(b_enable_xlnoc_top) } {
+    set lnoc_top [get_property -quiet "logical_noc_top" $a_sim_vars(fs_obj)]
+    set lnoc_lib [get_property -quiet "logical_noc_top_lib" $a_sim_vars(fs_obj)]
+    if { ({} != $lnoc_top) && ({} != $lnoc_lib) } {
+      lappend arg_list "${lnoc_lib}.${lnoc_top}"
+    }
   }
 
   set top_level_inst_names {}
@@ -2640,46 +2645,69 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
     puts $fh_scr "XMSC_SYSC_PID=\$!\n"
   }
 
-  foreach file $a_sim_vars(l_design_files) {
-    set fargs       [split $file {|}]
-    set type        [lindex $fargs 0]
-    set file_type   [lindex $fargs 1]
-    set lib         [lindex $fargs 2]
-    set cmd_str     [lindex $fargs 3]
-    set src_file    [lindex $fargs 4]
-    set b_static_ip [lindex $fargs 5]
 
-    # if IP static file for pre-compile flow? continue
-    if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } {
-      continue
-    }
-
-    # compiler name
-    set compiler [file tail [lindex [split $cmd_str " "] 0]]
-    if { "xmsc_run" == $compiler } {
-      continue
-    }
-
-    switch -exact -- $compiler {
-      "xmvhdl" -
-      "xmvlog" {
-        #
-        # previous compilation step re-direction (if any)
-        #
-        if { ("gplus.log" == $log) || ("gcc.log" == $log) } {
-          set cstr "$a_sim_vars(clog)"
-          if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
-          puts $fh_scr "$redirect_cmd_str $cstr\n"
-        }
-
-        # first occurence (start of rtl command line)
-        if { $b_first } {
-          set b_first false
-          usf_xcelium_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
-        } else {
-          if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
-            puts $fh_scr "$src_file \\"
+  if { [get_param "project.groupSimFilesForLangType"] } {
+    # Collect files into type-based groups (Verilog first, SystemVerilog next, VHDL last)
+    array set vlog_group_files {}
+    array set vlog_group_cmd   {}
+    array set sv_group_files   {}
+    array set sv_group_cmd     {}
+    array set vhdl_group_files {}
+    array set vhdl_group_cmd   {}
+    set vlog_libs {}
+    set sv_libs   {}
+    set vhdl_libs {}
+  
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+  
+      # if IP static file for pre-compile flow? continue
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } {
+        continue
+      }
+  
+      # compiler name
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      if { "xmsc_run" == $compiler } {
+        continue
+      }
+  
+      switch -exact -- $compiler {
+        "xmvhdl" -
+        "xmvlog" {
+          if { $file_type eq {SystemVerilog} } {
+            if { ![info exists sv_group_files($lib)] } {
+              set sv_group_files($lib) {}
+              set sv_group_cmd($lib)   $cmd_str
+              lappend sv_libs $lib
+            }
+            lappend sv_group_files($lib) $src_file
+          } elseif { $type eq {VHDL} } {
+            if { ![info exists vhdl_group_files($lib)] } {
+              set vhdl_group_files($lib) {}
+              set vhdl_group_cmd($lib)   $cmd_str
+              lappend vhdl_libs $lib
+            }
+            lappend vhdl_group_files($lib) $src_file
           } else {
+            if { ![info exists vlog_group_files($lib)] } {
+              set vlog_group_files($lib) {}
+              set vlog_group_cmd($lib)   $cmd_str
+              lappend vlog_libs $lib
+            }
+            lappend vlog_group_files($lib) $src_file
+          }
+        }
+        "g++"      -
+        "gcc"      {
+          # previous compilation step re-direction (if any)
+          if { ("xmvhdl.log" == $log) || ("xmvlog.log" == $log) } {
             set rdcs "$redirect_cmd_str"
             set cstr "$a_sim_vars(clog)"
             if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
@@ -2689,72 +2717,197 @@ proc usf_xcelium_write_compile_order_files_wait { fh_scr } {
             if { "xmvlog.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
             append rdcs $rdap
             puts $fh_scr "$rdcs\n"
-
-            incr n_file_group
+          }
+  
+          # setup command line
+          set gcc_cmd "$cmd_str \\\n$src_file \\"
+          if { {} != $a_sim_vars(s_tool_bin_path) } {
+            set gcc_cmd "\$gcc_path/$cmd_str \\\n$src_file \\"
+          }
+          puts $fh_scr "$gcc_cmd"
+  
+          # setup redirection
+          set cstr "$a_sim_vars(clog)"
+          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+          puts $fh_scr "$redirect_cmd_str $cstr\n"
+  
+          incr n_file_group
+          if { "g++" == $compiler } { incr n_gplus_file_group; set log "gplus.log" }
+          if { "gcc" == $compiler } { incr n_gcc_file_group;   set log "gcc.log"   }
+        }
+        default {
+          # not supported
+        }
+      }
+    }
+  
+    # Write Verilog (.v) blocks first
+    foreach lib $vlog_libs {
+      set hdr $vlog_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $vlog_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_ver_file_group
+      if { $n_ver_file_group == 1 } { set rdap " > xmvlog.log $null" } else { set rdap " >> xmvlog.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
+    }
+  
+    # Write SystemVerilog (.sv) blocks next
+    foreach lib $sv_libs {
+      set hdr $sv_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $sv_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_ver_file_group
+      if { $n_ver_file_group == 1 } { set rdap " > xmvlog.log $null" } else { set rdap " >> xmvlog.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
+    }
+  
+    # Write VHDL blocks last
+    foreach lib $vhdl_libs {
+      set hdr $vhdl_group_cmd($lib)
+      if { {} != $a_sim_vars(s_tool_bin_path) } { set hdr "\$bin_path/$hdr" }
+      puts $fh_scr "$hdr \\"
+      foreach src_file $vhdl_group_files($lib) { puts $fh_scr "$src_file \\" }
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+      append rdcs " $cstr"; append rdcs "; cat $a_sim_vars(tmp_log_file)"
+      incr n_vhd_file_group
+      if { $n_vhd_file_group == 1 } { set rdap " > xmvhdl.log $null" } else { set rdap " >> xmvhdl.log $null" }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs\n"
+      incr n_file_group
+    }
+  } else {
+    foreach file $a_sim_vars(l_design_files) {
+      set fargs       [split $file {|}]
+      set type        [lindex $fargs 0]
+      set file_type   [lindex $fargs 1]
+      set lib         [lindex $fargs 2]
+      set cmd_str     [lindex $fargs 3]
+      set src_file    [lindex $fargs 4]
+      set b_static_ip [lindex $fargs 5]
+  
+      # if IP static file for pre-compile flow? continue
+      if { $a_sim_vars(b_use_static_lib) && ($b_static_ip) } {
+        continue
+      }
+  
+      # compiler name
+      set compiler [file tail [lindex [split $cmd_str " "] 0]]
+      if { "xmsc_run" == $compiler } {
+        continue
+      }
+  
+      switch -exact -- $compiler {
+        "xmvhdl" -
+        "xmvlog" {
+          #
+          # previous compilation step re-direction (if any)
+          #
+          if { ("gplus.log" == $log) || ("gcc.log" == $log) } {
+            set cstr "$a_sim_vars(clog)"
+            if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+            puts $fh_scr "$redirect_cmd_str $cstr\n"
+          }
+  
+          # first occurence (start of rtl command line)
+          if { $b_first } {
+            set b_first false
             usf_xcelium_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+          } else {
+            if { ($file_type == $prev_file_type) && ($lib == $prev_lib) } {
+              puts $fh_scr "$src_file \\"
+            } else {
+              set rdcs "$redirect_cmd_str"
+              set cstr "$a_sim_vars(clog)"
+              if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+              append rdcs " $cstr"
+              append rdcs "; cat $a_sim_vars(tmp_log_file)"
+              if { "xmvhdl.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+              if { "xmvlog.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+              append rdcs $rdap
+              puts $fh_scr "$rdcs\n"
+  
+              incr n_file_group
+              usf_xcelium_set_initial_cmd $fh_scr $cmd_str $src_file $file_type $lib prev_file_type prev_lib log
+            }
           }
         }
-      }
-      "g++"      -
-      "gcc"      {
-        # previous compilation step re-direction (if any)
-        if { ("xmvhdl.log" == $log) || ("xmvlog.log" == $log) } {
-          set rdcs "$redirect_cmd_str"
+        "g++"      -
+        "gcc"      {
+          # previous compilation step re-direction (if any)
+          if { ("xmvhdl.log" == $log) || ("xmvlog.log" == $log) } {
+            set rdcs "$redirect_cmd_str"
+            set cstr "$a_sim_vars(clog)"
+            if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+            append rdcs " $cstr"
+            append rdcs "; cat $a_sim_vars(tmp_log_file)"
+            if { "xmvhdl.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            if { "xmvlog.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
+            append rdcs $rdap
+            puts $fh_scr "$rdcs\n"
+          }
+  
+          # setup command line
+          set gcc_cmd "$cmd_str \\\n$src_file \\"
+          if { {} != $a_sim_vars(s_tool_bin_path) } {
+            set gcc_cmd "\$gcc_path/$cmd_str \\\n$src_file \\"
+          }
+          puts $fh_scr "$gcc_cmd"
+  
+          # setup redirection
           set cstr "$a_sim_vars(clog)"
-          if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
-          append rdcs " $cstr"
-          append rdcs "; cat $a_sim_vars(tmp_log_file)"
-          if { "xmvhdl.log" == $log } { incr n_vhd_file_group;if { $n_vhd_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
-          if { "xmvlog.log" == $log } { incr n_ver_file_group;if { $n_ver_file_group == 1 } { set rdap " > $log $null" } else { set rdap " >> $log $null" }}
-          append rdcs $rdap
-          puts $fh_scr "$rdcs\n"
+          if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
+          puts $fh_scr "$redirect_cmd_str $cstr\n"
+  
+          incr n_file_group
+          if { "g++" == $compiler } { incr n_gplus_file_group; set log "gplus.log" }
+          if { "gcc" == $compiler } { incr n_gcc_file_group;   set log "gcc.log"   }
         }
-
-        # setup command line
-        set gcc_cmd "$cmd_str \\\n$src_file \\"
-        if { {} != $a_sim_vars(s_tool_bin_path) } {
-          set gcc_cmd "\$gcc_path/$cmd_str \\\n$src_file \\"
+        default {
+          # not supported
         }
-        puts $fh_scr "$gcc_cmd"
-
-        # setup redirection
-        set cstr "$a_sim_vars(clog)"
-        if { $n_file_group > 1 } {set cstr "-a $a_sim_vars(clog)"}
-        puts $fh_scr "$redirect_cmd_str $cstr\n"
-
-        incr n_file_group
-        if { "g++" == $compiler } { incr n_gplus_file_group; set log "gplus.log" }
-        if { "gcc" == $compiler } { incr n_gcc_file_group;   set log "gcc.log"   }
-      }
-      default {
-        # not supported
       }
     }
-  }
-
-  # last redirect command for rtl and gcc
-  if { ("xmvhdl.log" == $log) || ("xmvlog.log" == $log) } {
-    if { "xmvhdl.log" == $log } { incr n_vhd_file_group   }
-    if { "xmvlog.log" == $log } { incr n_ver_file_group   }
-
-    # count number of file groups
-    if { ($n_vhd_file_group > 1) || ($n_ver_file_group > 1) } { incr n_file_group }
-
-    set rdcs "$redirect_cmd_str"
-    set cstr "$a_sim_vars(clog)"
-    if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
-
-    append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
-
-    # only 1 vhdl or verilog file to compile?
-    if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
-      set rdap " > $log $null"
-    } else {
-      if {"xmvhdl.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
-      if {"xmvlog.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+  
+    # last redirect command for rtl and gcc
+    if { ("xmvhdl.log" == $log) || ("xmvlog.log" == $log) } {
+      if { "xmvhdl.log" == $log } { incr n_vhd_file_group   }
+      if { "xmvlog.log" == $log } { incr n_ver_file_group   }
+  
+      # count number of file groups
+      if { ($n_vhd_file_group > 1) || ($n_ver_file_group > 1) } { incr n_file_group }
+  
+      set rdcs "$redirect_cmd_str"
+      set cstr "$a_sim_vars(clog)"
+      if { $n_file_group > 1 } { set cstr "-a $a_sim_vars(clog)" }
+  
+      append rdcs " $cstr";append rdcs "; cat $a_sim_vars(tmp_log_file)"
+  
+      # only 1 vhdl or verilog file to compile?
+      if { [expr $n_vhd_file_group + $n_ver_file_group] == 1 } {
+        set rdap " > $log $null"
+      } else {
+        if {"xmvhdl.log" == $log} { if {$n_vhd_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+        if {"xmvlog.log" == $log} { if {$n_ver_file_group == 1} {set rdap " > $log $null"} else {set rdap " >> $log $null"}}
+      }
+      append rdcs $rdap
+      puts $fh_scr "$rdcs"
     }
-    append rdcs $rdap
-    puts $fh_scr "$rdcs"
   }
 }
 

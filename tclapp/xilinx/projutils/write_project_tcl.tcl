@@ -48,6 +48,7 @@ proc write_project_tcl {args} {
   # [-validate]: Runs a validate script before recreating the project. To test if the files and paths refrenced in the tcl file exists or not.
   # [-ignore_msg_control_rules]: Do not imports message control rules in tcl script
   # [-quiet]: Execute the command quietly, returning no messages from the command.
+  # [-ignore_utils] : Ignore the util filesets.
   # file: Name of the tcl script file to generate
 
   # Return Value:
@@ -97,6 +98,8 @@ proc write_project_tcl {args} {
       "-validate"             { set a_global_vars(b_validate) 1 }
       "-ignore_msg_control_rules" {set a_global_vars(b_ignore_msg_ctrl_rule) 1 }
       "-quiet"                { set a_global_vars(b_arg_quiet) 1}
+      "-ignore_utils"         { set a_global_vars(b_arg_ignore_utils) 1 }
+
       default {
         # is incorrect switch specified?
         if { [regexp {^-} $option] } {
@@ -252,6 +255,7 @@ proc reset_global_vars {} {
   set a_global_vars(def_val_fh)                 0
   set a_global_vars(script_file)                ""
   set a_global_vars(b_arg_quiet)                0
+  set a_global_vars(b_arg_ignore_utils)         0
   
   if { [get_param project.enableMergedProjTcl] } {
     set a_global_vars(b_arg_use_bd_files)   0
@@ -1130,12 +1134,14 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
       lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
     }
     if { {Constrs} == $fs_type } {
-      lappend l_script_data ""
-      write_constrs $proj_dir $proj_name $tcl_obj $type
+    lappend l_script_data ""
+    write_constrs $proj_dir $proj_name $tcl_obj $type
+    } elseif { $a_global_vars(b_arg_ignore_utils) && [string equal $tcl_obj "utils_1"] } {
+           # do not write utils fileset
     } else {
-      write_files $proj_dir $proj_name $tcl_obj $type
+    write_files $proj_dir $proj_name $tcl_obj $type
     }
-  
+
     # is this a IP block fileset? if yes, do not write block fileset properties (block fileset doesnot exist in new project)
     if { [is_ip_fileset $tcl_obj] || [is_inactive_block_fileset $tcl_obj] } {
       # do not write ip fileset properties
@@ -1143,6 +1149,7 @@ proc write_specified_fileset { proj_dir proj_name filesets ignore_bc } {
       lappend l_script_data "# Set '$tcl_obj' fileset properties"
       lappend l_script_data "set obj \[$get_what_fs $tcl_obj\]"
       write_props $proj_dir $proj_name $get_what_fs $tcl_obj "fileset"
+      
     }
   }
 }
@@ -1520,7 +1527,12 @@ proc write_props { proj_dir proj_name get_what tcl_obj type {delim "#"}} {
   
 
   foreach prop $properties {
+
     if { [is_deprecated_property $prop] } { continue }
+
+    if { $a_global_vars(b_arg_ignore_utils) && ([string match "synth*" $tcl_obj]) && ([string equal $prop "INCREMENTAL_CHECKPOINT"]) } {
+      continue
+    }
 
     # is property excluded from being written into the script file
     if { [is_excluded_property $current_obj $prop] } { continue }
@@ -2859,22 +2871,8 @@ proc is_ip_fileset { fileset } {
   # true (1) if success, false (0) otherwise
 
   # make sure fileset is block fileset type
-  set isPRFlow [get_property pr_flow [current_project]]
-  set isRMFileset 0
-
-  if { $isPRFlow == 1 } {
-    set allReconfigModules [get_reconfig_modules]
-    foreach reconfigmodule $allReconfigModules {
-      set rmFileset [get_filesets -of_objects [get_reconfig_modules $reconfigmodule]]
-      if { [string equal $rmFileset $fileset] } {
-        set isRMFileset 1
-        break
-      }
-    }
-  }
-
-  if { $isRMFileset == 1 } {
-    return false
+  if { [is_rm_fileset $fileset] } {
+        return false
   }
 
   if { [is_bc_managed_fileset $fileset] } {
@@ -2899,6 +2897,28 @@ proc is_ip_fileset { fileset } {
     return true
   }
   return false
+}
+
+proc is_rm_fileset { fileset } {
+    # Summary: Check if the given fileset is a reconfiguration module fileset
+    # Argument Usage:
+    # fileset: fileset name
+    # Return Value:
+    # true (1) if it's an RM fileset, false (0) otherwise
+    
+    set isPRFlow [get_property pr_flow [current_project]]
+    
+    if { $isPRFlow == 1 } {
+        set allReconfigModules [get_reconfig_modules]
+        foreach reconfigmodule $allReconfigModules {
+            set rmFileset [get_filesets -of_objects [get_reconfig_modules $reconfigmodule]]
+            if { [string equal $rmFileset $fileset] } {
+                return true
+            }
+        }
+    }
+    
+    return false
 }
 
 proc is_bc_managed_fileset { fileset } {
@@ -2975,7 +2995,37 @@ proc is_ip_run { run } {
   # true (1) if success, false (0) otherwise
   
   set fileset [get_property srcset [get_runs $run]]
-  return [is_ip_fileset $fileset]
+  if { [is_rm_fileset $fileset] } {
+        return false
+    }
+
+    if { [is_bc_managed_fileset $fileset] } {
+        return false
+    }
+
+    if { {BlockSrcs} != [get_property fileset_type [get_filesets $fileset]] } {
+        return false
+    }
+
+    if { [is_proxy_ip_fileset $fileset] } {
+        return true
+    }
+    
+    set ip_filter "FILE_TYPE == \"IP\" || FILE_TYPE==\"Block Designs\""
+    set ips [get_files -all -quiet -of_objects [get_filesets $fileset] -filter $ip_filter]
+    set b_found false
+    foreach ip $ips {
+        if { [get_property generate_synth_checkpoint [lindex [get_files -quiet -all [list "$ip"]] 0]] } {
+            set b_found true
+            break
+        }
+    }
+    
+    if { $b_found } {
+        return true
+    }
+    
+    return false;
 }
 
 proc is_win_os {} {
@@ -3431,19 +3481,17 @@ proc write_reconfigmodule_files { proj_dir proj_name reconfigModule } {
         lappend import_coln "\"\[file normalize \"$org_file_path\"\]\""
         lappend l_local_file_list $file
       } else {
+         # add file to collection
+        if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
+            set file_no_quotes [string trim $file "\""]
+            set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
+            set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
+            lappend add_file_coln "$file1"
+        } else {
+            lappend add_file_coln "$file"
+        }
         lappend l_remote_file_list $file
       }
-
-      # add file to collection
-      if { $a_global_vars(b_arg_no_copy_srcs) && (!$a_global_vars(b_absolute_path)) && ![need_abs_path $file]} {
-        set file_no_quotes [string trim $file "\""]
-        set rel_file_path [get_relative_file_path_for_source $file_no_quotes [get_script_execution_dir]]
-        set file1 "\"\[file normalize \"\$origin_dir/$rel_file_path\"\]\""
-        lappend add_file_coln "$file1"
-      } else {
-        lappend add_file_coln "$file"
-      }
-
     }
   }
 
@@ -3796,3 +3844,5 @@ proc is_switch_network_source { file } {
   return false
 }
 }
+
+
