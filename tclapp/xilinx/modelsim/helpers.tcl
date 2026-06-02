@@ -42,6 +42,7 @@ proc usf_init_vars {} {
   variable l_ip_static_libs                  [list]
   variable l_xpm_libraries                   [list]
   variable a_sim_sv_pkg_libs                 [list]
+  variable a_noc_sub_cores                   [dict create]
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj

@@ -218,6 +218,9 @@ proc usf_questa_setup_simulation { args } {
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
 
+  # read NoC sub-cores
+  xcs_read_noc_sub_cores
+
   # fetch the compile order for the specified object
   xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
 

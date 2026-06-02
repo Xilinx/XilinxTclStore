@@ -6807,28 +6807,68 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
   # Return Value:
 
   upvar $uniq_libs libs
+  variable a_noc_sub_cores
+  
   if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
     # get NoC comp types from traffic spec
     set comp_types [rdi::get_noc_comp_types]
 
-    # get available NoC sub-cores
-    set sub_cores [rdi::get_noc_subcores]
-
     # comp_types empty? bind all sub-cores
     if { [llength $comp_types] == 0 } {
       set i 1
-      foreach core $sub_cores {
+      
+      dict for {comp core} $a_noc_sub_cores {
         set libs [linsert $libs $i $core]
         incr i
       }
     } else {
       # bind respective sub-core library based on comp type
+      #xcs_add_noc_sub_core $comp_types libs
       if { [lsearch -exact $comp_types "PL_NMU"] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_1"]     }
       if { [lsearch -exact $comp_types "PL_NMU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nmu_sim_v1_0_1"]     }
       if { [lsearch -exact $comp_types "PL_NSU"] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_2"]     }
       if { [lsearch -exact $comp_types "PL_NSU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nsu_sim_v1_0_2"]     }
       if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
     }
+  }
+}
+
+proc xcs_add_noc_sub_core { comp_types libs_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_noc_sub_cores
+  upvar $libs_arg libs
+
+  foreach comp $comp_types {
+    if { [dict exists $a_noc_sub_cores $comp] } {
+      set core [dict get $a_noc_sub_cores $comp]
+      set libs [linsert $libs 1 $core]
+    }
+  }
+}
+
+proc xcs_read_noc_sub_cores {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_noc_sub_cores
+
+  foreach row [rdi::get_noc_subcores] {
+    set fields [split $row ":"]
+    if { [llength $fields] == 1 } {
+      set comp_type "UKNOWN"
+      set core_name [lindex $fields 0]
+    } elseif { [llength $fields] == 2 } {
+      set comp_type [lindex $fields 0]
+      set core_name [lindex $fields 1]
+    } else {
+      send_msg_id SIM-utils-082 WARNING "Invalid data spec '$row'\n"
+      continue
+    }
+    dict set a_noc_sub_cores $comp_type $core_name
   }
 }
 

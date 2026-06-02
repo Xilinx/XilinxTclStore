@@ -71,6 +71,7 @@ proc usf_init_vars {} {
   variable l_system_sim_incl_dirs            [list]
   variable a_sim_sv_pkg_libs                 [list]
   variable a_xlnoc_files                     [list]
+  variable a_noc_sub_cores                   [dict create]
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj
