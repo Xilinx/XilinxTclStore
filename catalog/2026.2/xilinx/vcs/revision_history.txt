@@ -1,3 +1,4 @@
+18.4 auto add noc sub-core based on comp type
 18.3 read noc sub-cores with comp info
 18.2 updated version for noc_nsu_sim
 17.9 include xlnoc systemc files

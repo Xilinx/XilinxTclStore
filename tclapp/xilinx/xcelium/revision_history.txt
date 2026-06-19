@@ -1,3 +1,4 @@
+11.201 auto add noc sub-core based on comp type
 11.200 read noc sub-cores with comp info
 11.199 updated version for noc_nsu_sim
 11.196 include xlnoc systemc files

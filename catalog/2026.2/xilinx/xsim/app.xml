@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>read noc sub-cores with comp info</revision_history>
+      <revision_history>auto add noc sub-core based on comp type</revision_history>
       <name>xsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
