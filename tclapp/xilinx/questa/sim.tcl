@@ -1494,7 +1494,8 @@ proc usf_questa_create_do_file_for_elaboration { do_file } {
 
   usf_questa_write_header $fh $do_file
   if {$::tcl_platform(platform) == "unix"} {
-    xcs_write_version_id $fh "questa"
+    # not needed, sim/gcc version will be exported from elaborate.sh
+    #xcs_write_version_id $fh "questa"
   }
   if { [get_param "project.writeNativeScriptForUnifiedSimulation"] } {
     # no op

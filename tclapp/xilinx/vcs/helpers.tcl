@@ -1497,6 +1497,9 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       if { [string equal -nocase $file_type "vhdl 2008"] } {
         lappend opts "-vhdl08"
       }
+      if { [string equal -nocase $file_type "vhdl 2019"] } {
+        lappend opts "-vhdl19"
+      }
     }
     "vlogan" {
       if { $a_sim_vars(b_uvm) } {

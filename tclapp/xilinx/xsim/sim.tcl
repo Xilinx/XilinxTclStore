@@ -2346,7 +2346,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set override_param false
   [catch {set override_param [get_property -quiet "testbench_param_override" $a_sim_vars(fs_obj)]} msg]
   if { $override_param } {
-    lappend args_list "-ignore_localparam_override"
+    lappend args_list "--suppress_localparam_override_error"
   }
 
   # design source libs
