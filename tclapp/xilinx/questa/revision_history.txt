@@ -1,3 +1,4 @@
+2.348 updated command line switches
 2.347 auto add noc sub-core based on comp type
 2.346 read noc sub-cores with comp info
 2.345 updated version for noc_nsu_sim
