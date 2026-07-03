@@ -1,3 +1,4 @@
+2.349 bind IP static shared library
 2.348 updated command line switches
 2.347 auto add noc sub-core based on comp type
 2.346 read noc sub-cores with comp info
