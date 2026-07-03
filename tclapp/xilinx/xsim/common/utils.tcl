@@ -166,6 +166,56 @@ proc xcs_cache_ip_objs { } {
   }
 }
 
+proc xcs_find_ip_shared_libs { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_ip_shared_libs
+  variable a_sim_cache_all_ip_obj
+  
+  xcs_cache_ip_objs
+  set ft "(FILE_TYPE == \"Shared Library\")"
+  foreach ip_obj [array names a_sim_cache_all_ip_obj] {
+    set xci "${ip_obj}.xci"
+    set sf_coln [list]
+    foreach sf [get_files -quiet -all -filter $ft -of_objects [get_files $xci]] {
+      # bind static library
+      if { {.a} == [file extension $sf] } {
+        lappend sf_coln $sf
+      }
+    }
+    if { [llength $sf_coln] > 0 } {
+      set sf_str [join $sf_coln "#"]
+      set a_sim_cache_ip_shared_libs($ip_obj) $sf_str
+    }
+  }
+}
+
+proc xcs_get_ip_shared_libs { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_ip_shared_libs
+
+  set ip_shared_libs [list] 
+  if { [array size a_sim_cache_ip_shared_libs] > 0 } {
+    foreach ip_obj [array names a_sim_cache_ip_shared_libs] {
+      set file_coln_value $a_sim_cache_ip_shared_libs($ip_obj)
+      if { [llength $file_coln_value] > 0 } {
+        set file_elems [split $file_coln_value "#"]
+        if { [llength $file_elems] > 0 } {
+          foreach sf $file_elems {
+            lappend ip_shared_libs $sf
+          }
+        }
+      }
+    }
+  }
+  return $ip_shared_libs
+}
+
 proc xcs_create_fs_options_spec { simulator opts } {
   # Summary:
   # Argument Usage:

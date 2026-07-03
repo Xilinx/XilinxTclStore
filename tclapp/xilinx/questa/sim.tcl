@@ -165,6 +165,9 @@ proc usf_questa_setup_simulation { args } {
   # get hard-blocks
   #xcs_get_hard_blocks
 
+  # find static archive (.a) files from IPs, if any
+  xcs_find_ip_shared_libs
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -2299,6 +2302,13 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
           # bind user specified systemC/C/C++ libraries
           set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+          # bind libraries if packaged in IP
+          set l_link_shared_libs [xcs_get_ip_shared_libs]
+          if { [llength $l_link_shared_libs] > 0 } {
+            set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+          }
+
           set l_link_c_libs    [get_property "questa.elaborate.link.c"    $a_sim_vars(fs_obj)]
           if { ([llength $l_link_sysc_libs] > 0) || ([llength $l_link_c_libs] > 0) } {
             variable a_link_libs
@@ -2601,6 +2611,13 @@ proc usf_questa_get_sccom_cmd_args {} {
 
     # bind user specified systemC/C/C++ libraries
     set l_link_sysc_libs [get_property "questa.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     foreach lib $l_link_sysc_libs {
       set lib_name [file root [file tail $lib]]
       set lib_name [string trimleft $lib_name {lib}]

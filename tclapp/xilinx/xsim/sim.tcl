@@ -362,6 +362,9 @@ proc usf_xsim_setup_simulation { args } {
   # get hard-blocks
   #xcs_get_hard_blocks
 
+  # find static archive (.a) files from IPs, if any
+  xcs_find_ip_shared_libs
+
   # initialize compiled design library
   if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
     set a_sim_vars(compiled_design_lib) "xsim_lib"
@@ -2169,6 +2172,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
     # bind user specified systemC/C/C++ libraries
     set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     foreach lib $l_link_sysc_libs {
       set lib_path [file dirname $lib]
       set lib_name [file tail $lib]
@@ -2643,6 +2653,13 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
 
     # bind user specified systemC/C/C++ libraries
     set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     foreach lib $l_link_sysc_libs {
       set lib_path [file dirname $lib]
       set lib_name [file root [file tail $lib]]

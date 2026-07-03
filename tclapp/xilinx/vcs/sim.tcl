@@ -170,6 +170,9 @@ proc usf_vcs_setup_simulation { args } {
   # get hard-blocks
   #xcs_get_hard_blocks
 
+  # find static archive (.a) files from IPs, if any
+  xcs_find_ip_shared_libs
+
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
   } else {
@@ -1470,6 +1473,13 @@ proc usf_vcs_write_elaborate_script {} {
         
         # bind user specified libraries
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+        # bind libraries if packaged in IP
+        set l_link_shared_libs [xcs_get_ip_shared_libs]
+        if { [llength $l_link_shared_libs] > 0 } {
+          set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+        }
+
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
         xcs_write_library_search_order $fh_scr "vcs" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
@@ -1740,6 +1750,13 @@ proc usf_vcs_write_elaborate_script {} {
   # bind user specified libraries
   if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
     set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     if { [llength $l_link_sysc_libs] > 0 } { foreach lib $l_link_sysc_libs { lappend arg_list $lib } }
 
     set l_link_c_libs [get_property "vcs.elaborate.link.c" $a_sim_vars(fs_obj)]
@@ -2052,6 +2069,13 @@ proc usf_vcs_write_simulate_script {} {
  
         # bind user specified libraries
         set l_link_sysc_libs [get_property "vcs.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+        # bind libraries if packaged in IP
+        set l_link_shared_libs [xcs_get_ip_shared_libs]
+        if { [llength $l_link_shared_libs] > 0 } {
+          set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+        }
+
         set l_link_c_libs    [get_property "vcs.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
         xcs_write_library_search_order $fh_scr "vcs" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs

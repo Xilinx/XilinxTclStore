@@ -86,6 +86,7 @@ proc usf_init_vars {} {
   variable a_pre_compiled_source_info
   variable a_locked_ips
   variable a_custom_ips
+  variable a_sim_cache_ip_shared_libs
 
   array unset a_sim_cache_result
   array unset a_sim_cache_all_design_files_obj
@@ -101,6 +102,7 @@ proc usf_init_vars {} {
   array unset a_pre_compiled_source_info
   array unset a_locked_ips
   array unset a_custom_ips
+  array unset a_sim_cache_ip_shared_libs
 
   #######################
   # initialize param vars
