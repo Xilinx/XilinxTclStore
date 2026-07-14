@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::sim 1.42
-package require ::tclapp::aldec::common::helpers 1.42
+package require ::tclapp::aldec::common::sim 1.43
+package require ::tclapp::aldec::common::helpers 1.43
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -19,9 +19,8 @@ proc setup { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # true (0) if success, false (1) otherwise
-  #puts $args
+
   ::tclapp::aldec::common::helpers::usf_aldec_correctSetupArgs args
-  #puts $args
 
   return [eval ::tclapp::aldec::common::sim::setup $args]
 }
@@ -32,7 +31,7 @@ proc compile { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::compile $args]
 }
 
@@ -42,7 +41,7 @@ proc elaborate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::elaborate $args]
 }
 
@@ -52,7 +51,7 @@ proc simulate { args } {
   # args: command line args passed from launch_simulation tcl task
   # Return Value:
   # none
-  
+
   return [eval ::tclapp::aldec::common::sim::simulate $args]
 }
 
@@ -89,13 +88,13 @@ proc export_simulation { args } {
       "-mode"        { incr i; append switches " -mode [lindex $args $i]" }
       "-type"        { incr i; append switches " -type [lindex $args $i]" }
     }
-  }  
+  }
 
   setup "\{ $switches \}"
   compile
   elaborate
   simulate
-  
+
   # restore previous simulator
   if { $currentSimulator != "" } {
     set_property target_simulator $currentSimulator [current_project]

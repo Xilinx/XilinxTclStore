@@ -8,9 +8,9 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.42
+package require ::tclapp::aldec::common::helpers 1.43
 
-package provide ::tclapp::aldec::common::sim 1.42
+package provide ::tclapp::aldec::common::sim 1.43
 
 namespace eval ::tclapp::aldec::common {
 
@@ -46,17 +46,25 @@ proc compile { args } {
   set onlyGenerateScripts $::tclapp::aldec::common::helpers::properties(only_generate_scripts)
   set simulatorName [::tclapp::aldec::common::helpers::usf_aldec_getSimulatorName]
   send_msg_id USF-${simulatorName}-82 INFO "${simulatorName}::Compile design"
-    
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI_MM] [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]] == 1 } {
-    set protoinst_files [::tclapp::aldec::common::helpers::getProtoinstFiles $::tclapp::aldec::common::helpers::properties(dynamic_repo_dir)]
 
-    if { [llength $protoinst_files] > 0 } {
-      foreach protoinst_f $protoinst_files {
-        [catch {::tclapp::aldec::common::helpers::createAxiBusMonitor $protoinst_f
-	        send_msg_id USF-${simulatorName}-83 INFO "AXI bus monitor generated succesfully."	} error_msg]        
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI] [get_filesets $::tclapp::aldec::common::helpers::properties(simset)]] == 1 } {
+    if { ! $::tclapp::aldec::common::helpers::properties(is_record_AXI_supported) } {
+      send_msg_id USF-[usf_aldec_getSimulatorName]-112 WARNING "WARNING: AXI recording is not supported in Riviera-PRO versions earlier than 2025.10.\n"
+    } else {
+      set protoinst_files [::tclapp::aldec::common::helpers::getProtoinstFiles $::tclapp::aldec::common::helpers::properties(dynamic_repo_dir)]
+  
+      if { [llength $protoinst_files] > 0 } {
+        foreach protoinst_f $protoinst_files {
+          if { [catch {::tclapp::aldec::common::helpers::createAxiBusMonitor $protoinst_f } error_msg] } {
+            send_msg_id USF-${simulatorName}-110 WARNING "WARNING: Failed to generate AXI bus monitor for \"$protoinst_f\": $error_msg\n"
+          } else {
+            send_msg_id USF-${simulatorName}-83 INFO "AXI bus monitor generated succesfully.\n"
+          }
         }
       }
+    }
   }
+
   usf_aldec_write_compile_script
 
   if { !$onlyGenerateScripts } {
@@ -246,7 +254,29 @@ proc usf_aldec_setup_simulation { args } {
 
 	::tclapp::aldec::common::helpers::findCompileOrderFilesUniq
 	::tclapp::aldec::common::helpers::findPrecompiledLibrary
-	
+
+  #2025_10
+  #1st version TransactionRecorderAxi, TransactionRecorderAxi4Stream preeliminary
+  # needs  +access +rw - signal agent
+  #2026_04
+  #TransactionRecorderAxi4Stream 
+  #wrappers TransactionRecorderAxi4 TransactionRecorderAxi4Lite TransactionRecorderAxi3
+  #no need  +access +rw - hier refs
+  #recorder in vlib (aldec_axi_bfm) - no need for compilation  (TransactionRecorder.sv)
+
+  set ::tclapp::aldec::common::helpers::properties(riviera2025_10) false
+  set ::tclapp::aldec::common::helpers::properties(riviera2026_04) false
+  set ::tclapp::aldec::common::helpers::properties(is_record_AXI_supported) true
+  
+  regexp -nocase {(\d+)\.(\d+)\.(\d+)} [ ::tclapp::aldec::common::helpers::getSimulatorVersion ] fullmatch year month build
+  
+  if { $year eq "2025"  && $month eq "10"} {
+    set ::tclapp::aldec::common::helpers::properties(riviera2025_10) true
+  } elseif { $year >= 2026 } {
+    set ::tclapp::aldec::common::helpers::properties(riviera2026_04) true
+  } else {
+    set ::tclapp::aldec::common::helpers::properties(is_record_AXI_supported) false
+  }
   return 0
 }
 
@@ -724,8 +754,9 @@ proc usf_aldec_create_do_file_for_compilation { do_file } {
 	if { [ ::tclapp::aldec::common::helpers::isSystemCEnabled ] && $useAddsc == 1 } {
 		puts $fh "\naddsc -work $defaultLibraryName [ ::tclapp::aldec::common::helpers::getSystemCLibrary ]"
 	}
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI_MM] $fs_obj] == 1 } {
-	  compile_transacrion_recorder_files $fh
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI] $fs_obj] == 1 
+       && $::tclapp::aldec::common::helpers::properties(is_record_AXI_supported) } {
+	  compile_transaction_recorder_files $fh
   }
   if { $b_group_files } {
     # break multi-line command
@@ -1323,32 +1354,40 @@ proc usf_compile_simmodel_sources { fh } {
     }
   }
 }
-proc compile_transacrion_recorder_files { _fh } {
-			
-	set defaultLibraryName [ get_property "DEFAULT_LIB" [ current_project ] ]
+proc compile_transaction_recorder_files { _fh } {
+  set compile_transaction_recorder_files_cmd ""
+  set defaultLibraryName [ get_property "DEFAULT_LIB" [ current_project ] ]
   set install_path $::tclapp::aldec::common::helpers::properties(s_install_path)
-	if { $install_path == "" } {
+
+  if { $install_path == "" } {
     set install_path [get_param "simulator.rivieraInstallPath"] 
   }
 
   set _sourcesPath [::tclapp::aldec::common::helpers::usf_file_normalize [file join $install_path  .. "vlib/aldec_axi_bfm/hdl"]]
-	
-  if { ![file exist $_sourcesPath/TransactionRecorder.sv] } {
-    [catch {send_msg_id USF-[usf_aldec_getSimulatorName]-100 ERROR "Cannot find $_sourcesPath/TransactionRecorder.sv.\n"} error_msg]        
-  }
-  
-  if { [llength $::tclapp::aldec::common::helpers::protoinstFilesList] != 0 } { 
-	
-		puts $_fh "\nvlog -work $defaultLibraryName \"\+incdir+axi_bus_monitor\" \\"
-		puts $_fh "\t\"$_sourcesPath/TransactionRecorder.sv\" \\"
 
-		foreach protoinstFile $::tclapp::aldec::common::helpers::protoinstFilesList { 
-		set protoinstFilePath "$::tclapp::aldec::common::helpers::properties(launch_directory)/axi_bus_monitor/$protoinstFile"
-		if {[file exists $protoinstFilePath]} {
-			puts $_fh "\t\"./axi_bus_monitor/$protoinstFile\" \\"
-			}
-	 }
-	}
+  if { [llength $::tclapp::aldec::common::helpers::protoinstFilesList] != 0 } { 
+    append compile_transaction_recorder_files_cmd "\nvlog -work $defaultLibraryName \\"
+    
+    if { $::tclapp::aldec::common::helpers::properties(riviera2025_10) } {
+      if { ![file exist $_sourcesPath/TransactionRecorder.sv] } {
+        send_msg_id USF-[usf_aldec_getSimulatorName]-100 WARNING "WARNING: Cannot find $_sourcesPath/TransactionRecorder.sv.\n"
+        return
+      }
+      append compile_transaction_recorder_files_cmd "\n\t\"\+incdir+axi_bus_monitor\" \\"
+      append compile_transaction_recorder_files_cmd "\n\t\"$_sourcesPath/TransactionRecorder.sv\" \\"
+    }
+
+    foreach protoinstFile $::tclapp::aldec::common::helpers::protoinstFilesList { 
+    set protoinstFilePath "$::tclapp::aldec::common::helpers::properties(launch_directory)/axi_bus_monitor/$protoinstFile"
+    if {[file exists $protoinstFilePath]} {
+      append compile_transaction_recorder_files_cmd "\n\t\"./axi_bus_monitor/$protoinstFile\" \\"
+      } else {
+        send_msg_id USF-[usf_aldec_getSimulatorName]-111 WARNING "WARNING: Cannot find path \"$protoinstFilePath\".\n"
+        return
+      }
+   }
+   puts $_fh $compile_transaction_recorder_files_cmd 
+  }
 }
 proc getLibraryDir { } {
   set libraryDir [ string tolower [ get_property target_simulator [ current_project ] ] ]
@@ -1436,12 +1475,21 @@ proc usf_aldec_get_elaboration_cmdline {} {
   set netlist_mode [get_property "NL.MODE" $fs_obj]
 
   set arg_list [list]
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI_MM] $fs_obj] == 1 } {  
-    lappend arg_list "+access +r+w"
-  } elseif { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName ELABORATE.ACCESS] $fs_obj]
+  set w_access ""
+  
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI] $fs_obj] == 1 } {  
+    if { $::tclapp::aldec::common::helpers::properties(riviera2025_10) } {
+      set w_access "+w"
+    } elseif { $::tclapp::aldec::common::helpers::properties(riviera2026_04) } {
+      lappend arg_list "-L aldec_axi_bfm"
+    }
+  }
+
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName ELABORATE.ACCESS] $fs_obj]
     || [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.LOG_ALL_SIGNALS] $fs_obj]
-    || [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj] != {} } {
-    lappend arg_list "+access +r"
+    || [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.SAIF] $fs_obj] != {} 
+    || $w_access ne ""} {
+    lappend arg_list "+access +r$w_access"
   } else {
     lappend arg_list "+access +r +m+$top"
   }
@@ -1945,7 +1993,8 @@ proc usf_aldec_create_do_file_for_simulation { do_file } {
   }
   puts $fh ""
   # generate AXI MM transactions
-  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI_MM] $fs_obj] == 1 } {  
+  if { [get_property [::tclapp::aldec::common::helpers::usf_aldec_getPropertyName SIMULATE.record_AXI] $fs_obj] == 1 
+        && $::tclapp::aldec::common::helpers::properties(is_record_AXI_supported) } {  
     puts $fh "tsv.view.activate"
     puts $fh ""
   }
@@ -2036,7 +2085,7 @@ proc usf_aldec_write_header { fh filename } {
   puts $fh "# File name : $name"
   puts $fh "# Created on: $timestamp"
   puts $fh "#"
-  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.42 for '$mode_type' simulation,"
+  puts $fh "# Script automatically generated by Aldec Tcl Store app 1.43 for '$mode_type' simulation,"
   puts $fh "# in $version for $simulatorName simulator."
   puts $fh "#"
   puts $fh "#############################################################################################"
@@ -2058,7 +2107,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "#"
 		puts $_file "# Filename    : $_fileName"
 		puts $_file "# Simulator   : $simulatorName Simulator"
-		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.42"
+		puts $_file "# Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.43"
 		puts $_file "# Created on  : $timestamp"
 		puts $_file "#"
 		puts $_file "# usage: $_fileName"
@@ -2070,7 +2119,7 @@ proc aldecHeader { _file _fileName _proces } {
 		puts $_file "REM"
 		puts $_file "REM Filename    : $_fileName"
 		puts $_file "REM Simulator   : $simulatorName Simulator"
-		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.42"
+		puts $_file "REM Description : Script for $_proces design source files, automatically generated by Aldec Tcl Store app 1.43"
 		puts $_file "REM Created on  : $timestamp"
 		puts $_file "REM"
 		puts $_file "REM usage: $_fileName"
