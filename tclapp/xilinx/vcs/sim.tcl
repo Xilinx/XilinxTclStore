@@ -170,6 +170,11 @@ proc usf_vcs_setup_simulation { args } {
   # get hard-blocks
   #xcs_get_hard_blocks
 
+  # set systemc version
+  if { "13.3.0" == $a_sim_vars(s_gcc_version) } {
+    set a_sim_vars(sysc_ver) 234
+  }
+
   # find static archive (.a) files from IPs, if any
   xcs_find_ip_shared_libs
 
