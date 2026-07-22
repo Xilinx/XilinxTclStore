@@ -1456,9 +1456,10 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     xcs_write_script_header $fh_scr "elaborate" "xsim"
     xcs_write_version_id $fh_scr "xsim"
 
-    if { [get_param "project.allowSharedLibraryType"] } {
-      puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-    }
+    # deprecated - always true
+    #if { [get_param "project.allowSharedLibraryType"] } {
+    #  puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    #}
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
@@ -1776,31 +1777,32 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
     }
     
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
-    if { [get_param "project.allowSharedLibraryType"] } {
-      puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-      set args_list [list]
-      foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects $a_sim_vars(fs_obj)] {
-        set file_type [get_property "file_type" $file]
-        set file_dir [file dirname $file] 
-        set file_name [file tail $file] 
-        if { $file_type == "Shared Library" } {
-          set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-          if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
-            set a_shared_lib_dirs($file_dir) $file_dir
-            lappend args_list "$file_dir"
-          }
-        }
-      }
-      if { [llength $args_list] > 0 } {
-        set cmd_args [join $args_list ":"]
-        if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-        } else {
-          puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-        }
-      }
-      
-    }
+    # deprecated - always true
+    #if { [get_param "project.allowSharedLibraryType"] } {
+    #  puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    #  set args_list [list]
+    #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects $a_sim_vars(fs_obj)] {
+    #    set file_type [get_property "file_type" $file]
+    #    set file_dir [file dirname $file] 
+    #    set file_name [file tail $file] 
+    #    if { $file_type == "Shared Library" } {
+    #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+    #      if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
+    #        set a_shared_lib_dirs($file_dir) $file_dir
+    #        lappend args_list "$file_dir"
+    #      }
+    #    }
+    #  }
+    #  if { [llength $args_list] > 0 } {
+    #    set cmd_args [join $args_list ":"]
+    #    if { [get_param "project.copyShLibsToCurrRunDir"] } {
+    #      puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+    #    } else {
+    #      puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+    #    }
+    #  }
+    #  
+    #}
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set install_path {}
@@ -2103,26 +2105,27 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
  
-  if { [get_param "project.allowSharedLibraryType"] } {
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
-      set file_type [get_property "file_type" $file]
-      if { {Shared Library} == $file_type } {
-        set file_dir [file dirname $file]
-        set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-
-        if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
-            send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
-          } else {
-            send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
-          }
-          set file_dir "."
-        }
-        set file_name [file tail $file]
-        lappend args_list "-sv_root \"$file_dir\" -sv_lib $file_name"
-      }
-    }
-  }
+  # deprecated - always true
+  #if { [get_param "project.allowSharedLibraryType"] } {
+  #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+  #    set file_type [get_property "file_type" $file]
+  #    if { {Shared Library} == $file_type } {
+  #      set file_dir [file dirname $file]
+  #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+  #
+  #      if { [get_param "project.copyShLibsToCurrRunDir"] } {
+  #        if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
+  #          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
+  #        } else {
+  #          send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
+  #        }
+  #        set file_dir "."
+  #      }
+  #      set file_name [file tail $file]
+  #      lappend args_list "-sv_root \"$file_dir\" -sv_lib $file_name"
+  #    }
+  #  }
+  #}
 
   
   set unique_sysc_incl_dirs [list]

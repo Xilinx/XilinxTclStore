@@ -1824,32 +1824,33 @@ proc usf_questa_get_simulation_cmdline {} {
     }
   }
 
-  if { [get_param "project.allowSharedLibraryType"] } {
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
-      if { {Shared Library} == [get_property "file_type" $file] } {
-        set file_dir [file dirname $file]
-        set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-
-        if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          if { [file exists $file] } {
-            if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
-              send_msg_id USF_Questa-010 ERROR "Failed to copy file ($file): $error_msg\n"
-            } else {
-              send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
-            }
-          }
-          set file_dir "."
-        }
-
-        set file_name [file tail $file]
-        if { [string match "lib*so" $file_name] } {
-          # remove ".so" from libraryname 
-          set file_name [string range $file_name 0 end-3]
-        }
-        lappend arg_list "-sv_root \"$file_dir\" -sv_lib $file_name"
-      }
-    }
-  }
+  # deprecated - always true
+  #if { [get_param "project.allowSharedLibraryType"] } {
+  #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+  #    if { {Shared Library} == [get_property "file_type" $file] } {
+  #      set file_dir [file dirname $file]
+  #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+  #
+  #       if { [get_param "project.copyShLibsToCurrRunDir"] } {
+  #        if { [file exists $file] } {
+  #          if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
+  #            send_msg_id USF_Questa-010 ERROR "Failed to copy file ($file): $error_msg\n"
+  #          } else {
+  #            send_msg_id USF_Questa-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
+  #          }
+  #        }
+  #        set file_dir "."
+  #      }
+  #
+  #      set file_name [file tail $file]
+  #      if { [string match "lib*so" $file_name] } {
+  #        # remove ".so" from libraryname 
+  #        set file_name [string range $file_name 0 end-3]
+  #      }
+  #      lappend arg_list "-sv_root \"$file_dir\" -sv_lib $file_name"
+  #    }
+  #  }
+  #}
 
   lappend arg_list "-lib"
   lappend arg_list $a_sim_vars(default_top_library)
@@ -1961,9 +1962,10 @@ proc usf_questa_create_do_file_for_simulation { do_file } {
   set cmd_str [usf_questa_get_simulation_cmdline]
   usf_add_quit_on_error $fh "simulate"
   
-  if { [get_param "project.allowSharedLibraryType"] } {
-    puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
-  }
+  # deprecated - always true
+  #if { [get_param "project.allowSharedLibraryType"] } {
+  #  puts $fh "set xv_lib_path \"$::env(RDI_LIBDIR)\""
+  #}
 
   puts $fh "$cmd_str"
   if { [get_property "questa.simulate.ieee_warnings" $a_sim_vars(fs_obj)] } {
@@ -2343,34 +2345,35 @@ proc usf_questa_write_driver_shell_script { do_filename step } {
 
     # TODO: once vsim picks the "so"s path at runtime , we can remove the following code
     if { {simulate} == $step } {
-      if { [get_param "project.allowSharedLibraryType"] } {
-        puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
-        puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-
-        set args_list [list]
-        foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
-          set file_type [get_property "file_type" $file]
-          set file_dir [file dirname $file] 
-          set file_name [file tail $file] 
-
-          if { {Shared Library} == $file_type } {
-            set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-            if { ![info exists a_shared_lib_dirs($file_dir)] } {
-              set a_shared_lib_dirs($file_dir) $file_dir
-              lappend args_list "$file_dir"
-            }
-          }
-        }
-
-        if { [llength $args_list] != 0 } {
-          set cmd_args [join $args_list ":"]
-          if { [get_param "project.copyShLibsToCurrRunDir"] } {
-            puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-          } else {
-            puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-          }
-        }
-      }
+      # deprecated - always true
+      #if { [get_param "project.allowSharedLibraryType"] } {
+      #  puts $fh_scr "xv_path=\"$::env(XILINX_VIVADO)\""
+      #  puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+      #
+      #  set args_list [list]
+      #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+      #    set file_type [get_property "file_type" $file]
+      #    set file_dir [file dirname $file] 
+      #    set file_name [file tail $file] 
+      #
+      #    if { {Shared Library} == $file_type } {
+      #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+      #      if { ![info exists a_shared_lib_dirs($file_dir)] } {
+      #        set a_shared_lib_dirs($file_dir) $file_dir
+      #        lappend args_list "$file_dir"
+      #      }
+      #    }
+      #  }
+      # 
+      #  if { [llength $args_list] != 0 } {
+      #    set cmd_args [join $args_list ":"]
+      #    if { [get_param "project.copyShLibsToCurrRunDir"] } {
+      #      puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+      #    } else {
+      #      puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+      #    }
+      #  }
+      #}
     }
 
     if { {} != $tcl_pre_hook } {
