@@ -83,30 +83,30 @@ tcltest::test report_io_reg--results-ok {Check command output against expected r
   return 0
 } -cleanup {
 } -match glob \
--output {* +--------------------------------------------------------------------------------------------------------------+
- | IO Ports Summary                                                                                             |
- +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+-------------+
- | Port  | Dir | Coord | Package pin | IO Bank | Clock Region | IDELAY | ODELAY | ILOGIC | OLOGIC | Info        |
- +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+-------------+
- | clk   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in1   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in2   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in3   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in4   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in5   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in6   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in7   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in8   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | in9   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | out1  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | out2  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | out3  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | out4  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | out5  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | out6  | OUT |       |             |         |              |        |        |        |        | Unconnected |
- | reset | IN  |       |             |         |              |        |        |        |        | Unconnected |
- | sel   | IN  |       |             |         |              |        |        |        |        | Unconnected |
- +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+-------------+
+-output {* +-----------------------------------------------------------------------------------------------------------------------+
+ | IO Ports Summary                                                                                                      |
+ +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+--------+-------------+
+ | Port  | Dir | Coord | Package pin | IO Bank | Clock Region | IDELAY | ODELAY | ILOGIC | OLOGIC | TLOGIC | Info        |
+ +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+--------+-------------+
+ | clk   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in1   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in2   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in3   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in4   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in5   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in6   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in7   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in8   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | in9   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out1  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out2  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out3  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out4  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out5  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | out6  | OUT |       |             |         |              |        |        |        |        |        | Unconnected |
+ | reset | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ | sel   | IN  |       |             |         |              |        |        |        |        |        | Unconnected |
+ +-------+-----+-------+-------------+---------+--------------+--------+--------+--------+--------+--------+-------------+
 
  # Ports with no Input FF: 0
  # Ports with no Output FF: 0
