@@ -3986,6 +3986,7 @@ proc xcs_get_data_files_filter {} {
           FILE_TYPE == \"Memory Initialization Files\" || \
           FILE_TYPE == \"CSV\"                         || \
           FILE_TYPE == \"Coefficient Files\"           || \
+          FILE_TYPE == \"JSON\"                        || \
           FILE_TYPE == \"Configuration Data Object\""
 
   return $ft
