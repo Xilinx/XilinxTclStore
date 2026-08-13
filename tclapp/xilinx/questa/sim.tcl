@@ -384,6 +384,10 @@ proc usf_questa_verify_compiled_lib {} {
   variable a_sim_vars
 
   set ini_file "modelsim.ini"
+  if { "2026.2" == $a_sim_vars(s_sim_version) } {
+    set ini_file "questa.ini"
+  }
+   
   set compiled_lib_dir {}
 
   send_msg_id USF-Questa-007 INFO "Finding pre-compiled libraries...\n"
@@ -2734,6 +2738,9 @@ proc usf_questa_map_pre_compiled_libs { fh cmd } {
 
   set lib_path [get_property "sim.ipstatic.compiled_library_dir" [current_project]]
   set ini_file [file join $lib_path "modelsim.ini"]
+  if { "2026.2" == $a_sim_vars(s_sim_version) } {
+    set ini_file "questa.ini"
+  }
   if { ![file exists $ini_file] } {
     return
   }
