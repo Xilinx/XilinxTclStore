@@ -1,5 +1,6 @@
 
 ########################################################################################
+## 07/30/2026 - Replaced the coordinate-based approach with node traversal for UltraScale and UltraScale+ devices. Added support for Spartan UltraScale+ and Versal devices (German Nersisyan)
 ## 04/12/2019 - Added support for KU+, VU+, RFSOC, HBM, 58G
 ## 01/23/2015 - Added support for Native mode for UltraScale
 ## 01/22/2015 - Added support for UltraScale
@@ -161,7 +162,10 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
     virtexu -
     virtexuplus -
     virtexuplus58g -
-    virtexuplusHBM {
+    virtexuplusHBM -
+    spartanuplus {
+    }
+    versal {
     }
     default {
       puts " -E- architecture $architecture is not supported."
@@ -174,7 +178,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
   }
 
   set table [[namespace parent]::Table::Create {IO Ports Summary}]
-  $table header [list {Port} {Dir} {Coord} {Package pin} {IO Bank} {Clock Region} {IDELAY} {ODELAY} {ILOGIC} {OLOGIC} {Info}]
+  $table header [list {Port} {Dir} {Coord} {Package pin} {IO Bank} {Clock Region} {IDELAY} {ODELAY} {ILOGIC} {OLOGIC} {TLOGIC} {Info}]
 
   set output [list]
   set noOFF 0
@@ -197,12 +201,17 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
 #       set tileloc [get_property LOC $port]
       set coord [string range $tileloc [string last "_" $tileloc]+1 end]
 
+      set buf [get_cells -quiet -of [get_nets -quiet -of [get_ports $port]]]
+      set bufpins [get_pins -hierarchical -filter "NAME=~$buf/*"]
+      set iologicsite {}
+
       # Determine if anything has been instantiated in the IDELAY block in the same
       # tile region
       set idelay_used {}
       set odelay_used {}
       set ilogic_used {}
       set ologic_used {}
+      set tlogic_used {}
       switch $architecture {
         artix7 -
         spartan7 -
@@ -221,19 +230,47 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
         virtexu -
         virtexuplus -
         virtexuplus58g -
-        virtexuplusHBM {
-          # Support for both Component/Native modes
-          set idelay_used [get_cells -quiet -of [concat [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"] \
-                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RX_BITSLICE"] \
-                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RXTX_BITSLICE"] ]]
-          set odelay_used [get_cells -quiet -of [concat [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"] \
-                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/TX_BITSLICE"] \
-                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/TX_BITSLICE_TRI"] \
-                                                        [get_bels -quiet "BITSLICE_RX_TX_$coord/RXTX_BITSLICE"] ]]
-#           set idelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IDELAY"]]
-#           set odelay_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/ODELAY"]]
-          set ilogic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/IN_FF"]]
-          set ologic_used [get_cells -quiet -of [get_bels -quiet "BITSLICE_RX_TX_$coord/OUT_FF"]]
+        virtexuplusHBM -
+	spartanuplus {
+          foreach traversedir {-uphill -downhill} {
+             set iologicsite [get_sites -quiet -of [get_site_pins -quiet -of [get_nodes -quiet $traversedir -of [get_nodes -quiet -of [get_site_pins -quiet -of $bufpins]]]] -filter {NAME=~*IOLOGIC* || NAME=~*BITSLICE*}]
+             if {$iologicsite != {}} { break }
+          }
+
+	  set idelay_used [get_cells -quiet -of [concat [get_bels -quiet "$iologicsite/IDELAY"] \
+                                                        [get_bels -quiet "$iologicsite/RX_BITSLICE"] \
+                                                        [get_bels -quiet "$iologicsite/RXTX_BITSLICE"] ]]
+          set odelay_used [get_cells -quiet -of [concat [get_bels -quiet "$iologicsite/ODELAY"] \
+                                                        [get_bels -quiet "$iologicsite/TX_BITSLICE"] \
+                                                        [get_bels -quiet "$iologicsite/TX_BITSLICE_TRI"] \
+                                                        [get_bels -quiet "$iologicsite/RXTX_BITSLICE"] ]]
+          set ilogic_used [get_cells -quiet -of [concat [get_bels -quiet "$iologicsite/IN_FF"] \
+	                                                [get_bels -quiet "$iologicsite/IPFF"]]]
+          set ologic_used [get_cells -quiet -of [concat [get_bels -quiet "$iologicsite/OUT_FF"] \
+	                                                [get_bels -quiet "$iologicsite/OPFF"]]]
+	  set tlogic_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/TFF"]]
+	}
+	versal {
+          foreach traversedir {-uphill -downhill} {
+	     set iologicsite [concat [get_sites -quiet -of [get_site_pins -quiet -of [get_nodes -quiet $traversedir -of [get_nodes -quiet $traversedir -of [get_nodes -quiet $traversedir -of [get_nodes -quiet $traversedir -of [get_nodes -quiet $traversedir -of [get_nodes -quiet -of [get_site_pins -quiet -of $bufpins]]]]]]] -filter {NAME=~*IOLOGIC*}]] \
+			             [get_sites -quiet -of [get_site_pins -quiet -of [get_nodes -quiet $traversedir -of [get_nodes -quiet $traversedir -of [get_nodes -quiet -of [get_site_pins -quiet -of $bufpins]]]]] -filter {NAME=~*IOLOGIC*}]]
+             if {$iologicsite != {}} { break }
+          }
+          
+	  set beltypefull [get_property TYPE [get_bels -quiet -of $buf]]
+          set beltype [string range $beltypefull [expr {[string last "_" $beltypefull] + 1}] end]
+
+	  if {$beltype=="M"} {
+		set beltypems MASTER 
+          } elseif {$beltype=="S"} {
+		set beltypems SLAVE
+          }
+
+          set idelay_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/IDELAY_$beltypems"]]
+          set odelay_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/ODELAY_$beltypems"]]
+          set ilogic_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/IPFF_$beltypems"]]
+          set ologic_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/OPFF_$beltypems"]]
+	  set tlogic_used [get_cells -quiet -of [get_bels -quiet "$iologicsite/TFF_$beltypems"]]
         }
       }
 
@@ -251,9 +288,9 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
       }
 
       if {$verbose} {
-        $table addrow [list $port $dir $coord $pp $bank $CR $idelay_used $odelay_used $ilogic_used $ologic_used $info]
+        $table addrow [list $port $dir $coord $pp $bank $CR $idelay_used $odelay_used $ilogic_used $ologic_used $tlogic_used $info]
       } else {
-        $table addrow [list $port $dir $coord $pp $bank $CR [llength $idelay_used] [llength $odelay_used] [llength $ilogic_used] [llength $ologic_used] $info ]
+        $table addrow [list $port $dir $coord $pp $bank $CR [llength $idelay_used] [llength $odelay_used] [llength $ilogic_used] [llength $ologic_used] [llength $tlogic_used] $info]
       }
 
     } else {
@@ -264,7 +301,7 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
       set tileloc [get_sites -quiet -of_object $pp]
 #       set tileloc [get_property LOC $port]
       set coord [string range $tileloc [string last "_" $tileloc]+1 end]
-      $table addrow [list $port $dir $coord $pp $bank {} {} {} {} {} {Unconnected}]
+      $table addrow [list $port $dir $coord $pp $bank {} {} {} {} {} {} {Unconnected}]
       incr noUnconnected
     }
   }

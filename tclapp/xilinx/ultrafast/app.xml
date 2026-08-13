@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Minor cleanup</revision_history>
+      <revision_history>Added support for Spartan UltraScale+ and Versal devices; switched to node-traversal approach for UltraScale/UltraScale+ (report_io_reg)</revision_history>
       <name>ultrafast</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
