@@ -1,4 +1,4 @@
-1.11 Enhancements to report_io_reg.tcl script- #845 (xilinx::ultrafast)
+1.11 Added support for Spartan UltraScale+ and Versal devices; switched to node-traversal approach for UltraScale/UltraScale+ (report_io_reg)
 1.10 Minor cleanup
 1.9 Improved memory requirement for large reports (report_reset_signals)
 1.8 Added support for KU+, VU+, RFSOC, HBM, 58G (report_io_reg)
