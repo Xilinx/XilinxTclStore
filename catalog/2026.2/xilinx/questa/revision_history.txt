@@ -1,3 +1,4 @@
+2.354 bind shared library
 2.353 proc to find cpm lic dir
 2.352 copy questa.ini file for next sim version
 2.351 export json files to run dir
