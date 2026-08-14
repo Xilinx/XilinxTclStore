@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>copy questa.ini file for next sim version</revision_history>
+      <revision_history>proc to find cpm lic dir</revision_history>
       <name>questa</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>

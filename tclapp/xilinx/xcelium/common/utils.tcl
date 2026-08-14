@@ -6946,3 +6946,32 @@ proc xcs_add_axi_interface_header { b_absolute_path dir } {
   }
   return $intf_incl_dir
 }
+
+proc xcs_enable_lic_ip_sim {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { ({} != $a_sim_vars(s_ip_lic_dir)) && ([file exists $a_sim_vars(s_ip_lic_dir)]) && ([file isdirectory $a_sim_vars(s_ip_lic_dir)]) } {
+    set a_sim_vars(s_ip_lic_dir) [string trimright [string map {\\ /} $a_sim_vars(s_ip_lic_dir)] "/"] ; # remove trailing slash if specified
+    # set target cpm version
+    set cpm_ver {}
+    set cpm_obj [xcs_find_ip "cpm"] ; # first occurence of cpm
+    if { {} != $cpm_obj } {
+      set ipdef [get_property -quiet IPDEF $cpm_obj]
+      if { {} != $ipdef } {
+        set cpm_ver [lindex [split $ipdef ":"] 2]
+        foreach lic_ip [glob -nocomplain -directory $a_sim_vars(s_ip_lic_dir) *] {
+          set lic_ip_name [file tail $lic_ip]
+          if { $cpm_ver == $lic_ip_name } { ; # lic ip found, set model name and enable simulation
+            set a_sim_vars(b_compile_lic_ip) 1
+            set a_sim_vars(lic_ip_model) $lic_ip_name
+            break
+          }
+        }
+      }
+    }
+  }
+}
