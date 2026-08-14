@@ -1,3 +1,4 @@
+2.534 proc to find cpm lic dir
 2.533 export json files to run dir
 2.532 allowSharedLibraryType deprecated
 2.531 bind IP static shared library
