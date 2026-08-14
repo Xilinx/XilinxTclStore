@@ -2622,7 +2622,13 @@ proc usf_questa_get_sccom_cmd_args {} {
     # bind libraries if packaged in IP
     set l_link_shared_libs [xcs_get_ip_shared_libs]
     if { [llength $l_link_shared_libs] > 0 } {
-      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+      foreach lib $l_link_shared_libs {
+        set lib_dir [file dirname $lib]
+        set lib_name [file root [file tail $lib]]
+        set lib_name [string trimleft $lib_name {lib}]
+        lappend args "-L$lib_dir"
+        lappend args "-l$lib_name"
+      }
     }
 
     foreach lib $l_link_sysc_libs {
