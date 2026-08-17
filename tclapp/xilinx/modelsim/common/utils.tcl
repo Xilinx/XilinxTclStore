@@ -5044,7 +5044,7 @@ proc xcs_verify_clibs_gcc_version { clibs_dir gcc_version simulator} {
     set version [lindex [split $version_line " "] 2]
     if { ({} != $version) && ({} != $gcc_version) } {
       if { ![string match "$gcc_version*" $version] } {
-        send_msg_id SIM-utils-079 "CRITICAL WARNING" "Incompatible GCC compiled simulation library found! Library '$clibs_dir' is compiled with GCC version '$version', expected version is '$gcc_version'. Please recompile the simulation library or set the correct compiled library path for '$gcc_version'.\n"
+        send_msg_id SIM-utils-079 WARNING "Incompatible GCC compiled simulation library found! Library '$clibs_dir' is compiled with GCC version '$version', expected version is '$gcc_version'. Please recompile the simulation library or set the correct compiled library path for '$gcc_version'.\n"
       } else {
         send_msg_id SIM-utils-080 INFO "Simulation library compiled with '$version' version ('$clibs_dir)\n"
       }
