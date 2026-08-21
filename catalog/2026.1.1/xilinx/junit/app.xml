@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Adds -hold and -setup to the get_timing_paths command in validate_timing</revision_history>
+      <name>junit</name>
+      <company>xilinx</company>
+      <company_display>Xilinx, Inc.</company_display>
+      <summary>The JUnit App is built with 3 layers of APIs. The high level API enables a user to run generic tests or a group of predefined tests on demand. The intermediate level API enables a user to call assertions and customize the tests. Both the high level and intermediate level APIs are automatically generating a JUnit report in memory. The low level API enables the user to work directly with the &quot;data graph&quot; in memory. There is a section in the writer class where this in-memory &quot;data graph&quot; is converted to a &quot;junit graph&quot;. The &quot;junit graph&quot; is then just dumped to an XML file.  The conversion from &quot;data graph&quot; to &quot;junit graph&quot; exists to enable users to convert the data to other formats.</summary>
+      <display>JUnit Utilities</display>
+      <procs>
+        <proc>
+          <name>assert_exists</name>
+          <summary>Asserts that all files exist.</summary>
+        </proc>
+        <proc>
+          <name>assert_same</name>
+          <summary>Asserts that two values are the same, else a failure is logged.</summary>
+        </proc>
+        <proc>
+          <name>format_junit</name>
+          <summary>Converts the results of the in-memory data object to JUnit.</summary>
+        </proc>
+        <proc>
+          <name>get_report</name>
+          <summary>Returns the currently set JUnit API output location (see: set_report).</summary>
+        </proc>
+        <proc>
+          <name>get_results</name>
+          <summary>Returns the in-memory results, this is a ::struct::graph name. 
+The name of a struct graph is a procedure and is used to configure 
+and retrieve data from the graph object.</summary>
+        </proc>
+        <proc>
+          <name>graph_to_xml</name>
+          <summary>Converts a struct::graph object directly to xml.</summary>
+        </proc>
+        <proc>
+          <name>new_error</name>
+          <summary>Create a new node &apos;error&apos; in the provided results object. 
+Added under the provided parent node (testcase).</summary>
+        </proc>
+        <proc>
+          <name>new_failure</name>
+          <summary>Create a new node &apos;failure&apos; in the provided results object. 
+Added under the provided parent node (testcase).</summary>
+        </proc>
+        <proc>
+          <name>new_stderr</name>
+          <summary>Create a new node &apos;stderr&apos; in the provided results object. 
+Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_stdout</name>
+          <summary>Create a new node &apos;stdout&apos; in the provided results object. 
+Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_testcase</name>
+          <summary>Create a new node &apos;testcase&apos; in the provided results object. 
+Added under the provided parent node (testsuite).</summary>
+        </proc>
+        <proc>
+          <name>new_testsuite</name>
+          <summary>Create a new node &apos;testsuite&apos; in the provided results object. 
+Added under the provided parent node (testsuites).</summary>
+        </proc>
+        <proc>
+          <name>new_testsuites</name>
+          <summary>Create a new node &apos;testsuites&apos; in the provided results object.</summary>
+        </proc>
+        <proc>
+          <name>process_impl_design</name>
+          <summary>Used to process an implemented design. 
+Runs 
+validate_timing 
+validate_routing 
+validate_drcs 
+validate_messages</summary>
+        </proc>
+        <proc>
+          <name>process_runs</name>
+          <summary>Used to post-process runs. This requires using the project managed runs infrastructure 
+Runs the following validations on each run: 
+validate_run_properties 
+validate_messages 
+process_impl_design 
+_or_ 
+process_synth_design</summary>
+        </proc>
+        <proc>
+          <name>process_synth_design</name>
+          <summary>Used to process an synthesized design. 
+Runs 
+validate_logic 
+validate_drcs 
+validate_messages</summary>
+        </proc>
+        <proc>
+          <name>reset_results</name>
+          <summary>Resets the in-memory results, if it exists.</summary>
+        </proc>
+        <proc>
+          <name>run_command</name>
+          <summary>Used to wrap any command while logging success, errors, and runtime.</summary>
+        </proc>
+        <proc>
+          <name>run_silent</name>
+          <summary>Used to wrap any command while logging errors _only_. 
+A JUnitXml entry is not created on success!</summary>
+        </proc>
+        <proc>
+          <name>run_step</name>
+          <summary>Used to wrap a run-step while logging success, errors, and run-times. 
+Runs the following validations after: 
+validate_messages 
+validate_drcs</summary>
+        </proc>
+        <proc>
+          <name>set_report</name>
+          <summary>Configures the JUnit API output location.</summary>
+        </proc>
+        <proc>
+          <name>set_stderr</name>
+          <summary>Adds a stderr entry to the global testsuite and sets it&apos;s content.</summary>
+        </proc>
+        <proc>
+          <name>set_stdout</name>
+          <summary>Adds a stdout entry to the global testsuite and sets it&apos;s content.</summary>
+        </proc>
+        <proc>
+          <name>validate_drcs</name>
+          <summary>Checks if any DRC Violations are found.</summary>
+        </proc>
+        <proc>
+          <name>validate_logic</name>
+          <summary>Checks for driver-less nets and latches.</summary>
+        </proc>
+        <proc>
+          <name>validate_messages</name>
+          <summary>Checks if Warnings, Critical Warnings, or Errors exist. 
+If Errors are found, then the process is stopped (Tcl error).</summary>
+        </proc>
+        <proc>
+          <name>validate_routing</name>
+          <summary>Checks for unrouted nets.</summary>
+        </proc>
+        <proc>
+          <name>validate_run_properties</name>
+          <summary>Logs run walltime. Validates the run is at 100% 
+progress, else logs error and stops process.</summary>
+        </proc>
+        <proc>
+          <name>validate_timing</name>
+          <summary>Checks for paths with negative slack.</summary>
+        </proc>
+        <proc>
+          <name>write</name>
+          <summary>Write out the output content to a file.</summary>
+        </proc>
+        <proc>
+          <name>write_results</name>
+          <summary>Write the in-memory results to disk (uses the set_report/get_report location).</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

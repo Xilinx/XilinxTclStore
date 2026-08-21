@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history> Updated write_spyglass_script.tcl. No library is created for blk_mem_gen. &apos;synth_fileset&apos; variable is removed. Automatically creates the blk_mem_gen_vxxx,sgdc file(s) and includes them for the cdc_verify_struct goal run. </revision_history>
+      <name>spyglass</name>
+      <pkg_require>Vivado 2015.1</pkg_require>
+      <company>atrenta</company>
+      <company_display>Atrenta, Inc.</company_display>
+      <summary>This is an Atrenta app to generate the project file of the design to run it in SpyGlass. The App takes user inputs for the design-top name and the SpyGlass project file name: eg-: write_spyglass_proc foo run_spy.prj, where foo is the design-top and run_spy.prj is the SpyGlass Project file name. To run SpyGlass, ensure that the required software and the licenses are available. Invoke SpyGlass using the command: spyglass -project design-top.prj. Follow the steps outlined in the SpyGlass user guide.</summary>
+      <display>Atrenta SpyGlass for Lint and CDC</display>
+      <procs>
+        <proc>
+          <name>write_spyglass_script</name>
+          <summary>This proc generates the spyglass project file</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

@@ -1,0 +1,1 @@
+1.7 tk_tunnel: Close cmd when tclsh exits

@@ -1,0 +1,3 @@
+1.2 Remove temporary build directory after running test script
+1.1 Version 1.1 - Move set output outside if statement,Update Categories,Edit Summary, return_string fix
+1.0 <revision history>
