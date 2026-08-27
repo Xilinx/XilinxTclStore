@@ -2581,8 +2581,12 @@ proc usf_questa_get_sccom_cmd_args {} {
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set ip_obj [xcs_find_ip "ai_engine"]
       if { {} != $ip_obj } {
+        set gcc_ver "74"
+        if { ("13.4.0" == $a_sim_vars(s_gcc_version)) } {
+          set gcc_ver "134"
+        }
         lappend args "-Wl,-u -Wl,_ZN5sc_dt12sc_concatref6m_poolE"
-        lappend args "-Wl,-whole-archive -lsystemc_gcc74 -Wl,-no-whole-archive"
+        lappend args "-Wl,-whole-archive -lsystemc_gcc${gcc_ver} -Wl,-no-whole-archive"
       }
     }
 
