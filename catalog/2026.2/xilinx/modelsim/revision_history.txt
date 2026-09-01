@@ -1,3 +1,4 @@
+2.387 fix for used-in simulation consideration for BD designs
 2.386 downgrade to warning for GCC incompatibility
 2.385 proc to find cpm lic dir
 2.384 export json files to run dir
