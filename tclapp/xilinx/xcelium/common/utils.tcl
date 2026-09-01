@@ -689,6 +689,31 @@ proc xcs_copy_glbl_file { run_dir } {
   }
 }
 
+proc xcs_copy_glbl_vhd_file { run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set target_glbl_file [file normalize [file join $run_dir "GLBL_VHD.vhd"]]
+  if { [file exists $target_glbl_file] } {
+    return
+  }
+  set data_dir [rdi::get_data_dir -quiet -datafile "vhdl/src/unisims/primitive/GLBL_VHD.vhd"]
+  if { {} == $data_dir } {
+    if { [info exists ::env(VIVADO)] } {
+      set xv $::env(VIVADO)
+      if { ({} != $xv) && ([file exists $xv]) } {
+        set data_dir "$xv/data"
+      }
+    }
+  }
+  set src_glbl_file [file normalize [file join $data_dir "vhdl/src/unisims/primitive/GLBL_VHD.vhd"]]
+
+  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
+    send_msg_id SIM-utils-001 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+  }
+}
+
 proc xcs_fetch_header_from_dynamic { vh_file b_is_bd dynamic_repo_dir } {
   # Summary:
   # Argument Usage:
@@ -6974,4 +6999,42 @@ proc xcs_enable_lic_ip_sim {} {
       }
     }
   }
+}
+
+proc xcs_is_modular_noc_design {} {
+  set rtl_has_xpm_noc 0
+  if { ![catch {set xpm_libs [auto_detect_xpm -quiet -no_set_property]} err] } {
+    set rtl_has_xpm_noc [expr { [lsearch -exact $xpm_libs "XPM_NOC"] != -1 }]
+  }
+  if { !$rtl_has_xpm_noc } {
+    return 0
+  }
+
+  set xdc_has_noc_connection 0
+  set cset [get_filesets -quiet -filter {FILESET_TYPE == "Constrs"}]
+  if { [llength $cset] > 0 } {
+    set xdc_files [get_files -quiet -of_objects $cset -filter {FILE_TYPE == "XDC"}]
+    foreach xdc_file $xdc_files {
+      if { [catch {set fh [open $xdc_file r]} err] } {
+        continue
+      }
+      set found 0
+      while { [gets $fh line] >= 0 } {
+        set trimmed [string trim $line]
+        if { [string index $trimmed 0] eq "#" } {
+          continue
+        }
+        if { [regexp {(^|[^A-Za-z0-9_])create_noc_connection([^A-Za-z0-9_]|$)} $trimmed] } {
+          set found 1
+          break
+        }
+      }
+      close $fh
+      if { $found } {
+        set xdc_has_noc_connection 1
+        break
+      }
+    }
+  }
+  return $xdc_has_noc_connection
 }

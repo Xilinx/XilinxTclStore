@@ -2751,6 +2751,31 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
   }
+
+  set b_use_vhdl_glbl 0
+  if { ({VHDL} == $a_sim_vars(s_target_lang)) || ({VHDL 2008} == $a_sim_vars(s_target_lang)) } {
+    if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+      set b_use_vhdl_glbl 1
+    }
+    if { !$b_use_vhdl_glbl } {
+      if { $a_sim_vars(b_int_compile_glbl) } {
+        set b_use_vhdl_glbl 1
+      }
+    }
+    if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
+      set b_use_vhdl_glbl 1
+    }
+  }
+
+  # force no compile glbl
+  if { $b_use_vhdl_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_use_vhdl_glbl 0
+  }
+
+  if { $b_use_vhdl_glbl } {
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    lappend opts "${top_lib}.GLBL_VHD"
+  }
 }
 
 proc usf_xsim_get_xsim_cmdline_args { cmd_file wcfg_files b_add_view wdb_file b_add_wdb b_batch } {
@@ -3732,6 +3757,34 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
       }
     }
   }
+
+  set b_use_vhdl_glbl 0
+  if { ({VHDL} == $a_sim_vars(s_target_lang)) || ({VHDL 2008} == $a_sim_vars(s_target_lang)) } {
+    if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+      set b_use_vhdl_glbl 1
+    }
+    if { !$b_use_vhdl_glbl } {
+      if { $a_sim_vars(b_int_compile_glbl) } {
+        set b_use_vhdl_glbl 1
+      }
+    }
+    if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
+      set b_use_vhdl_glbl 1
+    }
+  }
+
+  # skip glbl compile if force no compile set
+  if { $b_use_vhdl_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_use_vhdl_glbl 0
+  }
+
+  if { $b_use_vhdl_glbl } {
+    xcs_copy_glbl_vhd_file $a_sim_vars(s_launch_dir)
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    set file_str "$top_lib \"GLBL_VHD.vhd\""
+    puts $fh_vhdl "\n# compile VHDL glbl module\nvhdl $file_str"
+  }
+
   # nosort? (vhdl)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
   set b_no_sort [get_property "xsim.compile.xvhdl.nosort" $a_sim_vars(fs_obj)]

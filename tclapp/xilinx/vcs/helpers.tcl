@@ -146,6 +146,16 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   } else {
     set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
     set vh_files [get_files -all -quiet -filter $filter]
+    # filter vh files for excluded block-designs
+    set excluded_bds [get_files -quiet -filter {FILE_TYPE == "Block Designs" && USED_IN_SIMULATION == 0}]
+    if { {} != $excluded_bds } {
+      foreach excluded_file [get_files -all -quiet -of_objects $excluded_bds -filter $filter] {
+        set idx [lsearch -exact $vh_files $excluded_file]
+        if { $idx != -1 } {
+          set vh_files [lreplace $vh_files $idx $idx]
+        }
+      }
+    }
   }
 
   # append global files (if any)

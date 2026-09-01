@@ -1468,7 +1468,8 @@ proc usf_xcelium_write_elaborate_script {} {
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-relax"]
   set access_mode "rwc"
-  if { $a_sim_vars(b_int_perf_analysis) } {
+  # crash with modular NoC designs for "rwc", set to "r"
+  if { $a_sim_vars(b_int_perf_analysis) && ![xcs_is_modular_noc_design] } {
     set access_mode "r"
   }
  

@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>downgrade to warning for GCC incompatibility</revision_history>
+      <revision_history>fix for used-in simulation consideration for BD designs</revision_history>
       <name>modelsim</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>xilinx</company>
