@@ -2036,25 +2036,20 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $value } { lappend args_list "--relax" }
 
   # --mt
-  set max_threads [get_param general.maxthreads]
   set mt_level [get_property "xsim.elaborate.mt_level" $a_sim_vars(fs_obj)]
   switch -regexp -- $mt_level {
     {auto} {
-      if { {1} == $max_threads } {
-        # no op, keep auto ('1' is not supported by xelab)
-      } else {
-        set mt_level $max_threads
-      }
+      lappend args_list "--mt auto"
     }
     {off} {
       # use 'off' (turn off multi-threading)
+      lappend args_list "--mt off"
     }
     default {
       # use 2, 4, 8, 16, 32
+      lappend args_list "--mt $mt_level"
     }
   }
-  
-  lappend args_list "--mt $mt_level"
 
   set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
 
@@ -4316,24 +4311,20 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
       lappend xsc_arg_list "-c"
 
       # --mt
-      set max_threads [get_param general.maxthreads]
       set mt_level [get_property "xsim.compile.xsc.mt_level" $a_sim_vars(fs_obj)]
       switch -regexp -- $mt_level {
         {auto} {
-          if { {1} == $max_threads } {
-            # no op, keep auto ('1' is not supported by xelab)
-          } else {
-            set mt_level $max_threads
-          }
+          lappend xsc_arg_list "--mt auto"
         }
         {off} {
           # use 'off' (turn off multi-threading)
+          lappend xsc_arg_list "--mt off"
         }
         default {
           # use 2, 4, 8, 16, 32
+          lappend xsc_arg_list "--mt $mt_level"
         }
       }
-      lappend xsc_arg_list "--mt $mt_level"
 
       # revisit this once we switch to higher version (1.66 will support this by default)
       lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
