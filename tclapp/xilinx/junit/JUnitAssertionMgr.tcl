@@ -891,7 +891,10 @@ proc init {} {
    
   variable results
   #if { "[ info command $results ]" == "$results" } { return }
-  set time [ clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" ] 
+  # catch: clock format needs msgcat, which appinit's app-probe sandbox stubs out
+  if { [ catch { clock format [ clock seconds ] -format "%Y-%m-%dT%H:%M:%S" } time ] } {
+    set time ""
+  }
   set hostname [ info hostname ]
   new_results $results 
   set testsuites [ new_testsuites $results ]
