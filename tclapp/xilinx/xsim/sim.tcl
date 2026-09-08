@@ -2757,11 +2757,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set b_use_vhdl_glbl 1
     }
-    if { !$b_use_vhdl_glbl } {
-      if { $a_sim_vars(b_int_compile_glbl) } {
-        set b_use_vhdl_glbl 1
-      }
-    }
+    #if { !$b_use_vhdl_glbl } {
+    #  if { $a_sim_vars(b_int_compile_glbl) } {
+    #    set b_use_vhdl_glbl 1
+    #  }
+    #}
     if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
       set b_use_vhdl_glbl 1
     }
@@ -3763,11 +3763,11 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
     if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set b_use_vhdl_glbl 1
     }
-    if { !$b_use_vhdl_glbl } {
-      if { $a_sim_vars(b_int_compile_glbl) } {
-        set b_use_vhdl_glbl 1
-      }
-    }
+    #if { !$b_use_vhdl_glbl } {
+    #  if { $a_sim_vars(b_int_compile_glbl) } {
+    #    set b_use_vhdl_glbl 1
+    #  }
+    #}
     if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
       set b_use_vhdl_glbl 1
     }
