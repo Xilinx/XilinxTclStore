@@ -197,6 +197,7 @@ variable a_global_vars
 variable l_script_data [list]
 variable l_local_files [list]
 variable l_remote_files [list]
+variable l_dup_import_files [dict create]
 variable l_bd_wrapper [list]
 variable l_validate_repo_paths [list]
 variable l_bc_filesets  [list]
@@ -2034,9 +2035,11 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   variable a_global_vars
   variable l_script_data
   variable l_bd_wrapper
+  variable l_dup_import_files
 
   set l_local_file_list [list]
   set l_remote_file_list [list]
+  set l_local_key_list [list]
 
   # return if empty fileset
   if {[llength [get_files -quiet -of_objects [get_filesets $tcl_obj]]] == 0 } {
@@ -2085,6 +2088,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
       } else {
         # add to the import collection
         lappend l_local_file_list $file
+        lappend l_local_key_list [join [lrange $path_dirs end-1 end] "/"]
         if { $a_global_vars(b_absolute_path) || [need_abs_path $file] } {
           lappend import_coln "$file"
         } else {
@@ -2146,6 +2150,7 @@ proc write_files { proj_dir proj_name tcl_obj type } {
           lappend import_coln "\[file normalize \"$org_file_path\" \]"
         }
         lappend l_local_file_list $file
+        lappend l_local_key_list [join [lrange $path_dirs end-1 end] "/"]
       } else {
         if {[use_absolute_path $file]} {
           lappend add_file_coln [string trim $file "\""]
@@ -2159,6 +2164,8 @@ proc write_files { proj_dir proj_name tcl_obj type } {
 
     }
   }
+  set l_dup_import_files [get_dup_import_files $l_local_file_list $l_local_key_list]
+
   # set flag that local sources were found and print warning at the end
   if { (!$a_global_vars(b_local_sources)) && ([llength l_local_file_list] > 0) } {
     set a_global_vars(b_local_sources) 1
@@ -2177,20 +2184,47 @@ proc write_files { proj_dir proj_name tcl_obj type } {
   # now import local files if -no_copy_sources is not specified
     if { [llength $import_coln] > 0 } {
        if { ! $a_global_vars(b_arg_no_copy_srcs)} {
+          set b_ip_fileset [is_ip_fileset $tcl_obj]
+          set plain_coln    $import_coln
+          set conflict_coln [list]
+          if { (! $b_ip_fileset) && ([dict size $l_dup_import_files] > 0) } {
+            set plain_coln [list]
+            set lidx -1
+            foreach lkey $l_local_key_list {
+              incr lidx
+              if { ! [dict exists $l_dup_import_files $lkey] } {
+                lappend plain_coln [lindex $import_coln $lidx]
+                continue
+              }
+              set lpath_dirs [split [string trim [file normalize [string map {\\ /} [string trim [lindex $l_local_file_list $lidx] "\""]]]] "/"]
+              set lnew_key   [get_local_import_key $lpath_dirs [dict get $l_dup_import_files $lkey]]
+              set lanchor    [join [lrange $lpath_dirs 0 end-[expr {[llength [split $lnew_key "/"]] - 1}]] "/"]
+              set lfile      [lindex $l_local_file_list $lidx]
+              if { $a_global_vars(b_absolute_path) || [need_abs_path $lfile] } {
+                set lanchor_expr "\[file normalize [list $lanchor]\]"
+              } else {
+                set lanchor_expr "\[file normalize \"\$\{origin_dir\}/[get_relative_file_path_for_source $lanchor [get_script_execution_dir]]\"\]"
+              }
+              lappend conflict_coln [list [lindex $import_coln $lidx] $lanchor_expr]
+            }
+          }
           lappend l_script_data "# Import local files from the original project"
           lappend l_script_data "set files \[list \\"
-          foreach ifile $import_coln {
+          foreach ifile $plain_coln {
             lappend l_script_data " $ifile\\"
           }
           lappend l_script_data "\]"
           # is this a IP block fileset? if yes, import files into current source fileset
-          if { [is_ip_fileset $tcl_obj] } {
+          if { $b_ip_fileset } {
             lappend l_script_data "set imported_files \[import_files -fileset [current_fileset -srcset] \$files\]"
           } else {
             lappend l_script_data "set imported_files \"\""
             lappend l_script_data "foreach f \$files {"
             lappend l_script_data "  lappend imported_files \[import_files -fileset $tcl_obj \$f\]"
             lappend l_script_data "}"
+            foreach cpair $conflict_coln {
+              lappend l_script_data "lappend imported_files \[import_files -fileset $tcl_obj -relative_to [lindex $cpair 1] [lindex $cpair 0]\]"
+            }
           }
        } else {
          lappend l_script_data "# Add local files from the original project (-no_copy_sources specified)"
@@ -2627,6 +2661,7 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
   variable l_script_data
   variable l_local_files
   variable l_remote_files
+  variable l_dup_import_files
   
   # is this a IP block fileset? if yes, set current source fileset
   if { [is_ip_fileset $tcl_obj] } {
@@ -2652,6 +2687,9 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     if { [string equal $file_category "local"] } {
       set path_dirs [split [string trim [file normalize [string map {\\ /} $file]]] "/"]
       set src_file [join [lrange $path_dirs end-1 end] "/"]
+      if { [dict exists $l_dup_import_files $src_file] } {
+        set src_file [get_local_import_key $path_dirs [dict get $l_dup_import_files $src_file]]
+      }
       set src_file [string trimleft $src_file "/"]
       set src_file [string trimleft $src_file "\\"]
       set file $src_file
@@ -2742,6 +2780,36 @@ proc write_fileset_file_properties { tcl_obj fs_name proj_dir l_file_list file_c
     lappend l_script_data "# None"
   }
   lappend l_script_data ""
+}
+
+proc get_dup_import_files { l_file_list l_keys } {
+  set seen [dict create]
+  foreach file $l_file_list key $l_keys {
+    dict lappend seen $key $file
+  }
+  set dup [dict create]
+  dict for { key files } $seen {
+    if { [llength $files] > 1 } {
+      dict set dup $key $files
+    }
+  }
+  return $dup
+}
+
+proc get_local_import_key { path_dirs candidates } {
+  set count [llength $path_dirs]
+  for { set n 3 } { $n <= $count } { incr n } {
+    set key [join [lrange $path_dirs end-[expr {$n - 1}] end] "/"]
+    set matches 0
+    foreach cfile $candidates {
+      set cpath [string trim [file normalize [string map {\\ /} [string trim $cfile "\""]]]]
+      if { [string match "*$key" $cpath] } { incr matches }
+    }
+    if { $matches <= 1 } {
+      return $key
+    }
+  }
+  return [join [lrange $path_dirs 1 end] "/"]
 }
 
 proc get_script_execution_dir { } {
