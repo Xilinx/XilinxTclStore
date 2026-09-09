@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Add ALINT-PRO plugin (aldec::alint)</revision_history>
+      <revision_history>Initial version</revision_history>
       <name>alint</name>
       <company>aldec</company>
       <company_display>Aldec, Inc.</company_display>
