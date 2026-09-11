@@ -14,14 +14,5 @@ namespace eval ::tclapp::xilinx::customqorflows {
     lappend ::auto_path $home
     }
 
-    # Source the common utilities for customqorflows
-    source [file join $home common common.tcl]
-
-    # Source the RQS checks for customqorflows
-    source [file join $home customrqschecks rqs_checks.tcl]
-
-    # Source the RQA checks for customqorflows
-    source [file join $home customrqachecks rqa_checks.tcl]
-
 }
-package provide ::tclapp::xilinx::customqorflows 1.01
+package provide ::tclapp::xilinx::customqorflows 1.10

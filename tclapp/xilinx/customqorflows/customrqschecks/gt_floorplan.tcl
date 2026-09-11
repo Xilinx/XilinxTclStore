@@ -29,6 +29,9 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		#   - SINGLE_CR_PRIM_CNT_THRESHOLD (Default: 2000): Floorplan decision threshold.
 		#   - MULTI_CR_PRIM_CNT_THRESHOLD (Default: 10000): Floorplan decision threshold.
 		#   - HALF_SLR_PRIM_CNT_THRESHOLD (Default: 20000): Floorplan decision threshold.
+		#   - PBLOCK_MAX_UTIL_PCT (Default: 100): Maximum allowed per-resource Util% a candidate
+		#     pblock (PBLOCKS mode only) may reach before it is rejected and escalated to the next
+		#     wider tier (single CR -> CR row -> half-SLR) via check_pblock_capacity.
 		#   - SLR0,Y,MIN .. SLR3,Y,MAX (Defaults: 1..13): Clock-region to SLR-side mapping.
 		#   - MIN_NUM_SLRS (Default: 0): Early exit when device SLR count is smaller.
 		#   - ONLY_UNPLACED_DESIGNS (Default: 1): Early exit when design is fully placed.
@@ -41,8 +44,6 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		# dict with key COMMAND: [dict create COMMAND $command]
 		#   COMMAND value is a Tcl command string for the selected SUGGESTION_MODE.
 
-		# Categories: xilinxtclstore, customqorflows
-
 		# New proc to generate GT info
 		set start [clock seconds]
 
@@ -52,6 +53,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		set PARAMS(SINGLE_CR_PRIM_CNT_THRESHOLD) 2000
 		set PARAMS(MULTI_CR_PRIM_CNT_THRESHOLD)  10000
 		set PARAMS(HALF_SLR_PRIM_CNT_THRESHOLD)  20000
+		set PARAMS(PBLOCK_MAX_UTIL_PCT)  100
 		set PARAMS(SLR0,Y,MIN)  1
 		set PARAMS(SLR0,Y,MAX)  4
 		set PARAMS(SLR1,Y,MIN)  5
@@ -84,7 +86,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		# This happens in the first run when it is run with it set to 0.
 		set read_dict_info $PARAMS(READ_DICT_INFO)
 
-		if {$debug == 1} {set ct_fid [open compile_time.txt a] ; puts "-D Compile time file: compile_time.txt"}
+		if {$debug >= 1} {set ct_fid [open compile_time.txt a] ; puts "-D Compile time file: compile_time.txt"}
 		
 		set clock_net_dict [dict create]
 		set hier_cell_dict [dict create]
@@ -97,32 +99,32 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		# A) Suggestion only supports Versal but does not support XCVP1902
 		set part [lindex [split [get_property -quiet PART [current_design]] -] 0]
 		if {$part eq "xcvp1902"} {
-			if {$debug == 1} {puts "-D: Part $part is not supported for this suggestion"}
+			if {$debug >= 1} {puts "-D: Part $part is not supported for this suggestion"}
 			return
 		}
 		# B) Suggestion only supports unplaced designs
 		if {$PARAMS(ONLY_UNPLACED_DESIGNS) == 1} {
 			if {[report_route_status -quiet -boolean_check PLACED_FULLY] == 1} {
-				if {$debug == 1} {puts "-D: Suggestion can not be generated on a placed design. This is disabled to prevent duplicates and save runtime"}
+				if {$debug >= 1} {puts "-D: Suggestion can not be generated on a placed design. This is disabled to prevent duplicates and save runtime"}
 				return
 			}
 		}
 		# C) Exit if number of SLRs < $PARAMS(MIN_NUM_SLRS)
 		if {[llength [get_slrs -quiet]] < $PARAMS(MIN_NUM_SLRS)} {
-			if {$debug == 1} {puts "-D: Part has not met the tuning parameter for minimum number of SLRs"}
+			if {$debug >= 1} {puts "-D: Part has not met the tuning parameter for minimum number of SLRs"}
 			return
 		}
 		# D) Exit if the suggestion already exists
 		if {$PARAMS(SUGGESTION_MODE) eq "PBLOCKS" && [llength [get_qor_suggestions -quiet RQS_NETLIST-11*]] > 0} {
-			if {$debug == 1} {puts "-D: Suggestion is already generated. Delete the suggestion before rerunning."}
+			if {$debug >= 1} {puts "-D: Suggestion is already generated. Delete the suggestion before rerunning."}
 			return
 		} elseif {$PARAMS(SUGGESTION_MODE) eq "SYNTH_PROPERTY" && [llength [get_qor_suggestions -quiet RQS_NETLIST-12*]] > 0} {
-			if {$debug == 1} {puts "-D: Suggestion is already generated. Delete the suggestion before rerunning."}
+			if {$debug >= 1} {puts "-D: Suggestion is already generated. Delete the suggestion before rerunning."}
 			return
 		}
 		# E) Exit if the pblocks already exists
 		if {$PARAMS(SUGGESTION_MODE) eq "PBLOCKS" && ([llength [get_pblocks -quiet pb_single_cr*]] > 0 || [llength [get_pblocks -quiet pb_slr_side*]] > 0 ||[llength [get_pblocks -quiet pb_row_cr_*]] > 0)} {
-			if {$debug == 1} {puts "-D: Suggestion is potentially generated as Tcl already. Delete pblocks before rerunning."}
+			if {$debug >= 1} {puts "-D: Suggestion is potentially generated as Tcl already. Delete pblocks before rerunning."}
 			return
 		} 
 		
@@ -138,10 +140,10 @@ namespace eval ::tclapp::xilinx::customqorflows {
 
 		set num_gclks_start [clock seconds]
 		::tclapp::xilinx::customqorflows::generate_gclk_hier_details GCLK_ARR
-		 if {$debug == 1} {
+		 if {$debug >= 1} {
 			::tclapp::xilinx::customqorflows::write_array_to_file GCLK_ARR gclkarray.txt
 			set num_gclks_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $num_gclks_start $num_gclks_stop  "" _NUM_GCLKS $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $num_gclks_start $num_gclks_stop  "" _NUM_GCLKS $ct_fid
 		}
 
 		set outclk_pins [get_pins -quiet -of $gt_quad_cells -filter {NAME =~ "*XOUTCLK*"}]
@@ -161,11 +163,11 @@ namespace eval ::tclapp::xilinx::customqorflows {
 			if {$debug == 2} {puts "-D: Overriding GT. Only running  with single GT."; set gt_quad_cells [lindex $gt_quad_cells end]}
 
 			# Gathering multicell data
-					::tclapp::xilinx::customqorflows::get_multi_hier_cell_data hier_cell_dict $hier_cells_for_analysis mode1
-			if {$debug == 1} {
+			::tclapp::xilinx::customqorflows::get_multi_hier_cell_data hier_cell_dict $hier_cells_for_analysis mode1
+			if {$debug >= 1} {
 				::tclapp::xilinx::customqorflows::write_dict_to_file $hier_cell_dict hier_cell_dict.txt
 				set hier_cell_stop [clock seconds]
-						::tclapp::xilinx::customqorflows::compile_time $hier_cell_start $hier_cell_stop  "" _HIER_CELL  $ct_fid
+				::tclapp::xilinx::customqorflows::compile_time $hier_cell_start $hier_cell_stop  "" _HIER_CELL  $ct_fid
 			}
 		}
 
@@ -181,18 +183,18 @@ namespace eval ::tclapp::xilinx::customqorflows {
 				set gt_quad_outclk_pins [get_pins -quiet -of $gt_quad_cell -filter {NAME =~ "*XOUTCLK*"}]
 				set gt_quad_bufg_gts [get_cells -quiet -of [get_pins -leaf -quiet -filter {REF_PIN_NAME==I&&REF_NAME=~*BUFG_GT*} -of [get_nets -quiet -of $gt_quad_outclk_pins]]]
 				set gt_quad_outclk_nets [get_nets -quiet -of [get_pins -quiet -filter {DIRECTION==OUT} -of $gt_quad_bufg_gts]]
-				if {$debug == 1} {puts "-D: gt_quad_cell  is $gt_quad_cell"}
-						set gt_hierarchies [::tclapp::xilinx::customqorflows::get_floorplan_hierarchy_by_celltype $gt_quad_cell]
+				if {$debug >= 1} {puts "-D: gt_quad_cell  is $gt_quad_cell"}
+				set gt_hierarchies [::tclapp::xilinx::customqorflows::get_floorplan_hierarchy_by_celltype $gt_quad_cell]
 				dict set analysis_dict $gt_quad_cell gt_single_cr [lindex $gt_hierarchies 0]
 				dict set analysis_dict $gt_quad_cell gt_single_hier [lindex $gt_hierarchies 1]
 				dict set analysis_dict $gt_quad_cell gt_multi_hier [lindex $gt_hierarchies 3]
 				dict set analysis_dict $gt_quad_cell outclk_nets $gt_quad_outclk_nets
 				dict set analysis_dict $gt_quad_cell all_parent_cells [get_property -quiet PARENT_CELL [get_nets -quiet -segments $gt_quad_outclk_nets]]
 			}    
-			 if {$debug == 1} {
+			 if {$debug >= 1} {
 				::tclapp::xilinx::customqorflows::write_dict_to_file $analysis_dict analysis_dict.txt
 				set analysis_stop [clock seconds]
-						::tclapp::xilinx::customqorflows::compile_time $analysis_start $analysis_stop  "" _ANALYSIS_DICT  $ct_fid
+				::tclapp::xilinx::customqorflows::compile_time $analysis_start $analysis_stop  "" _ANALYSIS_DICT  $ct_fid
 			 } 
 		}
 
@@ -204,17 +206,17 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		} else { 
 			# First generate multi clock net data. This should be quick
 			set multi_clock_net_start [clock seconds]
-					set clock_net_dict [::tclapp::xilinx::customqorflows::get_multi_clock_net_data "" mode1]
-			if {$debug == 1} {
+			set clock_net_dict [::tclapp::xilinx::customqorflows::get_multi_clock_net_data "" mode1]
+			if {$debug >= 1} {
 				set multi_clock_net_stop [clock seconds]
-						::tclapp::xilinx::customqorflows::compile_time $multi_clock_net_start $multi_clock_net_stop  "" _MULTI_CLOCK_COMPILE_TIME $ct_fid
+				::tclapp::xilinx::customqorflows::compile_time $multi_clock_net_start $multi_clock_net_stop  "" _MULTI_CLOCK_COMPILE_TIME $ct_fid
 			}
 			# Next generate single clock net data. This is propotional to the number of clocks
 			set single_clock_net_start [clock seconds]
 			foreach net $parent_bufg_gt_nets {
 				# Generate data for the clock net and merge with existing data
-				if {$debug == 1} {puts "-D: single clock_net data: $net"}
-						set new_data [::tclapp::xilinx::customqorflows::get_single_clock_net_data $net mode1]
+				if {$debug >= 1} {puts "-D: single clock_net data: $net"}
+				set new_data [::tclapp::xilinx::customqorflows::get_single_clock_net_data $net mode1]
 				if {[dict exists $clock_net_dict $net]} {
 					# Merge new data with existing data for this net
 					dict set clock_net_dict $net [dict merge [dict get $clock_net_dict $net] $new_data]
@@ -226,7 +228,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 			if {$debug} {
 				::tclapp::xilinx::customqorflows::write_dict_to_file $clock_net_dict clock_net_dict.txt
 				set single_clock_net_stop [clock seconds]
-						::tclapp::xilinx::customqorflows::compile_time $single_clock_net_start $single_clock_net_stop  "" _SINGLE_CLOCK_DICT $ct_fid
+				::tclapp::xilinx::customqorflows::compile_time $single_clock_net_start $single_clock_net_stop  "" _SINGLE_CLOCK_DICT $ct_fid
 			} 
 		}
 
@@ -259,7 +261,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 					# The following captures which floorplan types should work with this clock
 					# These are carefully ordered so that the final one wins
 					for {set m 1} {$m <=3} {incr m} {
-										if {[set rt [::tclapp::xilinx::customqorflows::get_floorplan $gt_dict $gclk_dict PARAMS $m]] eq ""} {
+						if {[set rt [::tclapp::xilinx::customqorflows::get_floorplan $gt_dict $gclk_dict PARAMS $m]] eq ""} {
 							lappend print_row 0
 						} else {
 							lappend print_row 1
@@ -287,12 +289,12 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		$tbl destroy
 		if {$debug} {
 			set fp_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $fp_start $fp_stop  "" _FP_DATA $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $fp_start $fp_stop  "" _FP_DATA $ct_fid
 		}
 
 		# Now generate the list of hierarchies to go into the pblocks
 		set hier_list_start [clock seconds]
-		if {$debug == 1} {puts "-D: Printing floorplan table and generating pblock"}
+		if {$debug >= 1} {puts "-D: Printing floorplan table and generating pblock"}
 		# First we generate info that allows us to speed up processing.
 		# Assign FLOORPLANABLE($hier) == [list IN_PBLOCK REASON] to allow addition to pblock
 		foreach hier $hier_cells_single_gclk {
@@ -300,13 +302,13 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		}
 		foreach cell_type [list DCMAC MRMAC ILKNF GT*QUAD] {
 			set cells [get_cells -quiet -of [filter -quiet $bufg_gt_load_pins "REF_NAME=~$cell_type"]]
-			if {$debug == 1} {puts "-D: cell_type - $cell_type : Found [llength $cells] cells"}
+			if {$debug >= 1} {puts "-D: cell_type - $cell_type : Found [llength $cells] cells"}
 			foreach cell $cells {
-						set hiers [::tclapp::xilinx::customqorflows::get_floorplan_hierarchy_by_celltype $cell]
+				set hiers [::tclapp::xilinx::customqorflows::get_floorplan_hierarchy_by_celltype $cell]
 				if {[lindex $hiers 3] eq ""} {set highest_single_hier [get_property -quiet PARENT $cell]} else {set highest_single_hier [lindex $hiers 1]}
 				set FLOORPLANABLE($highest_single_hier) [list 1 "single hard ip hierarchy"]
-						::tclapp::xilinx::customqorflows::flag_hierarchies_below $highest_single_hier FLOORPLANABLE 0 [list 0 "hierarchy below single hard IP" $cell] ""
-						::tclapp::xilinx::customqorflows::flag_hierarchies_above $highest_single_hier FLOORPLANABLE 0 [list 0 "hierarchy above single hard IP" $cell] ""      
+				::tclapp::xilinx::customqorflows::flag_hierarchies_below $highest_single_hier FLOORPLANABLE 0 [list 0 "hierarchy below single hard IP" $cell] ""
+				::tclapp::xilinx::customqorflows::flag_hierarchies_above $highest_single_hier FLOORPLANABLE 0 [list 0 "hierarchy above single hard IP" $cell] ""      
 			}
 		}
 
@@ -330,7 +332,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 						incr clk_cnt -1; continue
 					}
 				} else {
-					if {$debug == 1} {puts "-D: clock $gclk does not have PRE_DRIVING_CELL info"}
+					if {$debug >= 1} {puts "-D: clock $gclk does not have PRE_DRIVING_CELL info"}
 				}
 			}
 			if {[set src_gts [llength [lsort -unique $pre_drv_cell_list]]] <= 1 && $clk_cnt == 0} {
@@ -342,7 +344,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		}
 		if {$debug} {
 			set hier_list_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $hier_list_start $hier_list_stop  "" __GEN_FLOORPLANNABLE $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $hier_list_start $hier_list_stop  "" __GEN_FLOORPLANNABLE $ct_fid
 		}
 
 		# Next tidy up the pblocks by only including top level pblocks that need to be in the constriant.
@@ -354,15 +356,15 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		foreach hier $all_bufg_gt_parent_cells {
 			if {[info exists FLOORPLANABLE($hier)]} {
 				if {[lindex $FLOORPLANABLE($hier) 0] == 1} {
-									::tclapp::xilinx::customqorflows::flag_hierarchies_below $hier FLOORPLANABLE 0 [list 0 "hierarchy below floorplan hierarchy"]
+					::tclapp::xilinx::customqorflows::flag_hierarchies_below $hier FLOORPLANABLE 0 [list 0 "hierarchy below floorplan hierarchy"]
 					incr z
 				}
 			}
 		}
-		if {$debug == 1} {
+		if {$debug >= 1} {
 			puts "-D: tidied up $z hierarchies"
 			set hier_list_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $hier_list_start2 $hier_list_stop  "" __HIERARCHY_TIDY_UP $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $hier_list_start2 $hier_list_stop  "" __HIERARCHY_TIDY_UP $ct_fid
 			::tclapp::xilinx::customqorflows::write_array_to_file FLOORPLANABLE floorplannable_array.txt
 		}
 
@@ -382,12 +384,12 @@ namespace eval ::tclapp::xilinx::customqorflows {
 			}
 			incr j
 		}
-		if {$debug == 1} {
+		if {$debug >= 1} {
 			::tclapp::xilinx::customqorflows::write_array_to_file PER_CLK_CLOCK_TABLE per_clk_table_array.txt
 		}
 
 		# Generate user debug commands to more easily analyze the clocks
-		if {$debug == 1} {puts "-D: Generating user debug commands"}
+		if {$debug >= 1} {puts "-D: Generating user debug commands"}
 		 for {set i 0} {$i < $j} {incr i} {
 			set net $PER_CLK_CLOCK_TABLE($i,GCLK)
 			set fp_cells ""
@@ -423,7 +425,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 			}
 			::tclapp::xilinx::customqorflows::write_array_to_file PER_CLK_CLOCK_TABLE per_clock_table_array.txt     
 			set hier_list_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $hier_list_start $hier_list_stop  "" _HIER_LIST_DATA $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $hier_list_start $hier_list_stop  "" _HIER_LIST_DATA $ct_fid
 		}  
 
 		# Generate the floorplan constraints
@@ -431,41 +433,155 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		# #2 Generate the clock dictionary
 		# #3 Get the floorplan keys and information in the dictionary associated with each floorplan. In this we expect the lowest index key to be the best floorplan for that net.
 		#    When we create pblocks, these could get pulled into larger pblocks if no cells are left.
+		# #4 (PBLOCKS mode only) Verify each candidate pblock group actually has enough device
+		#    resource capacity for its assigned cells via check_pblock_capacity. If a group is
+		#    over capacity, escalate every net that fed it to its own next-available tier
+		#    (single CR -> CR row -> half-SLR) and re-check, rather than emitting a pblock that
+		#    would fail place_design with a [Place 30-2958] insufficient-capacity error. SYNTH_PROPERTY
+		#    mode has no physical pblock, so no capacity constraint applies there.
 		set get_pblock_start [clock seconds]
 		set PB(NAMES,1) ""
 		set PB(NAMES,2) ""
 		set PB(NAMES,3) ""
+		set PB(NAMES) ""
+
+		# Phase A: per-net precompute (available tiers + candidate cells), common to both modes.
+		catch {unset NET_KEYS}
+		catch {unset NET_CELLS}
+		catch {unset NET_ACTIVE_TIER}
 		for {set i 0} {$i < $j} {incr i} {
 			set net $PER_CLK_CLOCK_TABLE($i,GCLK)
 			set net_dict [dict get $clock_net_dict $net]
-			set keys [lsort -dict [dict keys $net_dict FLOORPLAN_*]] ; 
-			if {$debug == 1} {puts "-D: Keys are $keys for net $net"}
-			set key [lindex $keys 0]
-			if {[llength $key] == 0} {
-				if {$debug == 1} {puts "-D: No floorplan for net $net"}
-				continue
-			}
-			set range [dict get $net_dict $key]
-			if {[regexp {CLOCKREGION_(X(\d+)Y(\d+)):CLOCKREGION_(X(\d+)Y(\d+))} $range match src_cr src_x src_y dest_cr dest_x dest_y] == 0} {
-				if {$debug == 1} {
-					puts "-D: Regexp not matched for clock regions in pblock range $val"
-				} 
-				continue
-			}
-			set var [string index $key end]
-			if {$var == 1} {
-				lappend PB(NAMES,$var) [set name pb_single_cr_${src_cr}]
-			} elseif {$var == 2} {
-				 lappend PB(NAMES,$var)  [set name pb_row_cr_${src_cr}_${dest_cr}]
-			} elseif {$var == 3} {
-				 lappend PB(NAMES,$var) [set name pb_slr_side_${src_cr}_${dest_cr}]
-			}
-			lappend PB(NAMES) $name
-			set PB($name,RANGE) $range
-			lappend PB($name,COMMENT) "Pblock for net $net"
-			set PB($name,CELLS_TO_ADD) ""
+			set NET_KEYS($i) [lsort -dict [dict keys $net_dict FLOORPLAN_*]]
+			if {$debug >= 1} {puts "-D: Keys are $NET_KEYS($i) for net $net"}
+			set NET_CELLS($i) ""
 			foreach hier $PER_CLK_CLOCK_TABLE($i,HIERARCHIES) {
-				if {$PER_CLK_CLOCK_TABLE($i,$hier,IN_PBLOCK) == 1} {lappend PB($name,CELLS_TO_ADD) $hier}
+				if {$PER_CLK_CLOCK_TABLE($i,$hier,IN_PBLOCK) == 1} {lappend NET_CELLS($i) $hier}
+			}
+			if {[llength $NET_KEYS($i)] == 0 || [llength $NET_CELLS($i)] == 0} {
+				set NET_ACTIVE_TIER($i) ""
+				if {$debug >= 1} {puts "-D: No floorplan for net $net"}
+				continue
+			}
+			set NET_ACTIVE_TIER($i) [string index [lindex $NET_KEYS($i) 0] end]
+		}
+
+		if {$PARAMS(SUGGESTION_MODE) eq "PBLOCKS"} {
+			# Phase B: worklist-by-tier escalation, tiers 1 -> 2 -> 3, single forward pass.
+			# check_pblock_capacity is called at most once per unique (tier, name) group with a
+			# non-empty cell list - never per net, never per cell.
+			for {set tier 1} {$tier <= 3} {incr tier} {
+				if {$debug >= 1} {set tier_start [clock seconds]}
+				catch {unset PB_TIER}
+				array set PB_TIER {}
+				set PB_TIER(NAMES) ""
+				for {set i 0} {$i < $j} {incr i} {
+					if {![info exists NET_ACTIVE_TIER($i)] || $NET_ACTIVE_TIER($i) eq "" || $NET_ACTIVE_TIER($i) != $tier} {continue}
+					set net $PER_CLK_CLOCK_TABLE($i,GCLK)
+					set net_dict [dict get $clock_net_dict $net]
+					set range [dict get $net_dict FLOORPLAN_${tier}]
+					if {[regexp {CLOCKREGION_(X(\d+)Y(\d+)):CLOCKREGION_(X(\d+)Y(\d+))} $range match src_cr src_x src_y dest_cr dest_x dest_y] == 0} {
+						if {$debug >= 1} {puts "-D: Regexp not matched for clock regions in pblock range $range"}
+						continue
+					}
+					if {$tier == 1} {
+						set name pb_single_cr_${src_cr}
+					} elseif {$tier == 2} {
+						set name pb_row_cr_${src_cr}_${dest_cr}
+					} else {
+						set name pb_slr_side_${src_cr}_${dest_cr}
+					}
+					if {![info exists PB_TIER($name,SEEN)]} {
+						lappend PB_TIER(NAMES) $name
+						set PB_TIER($name,SEEN) 1
+						set PB_TIER($name,RANGE) $range
+						set PB_TIER($name,COMMENT) ""
+						set PB_TIER($name,CELLS_TO_ADD) ""
+						set PB_TIER($name,NET_IDXS) ""
+					}
+					lappend PB_TIER($name,COMMENT) "Pblock for net $net"
+					foreach c $NET_CELLS($i) {lappend PB_TIER($name,CELLS_TO_ADD) $c}
+					lappend PB_TIER($name,NET_IDXS) $i
+				}
+
+				foreach name [lsort -unique $PB_TIER(NAMES)] {
+					set cells [lsort -unique $PB_TIER($name,CELLS_TO_ADD)]
+					if {[llength $cells] == 0} {continue}
+
+					if {$debug >= 1} {set cap_start [clock seconds]}
+					if {[catch {
+						set cap_result [::tclapp::xilinx::customqorflows::check_pblock_capacity \
+							$PB_TIER($name,RANGE) $cells $PARAMS(PBLOCK_MAX_UTIL_PCT) $name $debug]
+					} cap_err]} {
+						set cap_result [dict create OK 0 OVERFLOW [dict create] ERROR $cap_err]
+					}
+					if {$debug >= 1} {
+						set cap_stop [clock seconds]
+						::tclapp::xilinx::customqorflows::compile_time $cap_start $cap_stop "" _CAPACITY_CHECK_TIER${tier}_${name} $ct_fid
+					}
+
+					if {[dict get $cap_result OK] == 1} {
+						lappend PB(NAMES,$tier) $name
+						lappend PB(NAMES) $name
+						set PB($name,RANGE) $PB_TIER($name,RANGE)
+						set PB($name,COMMENT) $PB_TIER($name,COMMENT)
+						set PB($name,CELLS_TO_ADD) $cells
+					} else {
+						if {$debug >= 1} {
+							puts "-D: Pblock group $name (tier $tier) failed capacity check - OVERFLOW: [dict get $cap_result OVERFLOW] ERROR: [dict get $cap_result ERROR]"
+						}
+						foreach i $PB_TIER($name,NET_IDXS) {
+							set next_tier ""
+							foreach k $NET_KEYS($i) {
+								set k_num [string index $k end]
+								if {$k_num > $tier} {set next_tier $k_num; break}
+							}
+							if {$next_tier ne ""} {
+								set NET_ACTIVE_TIER($i) $next_tier
+								if {$debug >= 1} {puts "-D: Net $PER_CLK_CLOCK_TABLE($i,GCLK) escalated tier $tier -> $next_tier (capacity)"}
+							} else {
+								set NET_ACTIVE_TIER($i) ""
+								if {$debug >= 1} {puts "-D: Net $PER_CLK_CLOCK_TABLE($i,GCLK) DROPPED - capacity check failed at widest available tier ($tier)"}
+							}
+						}
+					}
+				}
+				if {$debug >= 1} {
+					set tier_stop [clock seconds]
+					::tclapp::xilinx::customqorflows::compile_time $tier_start $tier_stop "" _CAPACITY_ESCALATION_TIER${tier} $ct_fid
+				}
+			}
+		} else {
+			# SYNTH_PROPERTY mode: no physical pblock is created (KEEP_HIERARCHY only), so no
+			# device-capacity constraint applies. Preserve the original tightest-available-tier
+			# selection, aggregating by name exactly as PBLOCKS mode does above.
+			for {set i 0} {$i < $j} {incr i} {
+				if {![info exists NET_ACTIVE_TIER($i)] || $NET_ACTIVE_TIER($i) eq ""} {continue}
+				set tier $NET_ACTIVE_TIER($i)
+				set net $PER_CLK_CLOCK_TABLE($i,GCLK)
+				set net_dict [dict get $clock_net_dict $net]
+				set range [dict get $net_dict FLOORPLAN_${tier}]
+				if {[regexp {CLOCKREGION_(X(\d+)Y(\d+)):CLOCKREGION_(X(\d+)Y(\d+))} $range match src_cr src_x src_y dest_cr dest_x dest_y] == 0} {
+					if {$debug >= 1} {puts "-D: Regexp not matched for clock regions in pblock range $range"}
+					continue
+				}
+				if {$tier == 1} {
+					set name pb_single_cr_${src_cr}
+				} elseif {$tier == 2} {
+					set name pb_row_cr_${src_cr}_${dest_cr}
+				} else {
+					set name pb_slr_side_${src_cr}_${dest_cr}
+				}
+				if {![info exists PB($name,SEEN)]} {
+					lappend PB(NAMES,$tier) $name
+					lappend PB(NAMES) $name
+					set PB($name,SEEN) 1
+					set PB($name,RANGE) $range
+					set PB($name,COMMENT) ""
+					set PB($name,CELLS_TO_ADD) ""
+				}
+				lappend PB($name,COMMENT) "Pblock for net $net"
+				foreach c $NET_CELLS($i) {lappend PB($name,CELLS_TO_ADD) $c}
 			}
 		}
 		set command ""
@@ -483,7 +599,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 					for {set j 0} {$j < [llength $PB($name,CELLS_TO_ADD)]} {incr j} {
 						lappend cell_list [lindex $PB($name,CELLS_TO_ADD) $j]
 					}
-									set fmt_cell_list [::tclapp::xilinx::customqorflows::pretty_partial_command $cell_list]
+					set fmt_cell_list [::tclapp::xilinx::customqorflows::pretty_partial_command $cell_list]
 					set command "${command}add_cells_to_pblock $name \[get_cells ${fmt_cell_list} \]\n"
 				}
 			}
@@ -500,19 +616,19 @@ namespace eval ::tclapp::xilinx::customqorflows {
 					for {set j 0} {$j < [llength $PB($name,CELLS_TO_ADD)]} {incr j} {
 						lappend obj_list [lindex $PB($name,CELLS_TO_ADD) $j]
 					}
-									set tmp_command [::tclapp::xilinx::customqorflows::pretty_command_property KEEP_HIERARCHY TRUE $obj_list cell 0]
+					set tmp_command [::tclapp::xilinx::customqorflows::pretty_command_property KEEP_HIERARCHY TRUE $obj_list cell 0]
 					set command "${command}\n${comments}${tmp_command}\n"
 				}
 			}
 		}
 
-		if {$debug == 1} {
+		if {$debug >= 1} {
 			puts "-D: Suggestion Mode: $PARAMS(SUGGESTION_MODE)"
 			set gen_pblock_stop [clock seconds]
-					::tclapp::xilinx::customqorflows::compile_time $get_pblock_start $gen_pblock_stop  "" _GENERATE_PBLOCKS $ct_fid
+			::tclapp::xilinx::customqorflows::compile_time $get_pblock_start $gen_pblock_stop  "" _GENERATE_PBLOCKS $ct_fid
 		}
 
-		if {$debug ==1} {
+		if {$debug >= 1} {
 			close $ct_fid
 			set cmd_fid [open debug_command.tcl w]
 			puts $cmd_fid $command
@@ -521,7 +637,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 
 
 		set stop [clock seconds]; 
-			::tclapp::xilinx::customqorflows::compile_time $start $stop  "" GT_FLOORPLAN_V5
+		::tclapp::xilinx::customqorflows::compile_time $start $stop  "" GT_FLOORPLAN_V5
 		if {$command eq ""} {
 			return
 		}  else {
@@ -529,46 +645,50 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		}
 	}
 	
-	# The following sets up the suggestion in the Custom QoR Tools.
-	# ==================================================
-	 set id RQS_AMD_NETLIST-11
-	 set description "Create floorplan based on GT clocks and hard block locations"
-	 set auto 1
-	 set category netlist
-	 set applicable_for place_design
-	 set switches ""
-	 set needs_timing_data 0
-	 set params [list SUGGESTION_MODE pblocks]
-	 
-	 catch "delete_qor_check ${id} -quiet"
-	 create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::gt_floorplan \
-		-property_values [list DESCRIPTION $description \
-							   AUTO $auto \
-							   CATEGORY $category \
-							   APPLICABLE_FOR $applicable_for\
-							   NEEDS_TIMING_DATA $needs_timing_data \
-							   PARAMS $params \
-							   ]
-							   
-	 set id RQS_AMD_NETLIST-12
-	 set description "Create hierarchy to enabled better floorplanning based on GT clocks and hard block locations"
-	 set auto 1
-	 set category netlist
-	 set applicable_for synth_design
-	 set switches ""
-	 set needs_timing_data 0
-	 set params [list SUGGESTION_MODE synth_property] 
-	 
-	 catch "delete_qor_check ${id} -quiet"
-	 create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::gt_floorplan \
-		-property_values [list DESCRIPTION $description \
-							   AUTO $auto \
-							   CATEGORY $category \
-							   APPLICABLE_FOR $applicable_for\
-							   NEEDS_TIMING_DATA $needs_timing_data \
-							   PARAMS $params \
-							   ]
-	
+	proc register_gt_floorplan_checks {} {
+	  # The following sets up the suggestion in the Custom QoR Tools.
+	  # ==================================================
+	   set id RQS_AMD_NETLIST-11
+	   set description "Create floorplan based on GT clocks and hard block locations"
+	   set auto 1
+	   set category netlist
+	   set applicable_for place_design
+	   set switches ""
+	   set needs_timing_data 0
+	   set params [list SUGGESTION_MODE pblocks]
+
+	   catch "delete_qor_check ${id} -quiet"
+	   create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::gt_floorplan \
+	  	-property_values [list DESCRIPTION $description \
+	  						   AUTO $auto \
+	  						   CATEGORY $category \
+	  						   APPLICABLE_FOR $applicable_for\
+	  						   NEEDS_TIMING_DATA $needs_timing_data \
+	  						   PARAMS $params \
+	  						   ]
+
+	   set id RQS_AMD_NETLIST-12
+	   set description "Create hierarchy to enabled better floorplanning based on GT clocks and hard block locations"
+	   set auto 1
+	   set category netlist
+	   set applicable_for synth_design
+	   set switches ""
+	   set needs_timing_data 0
+	   set params [list SUGGESTION_MODE synth_property]
+
+	   catch "delete_qor_check ${id} -quiet"
+	   create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::gt_floorplan \
+	  	-property_values [list DESCRIPTION $description \
+	  						   AUTO $auto \
+	  						   CATEGORY $category \
+	  						   APPLICABLE_FOR $applicable_for\
+	  						   NEEDS_TIMING_DATA $needs_timing_data \
+	  						   PARAMS $params \
+	  						   ]
+	}
+
+	register_gt_floorplan_checks
+
 }
 
 
