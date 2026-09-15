@@ -2036,20 +2036,25 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   if { $value } { lappend args_list "--relax" }
 
   # --mt
+  set max_threads [get_param general.maxthreads]
   set mt_level [get_property "xsim.elaborate.mt_level" $a_sim_vars(fs_obj)]
   switch -regexp -- $mt_level {
     {auto} {
-      lappend args_list "--mt auto"
+      if { {1} == $max_threads } {
+        # no op, keep auto ('1' is not supported by xelab)
+      } else {
+        set mt_level $max_threads
+      }
     }
     {off} {
       # use 'off' (turn off multi-threading)
-      lappend args_list "--mt off"
     }
     default {
       # use 2, 4, 8, 16, 32
-      lappend args_list "--mt $mt_level"
     }
   }
+ 
+  lappend args_list "--mt $mt_level"
 
   set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
 
@@ -2752,11 +2757,11 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
     if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set b_use_vhdl_glbl 1
     }
-    if { !$b_use_vhdl_glbl } {
-      if { $a_sim_vars(b_int_compile_glbl) } {
-        set b_use_vhdl_glbl 1
-      }
-    }
+    #if { !$b_use_vhdl_glbl } {
+    #  if { $a_sim_vars(b_int_compile_glbl) } {
+    #    set b_use_vhdl_glbl 1
+    #  }
+    #}
     if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
       set b_use_vhdl_glbl 1
     }
@@ -3758,11 +3763,11 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
     if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
       set b_use_vhdl_glbl 1
     }
-    if { !$b_use_vhdl_glbl } {
-      if { $a_sim_vars(b_int_compile_glbl) } {
-        set b_use_vhdl_glbl 1
-      }
-    }
+    #if { !$b_use_vhdl_glbl } {
+    #  if { $a_sim_vars(b_int_compile_glbl) } {
+    #    set b_use_vhdl_glbl 1
+    #  }
+    #}
     if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
       set b_use_vhdl_glbl 1
     }
@@ -4311,20 +4316,24 @@ proc usf_xsim_write_systemc_prj { b_contain_sc_srcs b_is_pure_systemc fh_scr } {
       lappend xsc_arg_list "-c"
 
       # --mt
+      set max_threads [get_param general.maxthreads]
       set mt_level [get_property "xsim.compile.xsc.mt_level" $a_sim_vars(fs_obj)]
       switch -regexp -- $mt_level {
         {auto} {
-          lappend xsc_arg_list "--mt auto"
+          if { {1} == $max_threads } {
+            # no op, keep auto ('1' is not supported by xelab)
+          } else {
+            set mt_level $max_threads
+          }
         }
         {off} {
           # use 'off' (turn off multi-threading)
-          lappend xsc_arg_list "--mt off"
         }
         default {
           # use 2, 4, 8, 16, 32
-          lappend xsc_arg_list "--mt $mt_level"
         }
       }
+      lappend xsc_arg_list "--mt $mt_level"
 
       # revisit this once we switch to higher version (1.66 will support this by default)
       lappend xsc_arg_list "--gcc_compile_options \"-DBOOST_SYSTEM_NO_DEPRECATED\""
