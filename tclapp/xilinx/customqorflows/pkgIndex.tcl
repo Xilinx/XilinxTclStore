@@ -8,4 +8,4 @@
 # script is sourced, the variable $dir must contain the
 # full path name of this file's directory.
 
-package ifneeded ::tclapp::xilinx::customqorflows 1.10 [list source [file join $dir customqorflows.tcl]]
+package ifneeded ::tclapp::xilinx::customqorflows 1.02 [list source [file join $dir customqorflows.tcl]]
