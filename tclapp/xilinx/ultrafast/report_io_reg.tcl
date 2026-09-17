@@ -1,5 +1,9 @@
 
 ########################################################################################
+## 09/16/2026 - Fixed hierarchical buf/bufpins lookup to handle both LEAF and INTERNAL
+##              primitive levels, added -quiet safeguards to get_clock_regions/get_sites
+##              and get_property TYPE, and initialized beltypems to avoid a variable error
+##              on Versal (German Nersisyan)
 ## 07/30/2026 - Replaced the coordinate-based approach with node traversal for UltraScale and UltraScale+ devices. Added support for Spartan UltraScale+ and Versal devices (German Nersisyan)
 ## 04/12/2019 - Added support for KU+, VU+, RFSOC, HBM, 58G
 ## 01/23/2015 - Added support for Native mode for UltraScale
@@ -195,14 +199,21 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
     if {[string match -nocase $sitetype "IOB"]>0} {
       set pp [get_property -quiet PACKAGE_PIN $port]
       set dir [get_property -quiet DIRECTION $port]
-      set CR [get_clock_regions -quiet -of [get_sites -of $port]]
+      set CR [get_clock_regions -quiet -of [get_sites -quiet -of $port]]
       # The LOC information on a top-level port must be extracted as below:
       set tileloc [get_sites -quiet -of_object $pp]
 #       set tileloc [get_property LOC $port]
       set coord [string range $tileloc [string last "_" $tileloc]+1 end]
 
-      set buf [get_cells -quiet -of [get_nets -quiet -of [get_ports $port]]]
-      set bufpins [get_pins -hierarchical -filter "NAME=~$buf/*"]
+      set buf [get_cells -quiet -of [get_pins -quiet -of [get_nets -quiet -of [get_ports $port]] -leaf]]
+      set bufpins {}
+      if {[get_property -quiet PRIMITIVE_LEVEL $buf] == "LEAF"} {
+	 set bufpins [get_pins -quiet -of_objects $buf]
+      } elseif {[llength [lsearch -exact -all [get_property -quiet PRIMITIVE_LEVEL $buf] INTERNAL]] > 0} {
+	 set parentcell [get_property -quiet PARENT $buf]
+	 set pin_names {IBUFCTRL_INST/O OBUFT/I OBUFT/T}
+         set bufpins [get_pins -quiet [concat {*}[lmap p $parentcell { lmap pin $pin_names { format "%s/%s" $p $pin } }]]]
+      }
       set iologicsite {}
 
       # Determine if anything has been instantiated in the IDELAY block in the same
@@ -257,8 +268,9 @@ proc ::tclapp::xilinx::ultrafast::report_io_reg::report_io_reg { args } {
              if {$iologicsite != {}} { break }
           }
           
-	  set beltypefull [get_property TYPE [get_bels -quiet -of $buf]]
+	  set beltypefull [get_property -quiet TYPE [get_bels -quiet -of $buf]]
           set beltype [string range $beltypefull [expr {[string last "_" $beltypefull] + 1}] end]
+	  set beltypems {}
 
 	  if {$beltype=="M"} {
 		set beltypems MASTER 

@@ -1,3 +1,4 @@
+1.12 Fixed hierarchical buf/bufpins lookup to handle both LEAF and INTERNAL primitive levels and initialized beltypems to avoid a variable error on Versal (report_io_reg)
 1.11 Added support for Spartan UltraScale+ and Versal devices; switched to node-traversal approach for UltraScale/UltraScale+ (report_io_reg)
 1.10 Minor cleanup
 1.9 Improved memory requirement for large reports (report_reset_signals)
