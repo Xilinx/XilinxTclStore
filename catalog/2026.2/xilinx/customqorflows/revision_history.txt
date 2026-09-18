@@ -1,3 +1,3 @@
-1.02 Added new checks - #849 (xilinx::customqorflows)
+1.02 Added new checks.
 1.01 Initial release of RQS and RQA in Custom QoR Flows
 1.0 Initial release

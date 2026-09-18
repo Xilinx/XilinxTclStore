@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>Adds -hold and -setup to the get_timing_paths command in validate_timing</revision_history>
+      <revision_history>Package junit 1.3 - #848 (xilinx::junit, xilinx:ultrafast)</revision_history>
       <name>junit</name>
       <company>xilinx</company>
       <company_display>Xilinx, Inc.</company_display>
@@ -10,12 +10,24 @@
       <display>JUnit Utilities</display>
       <procs>
         <proc>
+          <name>add</name>
+          <summary/>
+        </proc>
+        <proc>
           <name>assert_exists</name>
           <summary>Asserts that all files exist.</summary>
         </proc>
         <proc>
           <name>assert_same</name>
           <summary>Asserts that two values are the same, else a failure is logged.</summary>
+        </proc>
+        <proc>
+          <name>clicks</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>format</name>
+          <summary/>
         </proc>
         <proc>
           <name>format_junit</name>
@@ -34,6 +46,14 @@ and retrieve data from the graph object.</summary>
         <proc>
           <name>graph_to_xml</name>
           <summary>Converts a struct::graph object directly to xml.</summary>
+        </proc>
+        <proc>
+          <name>microseconds</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>milliseconds</name>
+          <summary/>
         </proc>
         <proc>
           <name>new_error</name>
@@ -115,6 +135,14 @@ A JUnitXml entry is not created on success!</summary>
 Runs the following validations after: 
 validate_messages 
 validate_drcs</summary>
+        </proc>
+        <proc>
+          <name>scan</name>
+          <summary/>
+        </proc>
+        <proc>
+          <name>seconds</name>
+          <summary/>
         </proc>
         <proc>
           <name>set_report</name>
