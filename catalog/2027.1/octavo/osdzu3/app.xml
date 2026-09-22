@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Octavo osdzu3 SiP flight time support</revision_history>
+      <name>osdzu3</name>
+      <company>octavo</company>
+      <company_display>Octavo Systems LLC</company_display>
+      <summary>This is a collection of scripts and utility application that are grouped by product.</summary>
+      <display>Octavo Systems</display>
+    </app>
+  </apps>
+</catalog>
