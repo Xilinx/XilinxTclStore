@@ -1,4 +1,4 @@
-2.357 fix for used-in simulation consideration for BD designs
+2.357 merged 2026.2 to 2027.1
 2.356 set systemc version for corresponding gcc
 2.355 downgrade to warning for GCC incompatibility
 2.354 bind shared library

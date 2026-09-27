@@ -1,4 +1,4 @@
-19.0 fix for used-in simulation consideration for BD designs
+19.0 merged 2026.2 to 2027.1
 18.9 downgrade to warning for GCC incompatibility
 18.8 proc to find cpm lic dir
 18.7 export json files to run dir
