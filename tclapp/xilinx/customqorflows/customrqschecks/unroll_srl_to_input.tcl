@@ -152,23 +152,27 @@ namespace eval ::tclapp::xilinx::customqorflows {
 		}
 	}
 	
-	# The following sets up the suggestion in the Custom QoR Tools.
-	# ==================================================
-	set id RQS_AMD_NETLIST-1
-	set description "Extract registers from SRLs that are driven by LUTs."
-	set auto 1
-	set category netlist
-	set applicable_for place_design
-	set switches "-property_opt_only"
-	set needs_timing_data 0
+	proc register_unroll_srl_to_input_checks {} {
+		# The following sets up the suggestion in the Custom QoR Tools.
+		# ==================================================
+		set id RQS_AMD_NETLIST-1
+		set description "Extract registers from SRLs that are driven by LUTs."
+		set auto 1
+		set category netlist
+		set applicable_for place_design
+		set switches "-property_opt_only"
+		set needs_timing_data 0
 
-	catch "delete_qor_check ${id} -quiet"
-	create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::unroll_srl_to_input \
-		-property_values [list DESCRIPTION $description \
-							   AUTO $auto \
-							   CATEGORY $category \
-							   APPLICABLE_FOR $applicable_for\
-							   NEEDS_TIMING_DATA $needs_timing_data \
-							   ]
+		catch "delete_qor_check ${id} -quiet"
+		create_qor_check -name ${id} -rule_body ::tclapp::xilinx::customqorflows::unroll_srl_to_input \
+			-property_values [list DESCRIPTION $description \
+								   AUTO $auto \
+								   CATEGORY $category \
+								   APPLICABLE_FOR $applicable_for\
+								   NEEDS_TIMING_DATA $needs_timing_data \
+								   ]
+	}
+	
+	register_unroll_srl_to_input_checks
 }
 

@@ -151,17 +151,20 @@ namespace eval ::tclapp::xilinx::customqorflows {
 
 	}
 	
-	set id RQA_AMD_NETLIST-14
-	catch "delete_qor_checks -type assessment $id -quiet"
-	set rule_body ::tclapp::xilinx::customqorflows::slr_crossing_utilization
-	set prop_vals [list CATEGORY Utilization \
-						SUMMARY "SLR Crossings with high SLLs usage" \
-						DESCRIPTION "SLR Crossings with high SLLs usage" \
-						APPLICABLE_FOR place_design \
-						PARAMS [dict create DEBUG 0 THRESHOLD 0 USAGE_THRESHOLD 85.0 NEEDS_UTILIZATION_DATA 1 NO_PBLOCK_CHECK 1 NO_SLR_CHECK 1] \
-						]
-	create_qor_check -name $id -rule_body $rule_body -type assessment -property_values $prop_vals 
+	proc register_slr_crossing_utilization_checks {} {
+		set id RQA_AMD_NETLIST-14
+		catch "delete_qor_checks -type assessment $id -quiet"
+		set rule_body ::tclapp::xilinx::customqorflows::slr_crossing_utilization
+		set prop_vals [list CATEGORY Utilization \
+							SUMMARY "SLR Crossings with high SLLs usage" \
+							DESCRIPTION "SLR Crossings with high SLLs usage" \
+							APPLICABLE_FOR place_design \
+							PARAMS [dict create DEBUG 0 THRESHOLD 0 USAGE_THRESHOLD 85.0 NEEDS_UTILIZATION_DATA 1 NO_PBLOCK_CHECK 1 NO_SLR_CHECK 1] \
+							]
+		create_qor_check -name $id -rule_body $rule_body -type assessment -property_values $prop_vals 
+	}
 	
+	register_slr_crossing_utilization_checks
 }
 
 

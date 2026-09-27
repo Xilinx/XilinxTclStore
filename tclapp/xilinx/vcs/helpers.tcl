@@ -71,6 +71,7 @@ proc usf_init_vars {} {
   variable l_system_sim_incl_dirs            [list]
   variable a_sim_sv_pkg_libs                 [list]
   variable a_xlnoc_files                     [list]
+  variable a_noc_sub_cores                   [dict create]
 
   variable a_sim_cache_result
   variable a_sim_cache_all_design_files_obj
@@ -145,6 +146,16 @@ proc usf_get_include_file_dirs { global_files_str { ref_dir "true" } } {
   } else {
     set filter "USED_IN_SIMULATION == 1 && (FILE_TYPE == \"Verilog Header\" || FILE_TYPE == \"Verilog/SystemVerilog Header\")"
     set vh_files [get_files -all -quiet -filter $filter]
+    # filter vh files for excluded block-designs
+    set excluded_bds [get_files -quiet -filter {FILE_TYPE == "Block Designs" && USED_IN_SIMULATION == 0}]
+    if { {} != $excluded_bds } {
+      foreach excluded_file [get_files -all -quiet -of_objects $excluded_bds -filter $filter] {
+        set idx [lsearch -exact $vh_files $excluded_file]
+        if { $idx != -1 } {
+          set vh_files [lreplace $vh_files $idx $idx]
+        }
+      }
+    }
   }
 
   # append global files (if any)
@@ -1495,6 +1506,9 @@ proc usf_append_compiler_options { tool src_file work_lib file_type opts_arg } {
       lappend opts "\$${tool}_opts"
       if { [string equal -nocase $file_type "vhdl 2008"] } {
         lappend opts "-vhdl08"
+      }
+      if { [string equal -nocase $file_type "vhdl 2019"] } {
+        lappend opts "-vhdl19"
       }
     }
     "vlogan" {

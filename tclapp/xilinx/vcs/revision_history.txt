@@ -1,10 +1,14 @@
-18.3 updated version for noc2_nsu_sim noc2_nmu_sim subcores
+19.0 fix for used-in simulation consideration for BD designs
+18.9 downgrade to warning for GCC incompatibility
+18.8 proc to find cpm lic dir
+18.7 export json files to run dir
+18.6 bind IP static shared library
+18.5 updated command line switches
+18.4 auto add noc sub-core based on comp type
+18.3 read noc sub-cores with comp info
 18.2 updated version for noc_nsu_sim
-18.1 group files as compilation unit
-18.0 compile xlnoc.vhd file for target language vhdl
 17.9 include xlnoc systemc files
-17.8 check for NoC blocks before adding logical top
-17.7 add logical noc source when property enabled
+17.7 merged 2026.1 to 2026.2
 17.6 updated noc sub core version
 17.5 updated version replacement detection
 17.4 merged 2025.2 to 2026.1
