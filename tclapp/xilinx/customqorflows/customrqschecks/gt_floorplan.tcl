@@ -2,7 +2,7 @@
 #
 # gt_floorplan.tcl (customqorflows GT floorplan suggestion)
 #
-# Script created on 03/30/2026 by Madhur Chhabra, AMD
+# Script created on 03/30/2026 by John Blaine, AMD
 #
 ####################################################################################
 package require Vivado 1.2014.1
@@ -285,7 +285,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
 			}
 		}
 		set fid stdout; # debug for now
-		puts $fid "[$tbl print]\n\n"
+		if {$debug} {puts $fid "[$tbl print]\n\n"}
 		$tbl destroy
 		if {$debug} {
 			set fp_stop [clock seconds]

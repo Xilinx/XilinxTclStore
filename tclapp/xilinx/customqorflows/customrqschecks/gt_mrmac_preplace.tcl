@@ -49,7 +49,7 @@ namespace eval ::tclapp::xilinx::customqorflows {
         array set seen {}
         set seen($start) 1
         set sinkpins [_gtmr_datapins [list $start] $dir]
-        for {set stage 1} {$stage <= [expr {$cap + 1}]} {incr stage} {
+        for {set stage 1} {$stage <= $cap} {incr stage} {
             if {[llength $sinkpins] == 0} { break }
             set sps [_gtmr_hop $sinkpins $dir]
             if {[llength $sps] == 0} { break }
@@ -189,7 +189,6 @@ namespace eval ::tclapp::xilinx::customqorflows {
 
             # Search for connected GT in both directions (within max_levels).
             set gt_found ""
-            set gt_depth -1
             foreach dir {fanin fanout} {
                 set res [_gtmr_search $mr_name $dir $deep_cap]
                 if {[llength $res] > 0} {
@@ -197,7 +196,6 @@ namespace eval ::tclapp::xilinx::customqorflows {
                     set gtc   [lindex $res 1]
                     if {$depth <= $max_levels} {
                         set gt_found $gtc
-                        set gt_depth $depth
                         break
                     }
                 }

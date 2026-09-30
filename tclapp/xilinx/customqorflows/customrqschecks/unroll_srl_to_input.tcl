@@ -2,7 +2,7 @@
 #
 # unroll_srl_to_input.tcl (customqorflows SRL suggestion)
 #
-# Script created on 03/30/2026 by Madhur Chhabra, AMD
+# Script created on 03/30/2026 by John Blaine, AMD
 #
 ####################################################################################
 package require Vivado 1.2014.1
