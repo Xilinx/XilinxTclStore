@@ -114,19 +114,33 @@ foreach _pcie $_pcie_cells {
         continue
     }
 
-    # Compute optimal clock root: nearest odd X, same Y
+    # Compute optimal clock root: nearest existing odd X, same Y. For an
+    # even X, prefer X+1 and fall back to X-1 at the device boundary.
+    set _root_candidates [list]
     if {$_cr_x % 2 == 1} {
-        # Already odd
-        set _root_x $_cr_x
+        lappend _root_candidates $_cr_x
     } else {
-        # Even → go to next odd (X+1)
-        set _root_x [expr {$_cr_x + 1}]
+        lappend _root_candidates [expr {$_cr_x + 1}]
+        if {$_cr_x > 0} {
+            lappend _root_candidates [expr {$_cr_x - 1}]
+        }
     }
 
-    if {$_cr_prefix ne ""} {
-        set _optimal_cr "${_cr_prefix}X${_root_x}Y${_cr_y}"
-    } else {
-        set _optimal_cr "X${_root_x}Y${_cr_y}"
+    set _optimal_cr ""
+    foreach _root_x $_root_candidates {
+        if {$_cr_prefix ne ""} {
+            set _candidate_cr "${_cr_prefix}X${_root_x}Y${_cr_y}"
+        } else {
+            set _candidate_cr "X${_root_x}Y${_cr_y}"
+        }
+        if {[llength [get_clock_regions -quiet $_candidate_cr]] > 0} {
+            set _optimal_cr $_candidate_cr
+            break
+        }
+    }
+    if {$_optimal_cr eq ""} {
+        _pcr_dbg "\[DETECT\]   WARNING: No valid odd-X clock region found near $_pcie_cr, skipping"
+        continue
     }
     _pcr_dbg "\[DETECT\]   Optimal clock root: $_optimal_cr (from PCIE CR=$_pcie_cr, nearest odd X)"
 
@@ -138,7 +152,7 @@ foreach _pcie $_pcie_cells {
         set _ip_gts [get_cells -quiet -hier -filter "NAME =~ ${_ip_root}/* && REF_NAME =~ GT*"]
         if {[llength $_ip_gts] > 0} {
             # Get GT output pins → trace to BUFG_GT I pins
-            set _gt_out_pins [get_pins -quiet -of_objects $_ip_gts -filter {DIRECTION == OUT && REF_PIN_NAME =~ *TXOUTCLK* || REF_PIN_NAME =~ *RXOUTCLK*}]
+            set _gt_out_pins [get_pins -quiet -of_objects $_ip_gts -filter {DIRECTION == OUT && (REF_PIN_NAME =~ *TXOUTCLK* || REF_PIN_NAME =~ *RXOUTCLK*)}]
             if {[llength $_gt_out_pins] > 0} {
                 set _gt_nets [get_nets -quiet -of_objects $_gt_out_pins]
                 if {[llength $_gt_nets] > 0} {

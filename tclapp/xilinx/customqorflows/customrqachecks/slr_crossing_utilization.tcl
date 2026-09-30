@@ -2,7 +2,7 @@
 #
 # slr_crossing_utilization.tcl (customqorflows RQA check for SLR crossing utilization)
 #
-# Script created on 03/30/2026 by Madhur Chhabra, AMD
+# Script created on 03/30/2026 by John Blaine, AMD
 #
 ####################################################################################
 
