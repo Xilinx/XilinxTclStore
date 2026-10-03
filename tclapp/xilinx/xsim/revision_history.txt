@@ -1,5 +1,5 @@
 2.540 add glbl.vhd for netlist sim only
-2.539 merged 2026.2 to 2027.1
+2.539 do not force vhdl glbl
 2.538 set -mt_level using param
 2.537 pass -mt_level for given property value
 2.536 fix for used-in simulation consideration for BD designs
