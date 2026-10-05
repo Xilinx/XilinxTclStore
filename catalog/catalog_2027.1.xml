@@ -27,8 +27,8 @@
     <app>
       <name>customqorflows</name>
       <company>xilinx</company>
-      <commit_id>97b7096ba9decc459bd3500de076e7a83d16284f</commit_id>
-      <revision>1.02</revision>
+      <commit_id>8a8f047f165a9c4a2edd70d767d22071103b7873</commit_id>
+      <revision>1.03</revision>
     </app>
     <app>
       <name>debugutils</name>
