@@ -1,4 +1,4 @@
-11.206 fix for used-in simulation consideration for BD designs
+11.206 replace last occurence of version string
 11.205 downgrade to warning for GCC incompatibility
 11.204 proc to find cpm lic dir
 11.203 export json files to run dir
