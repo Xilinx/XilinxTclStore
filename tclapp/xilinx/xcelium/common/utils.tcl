@@ -4280,8 +4280,6 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
 
   set file_path_str $s_install_path
   set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
-  set file_path_elems [split $file_path_str "/"]
-  set resolved_path_l [list]
 
   set sim [string toupper $simulator]
   set env_var_name ${var_name}_${sim}
@@ -4292,17 +4290,13 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
   }
   set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
 
-  foreach elem $file_path_elems {
-    if { $elem == $str_to_replace } {
-      lappend resolved_path_l $str_to_replace_with
-    } elseif {[string first $str_to_replace $elem] != -1} {
-      regsub $str_to_replace $elem $str_to_replace_with resolved_str
-      lappend resolved_path_l $resolved_str
-    } else {
-      lappend resolved_path_l $elem
-    }
+  # find/replace the rightmost literal occurrence of the version string in the path
+  set idx [string last $str_to_replace $file_path_str]
+  if { $idx != -1 } {
+    set end_idx [expr {$idx + [string length $str_to_replace] - 1}]
+    set file_path_str [string replace $file_path_str $idx $end_idx $str_to_replace_with]
   }
-  set file_path_str [join $resolved_path_l "/"]
+
   return $file_path_str
 }
 
