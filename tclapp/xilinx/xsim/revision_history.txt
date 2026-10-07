@@ -1,10 +1,21 @@
-2.527 updated version for noc2_nsu_sim noc2_nmu_sim subcores
+2.541 replace last occurence of version string
+2.540 add glbl.vhd for netlist sim only
+2.539 do not force vhdl glbl
+2.538 set -mt_level using param
+2.537 pass -mt_level for given property value
+2.536 fix for used-in simulation consideration for BD designs
+2.535 downgrade to warning for GCC incompatibility
+2.534 proc to find cpm lic dir
+2.533 export json files to run dir
+2.532 allowSharedLibraryType deprecated
+2.531 bind IP static shared library
+2.530 support for gcc 12.2
+2.529 updated command line switches
+2.528 auto add noc sub-core based on comp type
+2.527 read noc sub-cores with comp info
 2.526 updated version for noc_nsu_sim
-2.525 group files as compilation unit
-2.524 compile xlnoc.vhd file for target language vhdl
 2.523 include xlnoc systemc files
-2.522 check for NoC blocks before adding logical top
-2.521 add logical noc source when property enabled
+2.521 merged 2026.1 to 2026.2
 2.520 test fix to remove empty line
 2.518 updated noc sub core version
 2.517 updated version replacement detection

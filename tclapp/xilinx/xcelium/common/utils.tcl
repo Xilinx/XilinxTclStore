@@ -166,6 +166,56 @@ proc xcs_cache_ip_objs { } {
   }
 }
 
+proc xcs_find_ip_shared_libs { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_ip_shared_libs
+  variable a_sim_cache_all_ip_obj
+  
+  xcs_cache_ip_objs
+  set ft "(FILE_TYPE == \"Shared Library\")"
+  foreach ip_obj [array names a_sim_cache_all_ip_obj] {
+    set xci "${ip_obj}.xci"
+    set sf_coln [list]
+    foreach sf [get_files -quiet -all -filter $ft -of_objects [get_files $xci]] {
+      # bind static library
+      if { {.a} == [file extension $sf] } {
+        lappend sf_coln $sf
+      }
+    }
+    if { [llength $sf_coln] > 0 } {
+      set sf_str [join $sf_coln "#"]
+      set a_sim_cache_ip_shared_libs($ip_obj) $sf_str
+    }
+  }
+}
+
+proc xcs_get_ip_shared_libs { } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_cache_ip_shared_libs
+
+  set ip_shared_libs [list] 
+  if { [array size a_sim_cache_ip_shared_libs] > 0 } {
+    foreach ip_obj [array names a_sim_cache_ip_shared_libs] {
+      set file_coln_value $a_sim_cache_ip_shared_libs($ip_obj)
+      if { [llength $file_coln_value] > 0 } {
+        set file_elems [split $file_coln_value "#"]
+        if { [llength $file_elems] > 0 } {
+          foreach sf $file_elems {
+            lappend ip_shared_libs $sf
+          }
+        }
+      }
+    }
+  }
+  return $ip_shared_libs
+}
+
 proc xcs_create_fs_options_spec { simulator opts } {
   # Summary:
   # Argument Usage:
@@ -633,6 +683,31 @@ proc xcs_copy_glbl_file { run_dir } {
     }
   }
   set src_glbl_file [file normalize [file join $data_dir "verilog/src/glbl.v"]]
+
+  if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
+    send_msg_id SIM-utils-001 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
+  }
+}
+
+proc xcs_copy_glbl_vhd_file { run_dir } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  set target_glbl_file [file normalize [file join $run_dir "GLBL_VHD.vhd"]]
+  if { [file exists $target_glbl_file] } {
+    return
+  }
+  set data_dir [rdi::get_data_dir -quiet -datafile "vhdl/src/unisims/primitive/GLBL_VHD.vhd"]
+  if { {} == $data_dir } {
+    if { [info exists ::env(VIVADO)] } {
+      set xv $::env(VIVADO)
+      if { ({} != $xv) && ([file exists $xv]) } {
+        set data_dir "$xv/data"
+      }
+    }
+  }
+  set src_glbl_file [file normalize [file join $data_dir "vhdl/src/unisims/primitive/GLBL_VHD.vhd"]]
 
   if {[catch {file copy -force $src_glbl_file $run_dir} error_msg] } {
     send_msg_id SIM-utils-001 WARNING "Failed to copy glbl file '$src_glbl_file' to '$run_dir' : $error_msg\n"
@@ -3936,6 +4011,7 @@ proc xcs_get_data_files_filter {} {
           FILE_TYPE == \"Memory Initialization Files\" || \
           FILE_TYPE == \"CSV\"                         || \
           FILE_TYPE == \"Coefficient Files\"           || \
+          FILE_TYPE == \"JSON\"                        || \
           FILE_TYPE == \"Configuration Data Object\""
 
   return $ft
@@ -4204,8 +4280,6 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
 
   set file_path_str $s_install_path
   set file_path_str [regsub -all {[\[\]]} $file_path_str {/}]
-  set file_path_elems [split $file_path_str "/"]
-  set resolved_path_l [list]
 
   set sim [string toupper $simulator]
   set env_var_name ${var_name}_${sim}
@@ -4216,17 +4290,13 @@ proc xcs_replace_with_var { s_install_path var_name simulator } {
   }
   set str_to_replace_with "\$\{$env_var_name\}"   ; # shell var
 
-  foreach elem $file_path_elems {
-    if { $elem == $str_to_replace } {
-      lappend resolved_path_l $str_to_replace_with
-    } elseif {[string first $str_to_replace $elem] != -1} {
-      regsub $str_to_replace $elem $str_to_replace_with resolved_str
-      lappend resolved_path_l $resolved_str
-    } else {
-      lappend resolved_path_l $elem
-    }
+  # find/replace the rightmost literal occurrence of the version string in the path
+  set idx [string last $str_to_replace $file_path_str]
+  if { $idx != -1 } {
+    set end_idx [expr {$idx + [string length $str_to_replace] - 1}]
+    set file_path_str [string replace $file_path_str $idx $end_idx $str_to_replace_with]
   }
-  set file_path_str [join $resolved_path_l "/"]
+
   return $file_path_str
 }
 
@@ -4993,7 +5063,7 @@ proc xcs_verify_clibs_gcc_version { clibs_dir gcc_version simulator} {
     set version [lindex [split $version_line " "] 2]
     if { ({} != $version) && ({} != $gcc_version) } {
       if { ![string match "$gcc_version*" $version] } {
-        send_msg_id SIM-utils-079 "CRITICAL WARNING" "Incompatible GCC compiled simulation library found! Library '$clibs_dir' is compiled with GCC version '$version', expected version is '$gcc_version'. Please recompile the simulation library or set the correct compiled library path for '$gcc_version'.\n"
+        send_msg_id SIM-utils-079 WARNING "Incompatible GCC compiled simulation library found! Library '$clibs_dir' is compiled with GCC version '$version', expected version is '$gcc_version'. Please recompile the simulation library or set the correct compiled library path for '$gcc_version'.\n"
       } else {
         send_msg_id SIM-utils-080 INFO "Simulation library compiled with '$version' version ('$clibs_dir)\n"
       }
@@ -6807,28 +6877,63 @@ proc xcs_insert_noc_sub_cores { uniq_libs } {
   # Return Value:
 
   upvar $uniq_libs libs
+  variable a_noc_sub_cores
+  
   if { ([lsearch -exact [rdi::get_xpm_libraries] "XPM_NOC"] != -1) } {
     # get NoC comp types from traffic spec
     set comp_types [rdi::get_noc_comp_types]
 
-    # get available NoC sub-cores
-    set sub_cores [rdi::get_noc_subcores]
-
     # comp_types empty? bind all sub-cores
     if { [llength $comp_types] == 0 } {
       set i 1
-      foreach core $sub_cores {
+      
+      dict for {comp core} $a_noc_sub_cores {
         set libs [linsert $libs $i $core]
         incr i
       }
     } else {
       # bind respective sub-core library based on comp type
-      if { [lsearch -exact $comp_types "PL_NMU"] != -1 } { set libs [linsert $libs 1 "noc_nmu_sim_v1_0_1"]     }
-      if { [lsearch -exact $comp_types "PL_NMU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nmu_sim_v1_0_1"]     }
-      if { [lsearch -exact $comp_types "PL_NSU"] != -1 } { set libs [linsert $libs 1 "noc_nsu_sim_v1_0_2"]     }
-      if { [lsearch -exact $comp_types "PL_NSU_2"] != -1 } { set libs [linsert $libs 1 "noc2_nsu_sim_v1_0_2"]     }
-      if { [lsearch -exact $comp_types "HBM_NMU"] != -1 } { set libs [linsert $libs 1 "noc_hbm_nmu_sim_v1_0_0"] }
+      xcs_add_noc_sub_core $comp_types libs
     }
+  }
+}
+
+proc xcs_add_noc_sub_core { comp_types libs_arg } {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_noc_sub_cores
+  upvar $libs_arg libs
+
+  foreach comp $comp_types {
+    if { [dict exists $a_noc_sub_cores $comp] } {
+      set core [dict get $a_noc_sub_cores $comp]
+      set libs [linsert $libs 1 $core]
+    }
+  }
+}
+
+proc xcs_read_noc_sub_cores {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_noc_sub_cores
+
+  foreach row [rdi::get_noc_subcores] {
+    set fields [split $row ":"]
+    if { [llength $fields] == 1 } {
+      set comp_type "UKNOWN"
+      set core_name [lindex $fields 0]
+    } elseif { [llength $fields] == 2 } {
+      set comp_type [lindex $fields 0]
+      set core_name [lindex $fields 1]
+    } else {
+      send_msg_id SIM-utils-082 WARNING "Invalid data spec '$row'\n"
+      continue
+    }
+    dict set a_noc_sub_cores $comp_type $core_name
   }
 }
 
@@ -6859,4 +6964,71 @@ proc xcs_add_axi_interface_header { b_absolute_path dir } {
     }
   }
   return $intf_incl_dir
+}
+
+proc xcs_enable_lic_ip_sim {} {
+  # Summary:
+  # Argument Usage:
+  # Return Value:
+
+  variable a_sim_vars
+
+  if { ({} != $a_sim_vars(s_ip_lic_dir)) && ([file exists $a_sim_vars(s_ip_lic_dir)]) && ([file isdirectory $a_sim_vars(s_ip_lic_dir)]) } {
+    set a_sim_vars(s_ip_lic_dir) [string trimright [string map {\\ /} $a_sim_vars(s_ip_lic_dir)] "/"] ; # remove trailing slash if specified
+    # set target cpm version
+    set cpm_ver {}
+    set cpm_obj [xcs_find_ip "cpm"] ; # first occurence of cpm
+    if { {} != $cpm_obj } {
+      set ipdef [get_property -quiet IPDEF $cpm_obj]
+      if { {} != $ipdef } {
+        set cpm_ver [lindex [split $ipdef ":"] 2]
+        foreach lic_ip [glob -nocomplain -directory $a_sim_vars(s_ip_lic_dir) *] {
+          set lic_ip_name [file tail $lic_ip]
+          if { $cpm_ver == $lic_ip_name } { ; # lic ip found, set model name and enable simulation
+            set a_sim_vars(b_compile_lic_ip) 1
+            set a_sim_vars(lic_ip_model) $lic_ip_name
+            break
+          }
+        }
+      }
+    }
+  }
+}
+
+proc xcs_is_modular_noc_design {} {
+  set rtl_has_xpm_noc 0
+  if { ![catch {set xpm_libs [auto_detect_xpm -quiet -no_set_property]} err] } {
+    set rtl_has_xpm_noc [expr { [lsearch -exact $xpm_libs "XPM_NOC"] != -1 }]
+  }
+  if { !$rtl_has_xpm_noc } {
+    return 0
+  }
+
+  set xdc_has_noc_connection 0
+  set cset [get_filesets -quiet -filter {FILESET_TYPE == "Constrs"}]
+  if { [llength $cset] > 0 } {
+    set xdc_files [get_files -quiet -of_objects $cset -filter {FILE_TYPE == "XDC"}]
+    foreach xdc_file $xdc_files {
+      if { [catch {set fh [open $xdc_file r]} err] } {
+        continue
+      }
+      set found 0
+      while { [gets $fh line] >= 0 } {
+        set trimmed [string trim $line]
+        if { [string index $trimmed 0] eq "#" } {
+          continue
+        }
+        if { [regexp {(^|[^A-Za-z0-9_])create_noc_connection([^A-Za-z0-9_]|$)} $trimmed] } {
+          set found 1
+          break
+        }
+      }
+      close $fh
+      if { $found } {
+        set xdc_has_noc_connection 1
+        break
+      }
+    }
+  }
+  return $xdc_has_noc_connection
 }

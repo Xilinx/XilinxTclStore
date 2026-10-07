@@ -170,6 +170,9 @@ proc usf_xcelium_setup_simulation { args } {
 
   # get hard-blocks
   #xcs_get_hard_blocks
+ 
+  # find static archive (.a) files from IPs, if any
+  xcs_find_ip_shared_libs
 
   if { [get_param "project.enableCentralSimRepo"] } {
     # no op
@@ -230,6 +233,9 @@ proc usf_xcelium_setup_simulation { args } {
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
+
+  # read NoC sub-cores
+  xcs_read_noc_sub_cores
 
   # fetch the compile order for the specified object
   xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
@@ -1443,6 +1449,13 @@ proc usf_xcelium_write_elaborate_script {} {
 
         # bind user specified libraries
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+        
+        # bind libraries if packaged in IP
+        set l_link_shared_libs [xcs_get_ip_shared_libs]
+        if { [llength $l_link_shared_libs] > 0 } {
+          set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+        }
+
         set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
         xcs_write_library_search_order $fh_scr "xcelium" "elaborate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs
@@ -1455,7 +1468,8 @@ proc usf_xcelium_write_elaborate_script {} {
   set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
   set arg_list [list "-relax"]
   set access_mode "rwc"
-  if { $a_sim_vars(b_int_perf_analysis) } {
+  # crash with modular NoC designs for "rwc", set to "r"
+  if { $a_sim_vars(b_int_perf_analysis) && ![xcs_is_modular_noc_design] } {
     set access_mode "r"
   }
  
@@ -1626,6 +1640,13 @@ proc usf_xcelium_write_elaborate_script {} {
 
       # bind user specified libraries
       set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+      # bind libraries if packaged in IP
+      set l_link_shared_libs [xcs_get_ip_shared_libs]
+      if { [llength $l_link_shared_libs] > 0 } {
+        set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+      }
+
       set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
       if { ([llength $l_link_sysc_libs] > 0) || ([llength $l_link_c_libs] > 0) } {
         set b_link_user_libraries 1
@@ -1986,6 +2007,13 @@ proc usf_xcelium_write_simulate_script {} {
 
         # bind user specified libraries
         set l_link_sysc_libs [get_property "xcelium.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+        # bind libraries if packaged in IP
+        set l_link_shared_libs [xcs_get_ip_shared_libs]
+        if { [llength $l_link_shared_libs] > 0 } {
+          set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+        }
+
         set l_link_c_libs    [get_property "xcelium.elaborate.link.c"    $a_sim_vars(fs_obj)]
 
         xcs_write_library_search_order $fh_scr "xcelium" "simulate" $a_sim_vars(b_compile_simmodels) $a_sim_vars(s_launch_dir) $a_sim_vars(s_gcc_version) $a_sim_vars(s_clibs_dir) $a_sim_vars(sp_cpt_dir) l_link_sysc_libs l_link_c_libs

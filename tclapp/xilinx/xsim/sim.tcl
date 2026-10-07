@@ -362,6 +362,9 @@ proc usf_xsim_setup_simulation { args } {
   # get hard-blocks
   #xcs_get_hard_blocks
 
+  # find static archive (.a) files from IPs, if any
+  xcs_find_ip_shared_libs
+
   # initialize compiled design library
   if { [get_param "simulation.compileDesignLibsToXSimLib"] } {
     set a_sim_vars(compiled_design_lib) "xsim_lib"
@@ -411,6 +414,9 @@ proc usf_xsim_setup_simulation { args } {
 
   # generate mem files
   xcs_generate_mem_files_for_simulation $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_launch_dir)
+
+  # read NoC sub-cores
+  xcs_read_noc_sub_cores
 
   # fetch the compile order for the specified object
   xcs_xport_data_files $a_sim_vars(sp_tcl_obj) $a_sim_vars(s_simset) $a_sim_vars(s_sim_top) $a_sim_vars(s_launch_dir) $a_sim_vars(dynamic_repo_dir)
@@ -770,9 +776,9 @@ proc usf_xsim_setup_args { args } {
   }
 
   #
-  # TEMP-FIX: set gcc flag
+  # set gcc flag
   #
-  if { "6.2.0" == $a_sim_vars(s_gcc_version) } {
+  if { "12.2.0" == $a_sim_vars(s_gcc_version) } {
     set a_sim_vars(b_gcc_version) 1
   } 
 
@@ -1450,9 +1456,10 @@ proc usf_xsim_write_elaborate_script { scr_filename_arg } {
     xcs_write_script_header $fh_scr "elaborate" "xsim"
     xcs_write_version_id $fh_scr "xsim"
 
-    if { [get_param "project.allowSharedLibraryType"] } {
-      puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-    }
+    # deprecated - always true
+    #if { [get_param "project.allowSharedLibraryType"] } {
+    #  puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    #}
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       if { [file exists $a_sim_vars(ubuntu_lib_dir)] } {
@@ -1770,31 +1777,32 @@ proc usf_xsim_write_scr_file { cmd_file wcfg_files b_add_view wdf_file b_add_wdb
     }
     
     # TODO: once xsim picks the "so"s path at runtime , we can remove the following code
-    if { [get_param "project.allowSharedLibraryType"] } {
-      puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
-      set args_list [list]
-      foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects $a_sim_vars(fs_obj)] {
-        set file_type [get_property "file_type" $file]
-        set file_dir [file dirname $file] 
-        set file_name [file tail $file] 
-        if { $file_type == "Shared Library" } {
-          set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-          if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
-            set a_shared_lib_dirs($file_dir) $file_dir
-            lappend args_list "$file_dir"
-          }
-        }
-      }
-      if { [llength $args_list] > 0 } {
-        set cmd_args [join $args_list ":"]
-        if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-        } else {
-          puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
-        }
-      }
-      
-    }
+    # deprecated - always true
+    #if { [get_param "project.allowSharedLibraryType"] } {
+    #  puts $fh_scr "xv_lib_path=\"$::env(RDI_LIBDIR)\""
+    #  set args_list [list]
+    #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects $a_sim_vars(fs_obj)] {
+    #    set file_type [get_property "file_type" $file]
+    #    set file_dir [file dirname $file] 
+    #    set file_name [file tail $file] 
+    #    if { $file_type == "Shared Library" } {
+    #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+    #      if {[info exists a_shared_lib_dirs($file_dir)] == 0} {
+    #        set a_shared_lib_dirs($file_dir) $file_dir
+    #        lappend args_list "$file_dir"
+    #      }
+    #    }
+    #  }
+    #  if { [llength $args_list] > 0 } {
+    #    set cmd_args [join $args_list ":"]
+    #    if { [get_param "project.copyShLibsToCurrRunDir"] } {
+    #      puts $fh_scr "\nexport LD_LIBRARY_PATH=\$PWD:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+    #    } else {
+    #      puts $fh_scr "\nexport LD_LIBRARY_PATH=$cmd_args:\$xv_lib_path:\$LD_LIBRARY_PATH\n"
+    #    }
+    #  }
+    #  
+    #}
 
     if { $a_sim_vars(b_int_systemc_mode) && $a_sim_vars(b_system_sim_design) } {
       set install_path {}
@@ -2045,7 +2053,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
       # use 2, 4, 8, 16, 32
     }
   }
-  
+ 
   lappend args_list "--mt $mt_level"
 
   set netlist_mode [get_property "nl.mode" $a_sim_vars(fs_obj)]
@@ -2097,26 +2105,27 @@ proc usf_xsim_get_xelab_cmdline_args {} {
     }
   }
  
-  if { [get_param "project.allowSharedLibraryType"] } {
-    foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
-      set file_type [get_property "file_type" $file]
-      if { {Shared Library} == $file_type } {
-        set file_dir [file dirname $file]
-        set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
-
-        if { [get_param "project.copyShLibsToCurrRunDir"] } {
-          if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
-            send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
-          } else {
-            send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
-          }
-          set file_dir "."
-        }
-        set file_name [file tail $file]
-        lappend args_list "-sv_root \"$file_dir\" -sv_lib $file_name"
-      }
-    }
-  }
+  # deprecated - always true
+  #if { [get_param "project.allowSharedLibraryType"] } {
+  #  foreach file [get_files -quiet -compile_order sources -used_in simulation -of_objects [get_filesets $a_sim_vars(fs_obj)]] {
+  #    set file_type [get_property "file_type" $file]
+  #    if { {Shared Library} == $file_type } {
+  #      set file_dir [file dirname $file]
+  #      set file_dir "[xcs_get_relative_file_path $file_dir $a_sim_vars(s_launch_dir)]"
+  #
+  #      if { [get_param "project.copyShLibsToCurrRunDir"] } {
+  #        if { [catch {file copy -force $file $a_sim_vars(s_launch_dir)} error_msg] } {
+  #          send_msg_id USF-XSim-010 ERROR "Failed to copy file ($file): $error_msg\n"
+  #        } else {
+  #          send_msg_id USF-XSim-011 INFO "File '$file' copied to run dir:'$a_sim_vars(s_launch_dir)'\n"
+  #        }
+  #        set file_dir "."
+  #      }
+  #      set file_name [file tail $file]
+  #      lappend args_list "-sv_root \"$file_dir\" -sv_lib $file_name"
+  #    }
+  #  }
+  #}
 
   
   set unique_sysc_incl_dirs [list]
@@ -2166,6 +2175,13 @@ proc usf_xsim_get_xelab_cmdline_args {} {
 
     # bind user specified systemC/C/C++ libraries
     set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     foreach lib $l_link_sysc_libs {
       set lib_path [file dirname $lib]
       set lib_name [file tail $lib]
@@ -2343,7 +2359,7 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set override_param false
   [catch {set override_param [get_property -quiet "testbench_param_override" $a_sim_vars(fs_obj)]} msg]
   if { $override_param } {
-    lappend args_list "-ignore_localparam_override"
+    lappend args_list "--suppress_localparam_override_error"
   }
 
   # design source libs
@@ -2640,6 +2656,13 @@ proc usf_xsim_get_xsc_elab_cmdline_args {} {
 
     # bind user specified systemC/C/C++ libraries
     set l_link_sysc_libs [get_property "xsim.elaborate.link.sysc" $a_sim_vars(fs_obj)]
+
+    # bind libraries if packaged in IP
+    set l_link_shared_libs [xcs_get_ip_shared_libs]
+    if { [llength $l_link_shared_libs] > 0 } {
+      set l_link_sysc_libs [concat $l_link_shared_libs $l_link_sysc_libs]
+    }
+
     foreach lib $l_link_sysc_libs {
       set lib_path [file dirname $lib]
       set lib_name [file root [file tail $lib]]
@@ -2727,6 +2750,33 @@ proc usf_add_glbl_top_instance { opts_arg top_level_inst_names } {
   if { $b_add_glbl } {
     set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
     lappend opts "${top_lib}.glbl"
+  }
+
+  set b_use_vhdl_glbl 0
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    if { ({VHDL} == $a_sim_vars(s_target_lang)) || ({VHDL 2008} == $a_sim_vars(s_target_lang)) } {
+      if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+        set b_use_vhdl_glbl 1
+      }
+      #if { !$b_use_vhdl_glbl } {
+      #  if { $a_sim_vars(b_int_compile_glbl) } {
+      #    set b_use_vhdl_glbl 1
+      #  }
+      #}
+      if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
+        set b_use_vhdl_glbl 1
+      }
+    }
+  }
+
+  # force no compile glbl
+  if { $b_use_vhdl_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_use_vhdl_glbl 0
+  }
+
+  if { $b_use_vhdl_glbl } {
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    lappend opts "${top_lib}.GLBL_VHD"
   }
 }
 
@@ -3709,6 +3759,36 @@ proc usf_xsim_write_vhdl_prj { b_contain_verilog_srcs b_contain_vhdl_srcs b_is_p
       }
     }
   }
+
+  set b_use_vhdl_glbl 0
+  if { ({post_synth_sim} == $a_sim_vars(s_simulation_flow)) || ({post_impl_sim} == $a_sim_vars(s_simulation_flow)) } {
+    if { ({VHDL} == $a_sim_vars(s_target_lang)) || ({VHDL 2008} == $a_sim_vars(s_target_lang)) } {
+      if { [xcs_contains_vhdl $a_sim_vars(l_design_files) $a_sim_vars(s_simulation_flow) $a_sim_vars(s_netlist_file)] } {
+        set b_use_vhdl_glbl 1
+      }
+      #if { !$b_use_vhdl_glbl } {
+      #  if { $a_sim_vars(b_int_compile_glbl) } {
+      #    set b_use_vhdl_glbl 1
+      #  }
+      #}
+      if { (!$b_use_vhdl_glbl) && $a_sim_vars(b_force_compile_glbl) } {
+        set b_use_vhdl_glbl 1
+      }
+    }
+  }
+
+  # skip glbl compile if force no compile set
+  if { $b_use_vhdl_glbl && $a_sim_vars(b_force_no_compile_glbl) } {
+    set b_use_vhdl_glbl 0
+  }
+
+  if { $b_use_vhdl_glbl } {
+    xcs_copy_glbl_vhd_file $a_sim_vars(s_launch_dir)
+    set top_lib [xcs_get_top_library $a_sim_vars(s_simulation_flow) $a_sim_vars(sp_tcl_obj) $a_sim_vars(fs_obj) $a_sim_vars(src_mgmt_mode) $a_sim_vars(default_top_library)]
+    set file_str "$top_lib \"GLBL_VHD.vhd\""
+    puts $fh_vhdl "\n# compile VHDL glbl module\nvhdl $file_str"
+  }
+
   # nosort? (vhdl)
   set nosort_param [get_param "simulation.donotRecalculateCompileOrderForXSim"] 
   set b_no_sort [get_property "xsim.compile.xvhdl.nosort" $a_sim_vars(fs_obj)]
