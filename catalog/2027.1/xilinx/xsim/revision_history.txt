@@ -1,3 +1,4 @@
+2.542 generic_top value truncation and shell-quoting crash
 2.541 replace last occurence of version string
 2.540 add glbl.vhd for netlist sim only
 2.539 do not force vhdl glbl
