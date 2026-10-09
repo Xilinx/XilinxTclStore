@@ -2268,14 +2268,26 @@ proc usf_xsim_get_xelab_cmdline_args {} {
   set v_generics [get_property "generic" $a_sim_vars(fs_obj)]
   if { [llength $v_generics] > 0 } {
     foreach element $v_generics {
-      set key_val_pair [split $element "="]
-      set name [lindex $key_val_pair 0]
-      set val  [lindex $key_val_pair 1]
+      set eq_idx [string first "=" $element]
+      if { $eq_idx < 0 } {
+        set name $element
+        set val  {}
+      } else {
+        set name [string range $element 0 [expr {$eq_idx - 1}]]
+        set val  [string range $element [expr {$eq_idx + 1}] end]
+      }
       set str "$name="
       if { [string length $val] > 0 } {
         set str "$str$val"
       }
-      lappend args_list "-generic_top \"$str\""
+      # Quote the whole value so the shell treats it as literal data.
+      if { $::tcl_platform(platform) == "unix" } {
+        set str_escaped [string map [list ' "'\\''"] $str]
+        lappend args_list "-generic_top '$str_escaped'"
+      } else {
+        set str_escaped [string map [list "\"" "\\\""] $str]
+        lappend args_list "-generic_top \"$str_escaped\""
+      }
     }
   }
 
