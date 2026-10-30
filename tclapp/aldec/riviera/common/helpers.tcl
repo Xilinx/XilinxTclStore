@@ -9,7 +9,7 @@
 package require Vivado 1.2014.1
 package require json 
 
-package provide ::tclapp::aldec::common::helpers 1.43
+package provide ::tclapp::aldec::common::helpers 1.44
 
 namespace eval ::tclapp::aldec::common {
 
@@ -751,6 +751,24 @@ proc isCustomIp { _library } {
 	return false
 }
 
+proc isCompiledLibrary { _libraryName } {
+	set libraryLocation [ getCompiledLibraryLocation ]
+
+	foreach libraryDirectory [ glob -nocomplain -directory $libraryLocation * ] {
+        if { ![ file isdirectory $libraryDirectory ] } {
+			continue
+		}
+
+		set libraryName [ file tail $libraryDirectory ]
+
+		if { [ regexp "^$_libraryName$" $libraryName ] } {
+			return 1
+		}
+	}
+
+	return 0
+}
+
 proc printIpCompileMessage { _library } {
 	variable a_locked_ips
 	variable a_custom_ips
@@ -761,12 +779,14 @@ proc printIpCompileMessage { _library } {
 		send_msg_id USF-[usf_aldec_getSimulatorName]-040 INFO "Using sources from the locked IP version (pre-compiled version will not be referenced) - $_library\n"
 	} elseif { [ isCustomIp $_library ] } {
 		send_msg_id USF-[usf_aldec_getSimulatorName]-040 INFO "Using sources from the custom IP version (pre-compiled version will not be referenced) - $_library\n"
+	} elseif { [ isCompiledLibrary $_library ] } {
+		send_msg_id USF-[usf_aldec_getSimulatorName]-040 INFO "Using the pre-compiled IP version - $_library\n"
 	} else {
-		send_msg_id USF-[usf_aldec_getSimulatorName]-040 INFO "IP version not found from pre-compiled library ($_library) - $common_txt\n"
+		send_msg_id USF-[usf_aldec_getSimulatorName]-040 INFO "Using sources from the project IP version (pre-compiled version failed or does not exist) - $_library\n"
 	}
 }
 
-proc getDesignLibraries { _files } {
+proc getDesignLibraries { _files { b_insert_xpm_noc_sub_cores 0 } } {
 	set libraries [ list ]
 
 	foreach file $_files {
@@ -782,6 +802,18 @@ proc getDesignLibraries { _files } {
 			lappend libraries $library
 		}
 	}
+
+    if { $b_insert_xpm_noc_sub_cores } {
+		set nocSubCores [ list ]
+
+		usf_insert_noc_sub_cores nocSubCores
+
+		foreach nocSubCore $nocSubCores {
+			if { [ lsearch -exact $libraries $nocSubCore ] == -1 } {
+				lappend libraries $nocSubCore
+			}
+		}
+    }
 
 	return $libraries
 }
@@ -1494,6 +1526,7 @@ proc usf_init_vars {} {
 
   set properties(sp_tcl_obj)         {}
   set properties(b_extract_ip_sim_files) 0
+  set properties(b_dynamic_xpm_noc_compile) 0
 
   # fileset compile order
   variable l_compile_order_files     [list]
@@ -2699,13 +2732,13 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths] [getVipIncludeDirs] ] {
     if { [lsearch -exact $unique_directories $dir] == -1 } {
       lappend unique_directories $dir
-      lappend include_directories_options "\"+incdir+$dir\""
+      lappend include_directories_options "+incdir+\"$dir\""
     }
   }
 
     if { ( [ lsearch -exact $compiledLibraries "xilinx_vip" ] == -1 ) } {
 		if { [ llength $systemVerilogPackageLibraries ] > 0 } {
-			set incl_dir_opts "\\\"+incdir+[getVipIncludeDirs]\\\""
+			set incl_dir_opts "+incdir+\\\"[getVipIncludeDirs]\\\""
 			foreach file [ getXilinxVipFiles ] {
 				set fileType "SystemVerilog"
 				set g_files $global_files_str
@@ -2722,7 +2755,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
 		set dir "${data_dir}/xilinx_vip/include"
 		if { [lsearch -exact $unique_directories $dir] == -1 } {
 			lappend unique_directories $dir
-			lappend include_directories_options "\"+incdir+$dir\""
+			lappend include_directories_options "+incdir+\"$dir\""
 		}
 	}
 
@@ -2766,7 +2799,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
                 # get relative file path for the compiled library
                 set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
               }
-              #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+              #lappend l_C_incl_dirs_opts "+incdir+\"$incl_dir\""
               lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
 
               set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
@@ -2779,7 +2812,7 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
           if { !$properties(use_absolute_paths) } {
             set incl_dir "[usf_get_relative_file_path $incl_dir $properties(launch_directory)]"
           }
-          #lappend l_C_incl_dirs_opts "\"+incdir+$incl_dir\""
+          #lappend l_C_incl_dirs_opts "+incdir+\"$incl_dir\""
           lappend l_C_incl_dirs_opts "-I \"$incl_dir\""
 		  
 		  set ststemCLibraryPaths "$ststemCLibraryPaths -L $lib_path"
@@ -2803,7 +2836,23 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       }
     }
   }
-	
+
+  # force xpm noc files compilation  
+  if { ( [ lsearch -exact [ rdi::get_xpm_libraries ] "XPM_NOC" ] != -1 ) } {
+    set properties(b_dynamic_xpm_noc_compile) 1
+    set xpm_library "xpm_noc"
+    foreach file [rdi::get_xpm_files -library_name "XPM_NOC"] {
+      set file_type "SystemVerilog"
+      set g_files $global_files_str
+      set cmd_str [usf_get_file_cmd_str $file $file_type $g_files include_directories_options true $xpm_library ]
+
+      if { {} != $cmd_str } {
+        lappend files $cmd_str
+        lappend l_compile_order_files $file
+      }
+    }
+  }
+
   # prepare command line args for fileset files
   if { [usf_is_fileset $target_obj] } {
     set used_in_val "simulation"
@@ -2813,8 +2862,12 @@ proc usf_get_files_for_compilation_behav_sim { global_files_str_arg } {
       "BlockSrcs"      { set used_in_val "synthesis" }
     }
 
-	set b_using_xpm_libraries false
+    set b_using_xpm_libraries false
     foreach library [ getXpmLibraries ] {
+      if { $library == "XPM_NOC" } {
+        continue
+      }
+
       foreach file [rdi::get_xpm_files -library_name $library] {
         set file_type "SystemVerilog"
         set g_files $global_files_str
@@ -3111,7 +3164,7 @@ proc usf_get_files_for_compilation_post_sim { global_files_str_arg } {
   foreach dir [concat [usf_get_include_dirs] [usf_get_verilog_header_paths] [getVipIncludeDirs]] {
     if { [lsearch -exact $unique_directories $dir] == -1 } {
       lappend unique_directories $dir
-      lappend include_directories_options "\"+incdir+$dir\""
+      lappend include_directories_options "+incdir+\"$dir\""
     }
   }
 
@@ -3769,6 +3822,12 @@ proc usf_get_include_dirs { } {
       lappend incl_dirs $dir
     }
   }
+
+  set intf_incl_dir [ usf_add_axi_interface_header $properties(use_absolute_paths) $properties(launch_directory) ]
+  if { {} != $intf_incl_dir } {
+    lappend incl_dirs $intf_incl_dir
+  } 
+
   foreach vh_dir $incl_dirs {
     set vh_dir [string trim $vh_dir {\{\}}]
     lappend dir_names $vh_dir
@@ -4266,6 +4325,8 @@ proc usf_aldec_get_compiler_standard_by_file_type { file_type } {
             ActiveHDL { return "-sv2k12" }
           }
         }
+        2017 { return "-sv2k17" }
+        2023 { return "-sv2k23" }
       }
     }
   }
@@ -6258,7 +6319,7 @@ proc usf_get_c_incl_dirs { simulator launch_dir boost_dir c_filter s_ip_user_fil
 
     # make absolute
     if { $b_absolute_path } {
-      set dir "[xcs_resolve_file_path $dir $launch_dir]"
+      set dir "[usf_resolve_file_path $dir]"
     } else {
       if { $ref_dir } {
         if { $b_xport_src_files } {
@@ -6726,7 +6787,7 @@ proc getVlogOptions { } {
 		lappend vlogOptions "-incr"
 	}
 
-	if { [ llength [ getXpmLibraries ] ] > 0 && [ lsearch -exact $designLibraries "xpm" ] == -1 } {
+	if { [ llength [ getXpmLibraries ] ] > 0 && [ lsearch -exact $designLibraries "xpm" ] == -1 && [lsearch -exact $designLibraries "xpm_noc"] == -1 } {
 		lappend vlogOptions "-l xpm"
 	}
 
@@ -6738,6 +6799,10 @@ proc getVlogOptions { } {
 	set xilinxVipWasAdded 0
 	foreach lib $designLibraries {
 		if { [ string length $lib ] == 0 } {
+			continue;
+		}
+
+		if { $lib == "xpm" && [ lsearch -exact $designLibraries "xpm_noc" ] != -1 } {
 			continue;
 		}
 
@@ -6795,6 +6860,88 @@ proc cacheAllDesign { } {
     set name [ get_property -quiet "name" $fileName ]
     set a_sim_cache_all_design_files_obj($name) $fileName
   }
+}
+
+proc usf_insert_noc_sub_cores { _libraries } {
+	upvar $_libraries libraries
+
+	if { ( [ lsearch -exact [ rdi::get_xpm_libraries ] "XPM_NOC" ] != -1 ) } {
+		set compTypes [ rdi::get_noc_comp_types ]
+		set subcores [ rdi::get_noc_subcores ]
+
+		if { [ llength $compTypes ] == 0 } {
+			foreach core $subcores {
+				lappend libraries $core
+			}
+		} else {
+			set librariesMap [ list ]
+			lappend librariesMap [ list "PL_NMU" "noc_nmu_sim_v" ]
+			lappend librariesMap [ list "PL_NMU_2" "noc2_nmu_sim_v" ]
+			lappend librariesMap [ list "PL_NSU" "noc_nsu_sim_v" ]
+			lappend librariesMap [ list "PL_NSU_2" "noc2_nsu_sim_v" ]
+			lappend librariesMap [ list "HBM_NMU" "noc_hbm_nmu_sim_v" ]
+
+			foreach librayMap $librariesMap {
+				set compType [ lindex $librayMap 0 ]
+				set libraryName [ lindex $librayMap 1 ]
+
+				if { [ lsearch -exact $compTypes $compType ] != -1 } {
+					set libraryVersion [ findLibraryVersion $libraryName ]
+
+					if { $libraryVersion != "" } {
+						lappend libraries $libraryVersion
+					}
+				}
+			}
+		}
+	}
+}
+
+proc findLibraryVersion { _libraryName } {
+	set libraryLocation [ getCompiledLibraryLocation ]
+
+	foreach libraryDirectory [ glob -nocomplain -directory $libraryLocation * ] {
+        if { ![ file isdirectory $libraryDirectory ] } {
+			continue
+		}
+
+		set libraryName [ file tail $libraryDirectory ]
+
+		if { [ regexp "^$_libraryName.*" $libraryName ] } {
+			return $libraryName
+		}
+	}
+
+	return ""
+}
+
+proc usf_add_axi_interface_header { b_absolute_path dir } {
+  if { ![ info exists ::env(RDI_DATADIR) ] } {
+    return
+  }
+
+  set intf_incl_dir {}
+  set sep ";"
+
+  if { $::tcl_platform(platform) == "unix" } {
+    set sep ":"
+  }
+
+  foreach data_dir [ split $::env(RDI_DATADIR) $sep ] {
+    set path "$data_dir/rsb/busdef"
+
+    if { [ file exists $path ] } {
+      if { $b_absolute_path } {
+        set intf_incl_dir "[ usf_resolve_file_path $path ]"
+      } else {
+        set intf_incl_dir "[ usf_get_relative_file_path $path $dir ]"
+      }
+
+      break
+    }
+  }
+
+  return $intf_incl_dir
 }
 
 }
