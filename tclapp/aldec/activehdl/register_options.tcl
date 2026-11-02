@@ -8,7 +8,7 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::helpers 1.43
+package require ::tclapp::aldec::common::helpers 1.44
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -31,9 +31,9 @@ proc register_options { simulator } {
 
   set options {
     {{compile.tcl.pre}                                                 {string} {} {Specify pre-compile step TCL hook}}
-    {{compile.vhdl_syntax}                     {enum} {93 93 {93 2002 2008 2019}}  {Specify VHDL standard}}
-    {{compile.vlog_syntax}                     {enum} {2005 2005 {1995 2001 2005}} {Specify Verilog standard}}
-    {{compile.sv_syntax}                       {enum} {2012 2012 {2005 2009 2012}} {Specify SystemVerilog standard}}
+    {{compile.vhdl_syntax}                                             {enum} {93 93 {93 2002 2008 2019}}  {Specify VHDL standard}}
+    {{compile.vlog_syntax}                                             {enum} {2005 2005 {1995 2001 2005}} {Specify Verilog standard}}
+    {{compile.sv_syntax}                                               {enum} {2012 2012 {2005 2009 2012 2017 2023}} {Specify SystemVerilog standard}}
     {{compile.vhdl_relax}                                              {bool} {0}  {Relax strict VHDL LRM requirements}}
     {{compile.debug}                                                   {bool} {0}  {Generate debugging information}}
     {{compile.load_glbl}                                               {bool} {1}  {Load GLBL module}}    
@@ -53,13 +53,12 @@ proc register_options { simulator } {
     {{compile.enable_the_expressions_with_relational_operators}        {bool} {0}  {Enable Expression/Condition Coverage for expressions and conditions with relational operators}}
     {{compile.enable_the_expressions_returning_vectors}                {bool} {0}  {Enable Expression/Condition Coverage for expressions returning vectors}}
     {{compile.enable_fsm_sequences_in_fsm_coverage}                    {bool} {0}  {Enable data collection for FSM sequence coverage}}
-    {{compile.basic_libraries}                                         {bool} {1}  {Detaches global libraries and attaches libraries from compiled library location}}
 
-    {{elaborate.access}  {bool} {0} {Enable access to objects optimized by default}}
+    {{elaborate.access}  {bool} {0} {Disable access to objects optimized by default}}
     {{elaborate.unifast} {bool} {0} {Enable fast simulation models}}
 
-    {{simulate.custom_do}            {string} {}       {Specify a custom macro that will be launched from the simulation macro}}
-    {{simulate.custom_udo}           {string} {}       {Specify a user macro that will replace the simulation macro}}
+    {{simulate.custom_do}            {string} {}       {Specify a user macro that will replace the simulation macro}}
+    {{simulate.custom_udo}           {string} {}       {Specify a custom macro that will be launched from the simulation macro}}
     {{simulate.tcl.post}             {string} {}       {Specify post-simulate step TCL hook}}
     {{simulate.runtime}              {string} {1000ns} {Specify simulation run time}}
     {{simulate.log_all_signals}      {bool}   {0}      {Log all signals in simulation database}}

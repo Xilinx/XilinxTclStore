@@ -8,8 +8,8 @@
 
 package require Vivado 1.2014.1
 
-package require ::tclapp::aldec::common::sim 1.43
-package require ::tclapp::aldec::common::helpers 1.43
+package require ::tclapp::aldec::common::sim 1.44
+package require ::tclapp::aldec::common::helpers 1.44
 
 namespace eval ::tclapp::aldec::activehdl {
 
@@ -55,6 +55,14 @@ proc simulate { args } {
   return [eval ::tclapp::aldec::common::sim::simulate $args]
 }
 
+proc showHelp { args } {
+  return [eval ::tclapp::aldec::common::sim::showHelp $args]
+}
+
+proc printMessage { args } {
+  return [ eval ::tclapp::aldec::common::sim::printMessage $args ]
+}
+
 proc export_simulation { args } {
   # Summary: export compilation and simulation scripts
 
@@ -79,21 +87,33 @@ proc export_simulation { args } {
 
   # export scripts
   set switches "-generate_scripts_only"
+  set isHelpSwich 0
+  set isRunDir 0
 
   for { set i 0 } { $i < [llength $args] } { incr i } {
     set option [string trim [lindex $args $i]]
     switch -regexp -- $option {
       "-lib_map_path"   { incr i; append switches " -lib_map_path \{[lindex $args $i]\}" }
-      "-run_dir"        { incr i; append switches " -run_dir \{[lindex $args $i]\}" }
-      "-mode"        { incr i; append switches " -mode [lindex $args $i]" }
-      "-type"        { incr i; append switches " -type [lindex $args $i]" }
+      "-run_dir"        { incr i; append switches " -run_dir \{[lindex $args $i]\}"; set isRunDir 1 }
+      "-install_path"   { incr i; append switches " -install_path \{[lindex $args $i]\}" }
+      "-mode"           { incr i; append switches " -mode [lindex $args $i]" }
+      "-type"           { incr i; append switches " -type [lindex $args $i]" }
+      "-help"           { set isHelpSwich 1 }
     }
   }
 
-  setup "\{ $switches \}"
-  compile
-  elaborate
-  simulate
+  if { $isHelpSwich } {
+    showHelp
+  } else {
+    if { !$isRunDir } {
+      printMessage "Mandatory parameter -run_dir is missing from export_simulation." ERROR 114 
+    } else {
+      setup "\{ $switches \}"
+      compile
+      elaborate
+      simulate
+    }
+  }
 
   # restore previous simulator
   if { $currentSimulator != "" } {

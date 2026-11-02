@@ -2,7 +2,7 @@
 <catalog>
   <apps>
     <app>
-      <revision_history>BKO2341 - Add support for axi stream transactions</revision_history>
+      <revision_history>BKO2419 - Add support for XPM_NOC library compilation</revision_history>
       <name>riviera</name>
       <pkg_require>Vivado 2014.1</pkg_require>
       <company>aldec</company>
