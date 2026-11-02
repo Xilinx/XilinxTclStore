@@ -1421,8 +1421,9 @@ proc write_properties { prop_info_list get_what tcl_obj {delim "#"} } {
         set cmd_str "  set_property -name \"$name\" -value \"$value\" -objects"
         set b_add_closing_brace 1
       } else {
-        if { [ string first "more option" $name ] != -1 } {
-          set cmd_str "set_property -name \"$name\" -value \{$value\} -objects"
+        # free-form option strings (synth "more options", sim *.more_options) may carry quotes/braces; list-quote them
+        if { [regexp -nocase {more[ _]option} $name] } {
+          set cmd_str "set_property -name \"$name\" -value [list $value] -objects"
         } else {
           set cmd_str "set_property -name \"$name\" -value \"$value\" -objects"
         }
