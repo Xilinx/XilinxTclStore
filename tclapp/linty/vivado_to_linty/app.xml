@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<catalog>
+  <apps>
+    <app>
+      <revision_history>Initial version</revision_history>
+      <name>vivado_to_linty</name>
+      <company>linty</company>
+      <company_display>Linty</company_display>
+      <summary>Generate Linty elaboration scripts from the open Vivado project. All files are generated in the .linty directory.</summary>
+      <display>Vivado to Linty</display>
+      <author>David Racodon</author>
+      <procs>
+        <proc>
+          <name>run</name>
+          <summary>Generate Linty elaboration scripts from the open Vivado project. All files are generated in the .linty directory.</summary>
+        </proc>
+      </procs>
+    </app>
+  </apps>
+</catalog>

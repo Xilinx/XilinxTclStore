@@ -1,0 +1,12 @@
+Vivado to Linty
+
+Generate Linty elaboration scripts from the open Vivado project. All files are generated in the .linty directory.
+
+The only exported command is run, in the ::tclapp::linty::vivado_to_linty namespace.
+
+  Vivado% package require ::tclapp::linty::vivado_to_linty
+  Vivado% ::tclapp::linty::vivado_to_linty::run
+
+The command writes read.ys and hierarchy.ys under .linty/yosys
+in the parent of the Vivado project directory. Files that are not emitted,
+such as EDIF, are printed to the console.

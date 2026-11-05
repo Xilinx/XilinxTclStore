@@ -1,0 +1,8 @@
+Generate Linty elaboration scripts for the open Vivado project.
+
+The command takes no arguments. A project must already be open, and the source fileset must have a top module. It writes two files under .linty/yosys in the parent of the Vivado project directory:
+
+  read.ys        Yosys script that reads the synthesis sources
+  hierarchy.ys   Yosys script that elaborates the top module
+
+Files that are not emitted as HDL reads, such as EDIF, are printed to the console.
